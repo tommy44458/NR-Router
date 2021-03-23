@@ -10,7 +10,7 @@ try:
     __location__ = os.path.realpath(
         os.path.join(os.getcwd(), os.path.dirname(__file__)))
 except:
-    __location__ = '/Users/tommy/Documents/tommy/test_jia/src/controller'
+    __location__ = '/Users/tommy/Documents/tommy/nr-router'
     
 _use_ewd_file = False
 
@@ -1054,7 +1054,7 @@ for i in range (grids2_length[0]):
 ewd_content = []
 
 if _use_ewd_file == True:
-    dir = os.path.join(__location__, 'test2.ewd')
+    dir = os.path.join(__location__, 'ewd/test2.ewd')
     readfile = open(dir, "r")
     for index, line in enumerate(readfile):
         ewd_input+=line
@@ -2118,13 +2118,13 @@ def draw_all_path(electrode_wire, dxf, grids2):
                             electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,
                             electrode_wire[i][j+1].end_x,electrode_wire[i][j+1].end_y,100,connect,dxf)
                         
-with r12writer(ewd_name + '.dwg') as dxf:
+with r12writer('dwg/' + ewd_name + '.dwg') as dxf:
     draw_contact_pads(contactpads, dxf)
     draw_electrodes(electrodes, dxf)
     draw_all_path(electrode_wire, dxf, grids2)
     
 response = ''
-with open(ewd_name + '.dwg') as f:
+with open('dwg/' + ewd_name + '.dwg') as f:
     for line in f.readlines():
         response = response + line
         
