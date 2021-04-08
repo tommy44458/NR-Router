@@ -203,12 +203,12 @@ start_nodes = []
 end_nodes = []
 capacities = []
 unit_costs = []
-supplies = [0 for i in range(len(flownodes))]
+supplies = [0 for i in range(len(_flow.flownodes))]
 num_supply = 0
 tmp_c=0
 
-for node in flownodes:
-    if type(node) == Tile and node.index != global_t.index:
+for node in _flow.flownodes:
+    if type(node) == Tile and node.index != _flow.global_t.index:
         #pseudo two layer
         start_nodes.append(node.index+1)
         end_nodes.append(node.index)
@@ -227,7 +227,7 @@ for node in flownodes:
             capacities.append(1)
             unit_costs.append(1)
         supplies[node.index] = 0
-    elif type(node) == Tile and node.index==global_t.index:
+    elif type(node) == Tile and node.index==_flow.global_t.index:
         for cp_node in node.contact_pads:
             start_nodes.append(cp_node.index)
             end_nodes.append(node.index)
@@ -250,7 +250,7 @@ for node in flownodes:
                 unit_costs.append(int(nb_node[2]))
         if len(node.neighbor_electrode) > 0:
             for ne_node in node.neighbor_electrode:
-                start_nodes.append(electrodes[ne_node[0]].index)
+                start_nodes.append(_mesh.electrodes[ne_node[0]].index)
                 end_nodes.append(node.index+1)
                 capacities.append(1)
                 if ne_node[1]==1 or ne_node[1]==6:
@@ -269,7 +269,7 @@ for node in flownodes:
         supplies[node.index] = 1
         num_supply+=1
         
-supplies[global_t.index] = -num_supply
+supplies[_flow.global_t.index] = -num_supply
 
 ### ortool
 from ortools.graph import pywrapgraph
@@ -293,67 +293,67 @@ MaxFlowWithMinCost = min_cost_flow.SolveMaxFlowWithMinCost()
 
 #Find the minimum cost flow between node 0 and node 4.
 all_path = []
-electrode_wire=[[] for _ in range(num_electrode)]
+electrode_wire=[[] for _ in range(_mesh.num_electrode)]
 if MaxFlowWithMinCost == min_cost_flow.OPTIMAL and len(electrode_wire) > 0:
 #     print('Minimum cost:', min_cost_flow.OptimalCost())	
     for i in range(min_cost_flow.NumArcs()):
         if min_cost_flow.Flow(i) != 0:
             head = min_cost_flow.Tail(i)
             tail = min_cost_flow.Head(i)
-            if flownodes[head] == 0:
+            if _flow.flownodes[head] == 0:
                 pass
-            if flownodes[tail] == 0:
+            if _flow.flownodes[tail] == 0:
                 tail -= 1
 
-            if type(flownodes[head]) == Electrode and type(flownodes[tail]) == Grid:
+            if type(_flow.flownodes[head]) == Electrode and type(_flow.flownodes[tail]) == Grid:
                 index_list = []
-                tmp_x = flownodes[tail].grid_x
-                tmp_y = flownodes[tail].grid_y
-                for en_node in flownodes[tail].neighbor_electrode:
-                    if en_node[0] == flownodes[head].electrode_index:
+                tmp_x = _flow.flownodes[tail].grid_x
+                tmp_y = _flow.flownodes[tail].grid_y
+                for en_node in _flow.flownodes[tail].neighbor_electrode:
+                    if en_node[0] == _flow.flownodes[head].electrode_index:
                         index_list.append([en_node[1],en_node[2],en_node[3]])
                 if len(index_list)==1: ## only belong to ONE Electrode
-                    E_x = grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_x
-                    E_y = grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_y
-                    Shift_x = E_x - grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
-                    Shift_y = E_y - grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
-                    #all_path.append(Wire(int(grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x),int(grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y),int(flownodes[tail].real_x),int(flownodes[tail].real_y)))
-                    all_path.append(Wire(int(E_x),int(E_y),int(flownodes[tail].real_x+Shift_x),int(flownodes[tail].real_y+Shift_y)))
-                    all_path.append(Wire(int(flownodes[tail].real_x+Shift_x),int(flownodes[tail].real_y+Shift_y),int(flownodes[tail].real_x),int(flownodes[tail].real_y)))
+                    E_x = _mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_x
+                    E_y = _mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_y
+                    Shift_x = E_x - _mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
+                    Shift_y = E_y - _mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
+                    #all_path.append(Wire(int(_mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x),int(_mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y),int(_flow.flownodes[tail].real_x),int(_flow.flownodes[tail].real_y)))
+                    all_path.append(Wire(int(E_x),int(E_y),int(_flow.flownodes[tail].real_x+Shift_x),int(_flow.flownodes[tail].real_y+Shift_y)))
+                    all_path.append(Wire(int(_flow.flownodes[tail].real_x+Shift_x),int(_flow.flownodes[tail].real_y+Shift_y),int(_flow.flownodes[tail].real_x),int(_flow.flownodes[tail].real_y)))
                 else:
                     for nb_list in index_list:
                         if nb_list[0] == 1 or nb_list[0] == 6: ## dir of electrode left-top & right-top only have ONE E
-                            if grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2!=0:
-                                grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y=grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2
-                            all_path.append(Wire(int(grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(flownodes[tail].real_x),int(flownodes[tail].real_y)))
+                            if _mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2!=0:
+                                _mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y=_mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2
+                            all_path.append(Wire(int(_mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(_mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(_flow.flownodes[tail].real_x),int(_flow.flownodes[tail].real_y)))
                         if nb_list[0] == 3 or nb_list[0] == 4:
-                            all_path.append(Wire(int(grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(flownodes[tail].real_x),int(flownodes[tail].real_y)))
-            elif type(flownodes[head]) == Grid and type(flownodes[tail]) == Grid:
-                all_path.append(Wire(int(flownodes[head].real_x),int(flownodes[head].real_y),int(flownodes[tail].real_x),int(flownodes[tail].real_y)))
-                flownodes[head].flow=1
-                flownodes[tail].flow=1
-            elif type(flownodes[head]) == Grid and type(flownodes[tail]) == Hub:
-                all_path.append(Wire(int(flownodes[head].real_x),int(flownodes[head].real_y),int(flownodes[tail].real_x),int(flownodes[tail].real_y)))
-            elif type(flownodes[head]) == Hub and type(flownodes[tail]) == Grid:
-                all_path.append(Wire(int(flownodes[head].real_x),int(flownodes[head].real_y),int(flownodes[tail].real_x),int(flownodes[tail].real_y)))
-            elif type(flownodes[head]) == Hub and type(flownodes[tail]) == Tile:
-                all_path.append(Wire(int(flownodes[head].real_x),int(flownodes[head].real_y),int(flownodes[head].real_x),int(flownodes[tail].real_y)))
-                if flownodes[head].hub_index%3 == 1:
-                    flownodes[tail].flow[0]=1
-                elif flownodes[head].hub_index%3 == 2:
-                    flownodes[tail].flow[1]=1
-            elif type(flownodes[head]) == Tile and type(flownodes[tail]) == Tile:
-                flownodes[head].total_flow+=min_cost_flow.Flow(i)
-                if flownodes[head].tile_x == flownodes[tail].tile_x:
-                    flownodes[head].vertical_path.append(flownodes[tail])
-                elif flownodes[head].tile_y == flownodes[tail].tile_y:
-                    flownodes[head].horizontal_path.append(flownodes[tail])
-            elif type(flownodes[head]) == Tile and type(flownodes[tail]) == Grid:
-                flownodes[head].corner_in.append(flownodes[tail])
+                            all_path.append(Wire(int(_mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(_mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(_flow.flownodes[tail].real_x),int(_flow.flownodes[tail].real_y)))
+            elif type(_flow.flownodes[head]) == Grid and type(_flow.flownodes[tail]) == Grid:
+                all_path.append(Wire(int(_flow.flownodes[head].real_x),int(_flow.flownodes[head].real_y),int(_flow.flownodes[tail].real_x),int(_flow.flownodes[tail].real_y)))
+                _flow.flownodes[head].flow=1
+                _flow.flownodes[tail].flow=1
+            elif type(_flow.flownodes[head]) == Grid and type(_flow.flownodes[tail]) == Hub:
+                all_path.append(Wire(int(_flow.flownodes[head].real_x),int(_flow.flownodes[head].real_y),int(_flow.flownodes[tail].real_x),int(_flow.flownodes[tail].real_y)))
+            elif type(_flow.flownodes[head]) == Hub and type(_flow.flownodes[tail]) == Grid:
+                all_path.append(Wire(int(_flow.flownodes[head].real_x),int(_flow.flownodes[head].real_y),int(_flow.flownodes[tail].real_x),int(_flow.flownodes[tail].real_y)))
+            elif type(_flow.flownodes[head]) == Hub and type(_flow.flownodes[tail]) == Tile:
+                all_path.append(Wire(int(_flow.flownodes[head].real_x),int(_flow.flownodes[head].real_y),int(_flow.flownodes[head].real_x),int(_flow.flownodes[tail].real_y)))
+                if _flow.flownodes[head].hub_index%3 == 1:
+                    _flow.flownodes[tail].flow[0]=1
+                elif _flow.flownodes[head].hub_index%3 == 2:
+                    _flow.flownodes[tail].flow[1]=1
+            elif type(_flow.flownodes[head]) == Tile and type(_flow.flownodes[tail]) == Tile:
+                _flow.flownodes[head].total_flow+=min_cost_flow.Flow(i)
+                if _flow.flownodes[head].tile_x == _flow.flownodes[tail].tile_x:
+                    _flow.flownodes[head].vertical_path.append(_flow.flownodes[tail])
+                elif _flow.flownodes[head].tile_y == _flow.flownodes[tail].tile_y:
+                    _flow.flownodes[head].horizontal_path.append(_flow.flownodes[tail])
+            elif type(_flow.flownodes[head]) == Tile and type(_flow.flownodes[tail]) == Grid:
+                _flow.flownodes[head].corner_in.append(_flow.flownodes[tail])
     
 if MaxFlowWithMinCost == min_cost_flow.OPTIMAL and len(electrode_wire) > 0:
-    create_tiles_path(tiles1_length,tiles1,tiles1_length[1]-1,-1,-1,all_path)
-    create_tiles_path(tiles3_length,tiles3,0,tiles1_length[1],1,all_path)
+    _flow.create_tiles_path(_mesh.tiles1_length,_mesh.tiles1,_mesh.hubs1,_mesh.tiles1_length[1]-1,-1,-1,all_path)
+    _flow.create_tiles_path(_mesh.tiles3_length,_mesh.tiles3,_mesh.hubs3,0,_mesh.tiles1_length[1],1,all_path)
 #     print("all_path = ",len(all_path))
 
 if MaxFlowWithMinCost == min_cost_flow.OPTIMAL and len(electrode_wire) > 0:

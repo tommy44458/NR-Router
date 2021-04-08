@@ -682,21 +682,26 @@ class Draw():
                             if grids2[check_grid_x,check_grid_y].flow == 0 and grids2[check_grid_x,check_grid_y].safe_distance==0 and grids2[check_grid_x,check_grid_y].safe_distance2==0:
                                 k=1
                                 no_path=0
-                                while electrode_wire[i][j+k].start_x!=electrode_wire[i][j+k].end_x:
+                                while j+k < len(electrode_wire[i]) and electrode_wire[i][j+k].start_x!=electrode_wire[i][j+k].end_x:
                                     check_grid_x = (electrode_wire[i][j+k].start_x-block2_shift[0])//Tile_Unit
                                     check_grid_y = (electrode_wire[i][j+k].end_y-block2_shift[1])//Tile_Unit
-                                    if grids2[check_grid_x,check_grid_y].flow != 0:# or grids2[check_grid_x,check_grid_y].safe_distance2==1 or grids2[check_grid_x,check_grid_y].safe_distance==1:
-                                        no_path=1
-                                    if electrode_wire[i][j+k].start_y < block2_shift[1]+Tile_Unit*2 or electrode_wire[i][j+k].start_y > block2_shift[1]+46000-Tile_Unit*2:
-                                        no_path=1
-                                    k+=1
+                                    try:
+                                        if grids2[check_grid_x,check_grid_y].flow != 0:
+                                        # or grids2[check_grid_x,check_grid_y].safe_distance2==1 or grids2[check_grid_x,check_grid_y].safe_distance==1:
+                                            no_path=1
+                                        if electrode_wire[i][j+k].start_y < block2_shift[1]+Tile_Unit*2 or electrode_wire[i][j+k].start_y > block2_shift[1]+46000-Tile_Unit*2:
+                                            no_path=1
+                                    except:
+                                        break
+                                    finally:
+                                        k+=1
                                 if no_path==0:
                                     #check_grid_flow=0
                                     grids2[check_grid_x,check_grid_y].flow=1
                                     grids2[check_grid_x+np.sign(electrode_wire[i][j].end_x-electrode_wire[i][j].start_x),check_grid_y].flow=0
                                     electrode_wire[i][j].end_x = electrode_wire[i][j].start_x
                                     k=1
-                                    while electrode_wire[i][j+k].start_x!=electrode_wire[i][j+k].end_x:# and check_grid_flow==0:
+                                    while j+k < len(electrode_wire[i]) and electrode_wire[i][j+k].start_x!=electrode_wire[i][j+k].end_x:# and check_grid_flow==0:
                                         check_grid_x = (electrode_wire[i][j+k].start_x-block2_shift[0])//Tile_Unit
                                         check_grid_y = (electrode_wire[i][j+k].end_y-block2_shift[1])//Tile_Unit	
                                         grids2[check_grid_x,check_grid_y].flow=1
