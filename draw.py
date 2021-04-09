@@ -25,7 +25,9 @@ class Draw():
         deg_90_UD = 0
         deg_90_RL = 0
         deg_45 = 0
-        Tan = 82.842712/2
+        # Tan = 82.842712 / 2 #82.842712/2
+        Tan = 41.421356237
+        # print('*********************', Tan)
         if width==50:
             Tan=(Tan/2)
 
@@ -211,7 +213,12 @@ class Draw():
         position_e1 = [x3+width*degree2[1],y3-width*degree2[0],Degree.inner_degree(x3+width*degree2[1],y3-width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
         position_e2	= [x3-width*degree2[1],y3+width*degree2[0],Degree.inner_degree(x3-width*degree2[1],y3+width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
         if deg_45!=0 :
-            dxf.add_solid([(x3,y3+width),(x3-width,y3),(x3+width,y3),(x3,y3-width)])
+            ### 轉彎缺口
+
+            # dxf.add_solid([(x3,y3+width),(x3-width,y3),(x3+width,y3),(x3,y3-width)])
+            # print('***************', [(x3,y3+width),(x3-width,y3),(x3+width,y3),(x3,y3-width)])
+            # print('***************', [(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3-(width*Tan/100)),(x3-(width/2),y3-(width*Tan/100))])
+            # dxf.add_solid([(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3-(width*Tan/100)),(x3-(width/2),y3-(width*Tan/100))])
 
             if deg_45==1:
                 if x3==x4:
@@ -361,7 +368,7 @@ class Draw():
         y2 = -y2
         y3 = -y3
         degree1 = Degree.getdegree(x1,y1,x2,y2)
-        Tan=41/2
+        Tan=41.421356237
         if x1 != x2 and y1 != y2:
             S1=(x1-width*degree1[1],y1+width*degree1[0])
             S2=(x1+width*degree1[1],y1-width*degree1[0])
@@ -411,8 +418,14 @@ class Draw():
 
     def draw_end(self, x1,y1,x2,y2,x3,y3,width,dxf,connect):
         y1 = -y1
-        y2=-y2
-        y3=-y3
+        y2 = -y2
+        y3 = -y3
+        # align to agr 90 (only 90 or 45)
+        if abs(y2 - y3) != abs(x2 - x3):
+            if abs(y2 - y3) < abs(x2 - x3):
+                y3 = y2
+            else:
+                x3 = x2
         position1 = []
         position2 = []
         degree1 = Degree.getdegree(x1,y1,x2,y2)
@@ -432,10 +445,13 @@ class Draw():
         elif x2 == x3:
             degree1 = (0,1)
             degree2 = (0,1)
+        
+        # if abs(y2 - y3) != abs(x2 - x3):
+
         position_s1 = [x2-width*degree1[1],y2+width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
         position_s2 = [x2+width*degree1[1],y2-width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
         deg_45=0
-        Tan = 82.842712/2
+        Tan = 41.421356237
         if x2!=x3 and y2!=y3:
             if x2>x3:
                 if y2>y3:
@@ -448,7 +464,7 @@ class Draw():
                 elif y2<y3:
                     deg_45=4
         if deg_45!=0:
-            dxf.add_solid([(x2,y2+width),(x2-width,y2),(x2+width,y2),(x2,y2-width)])
+            # dxf.add_solid([(x2,y2+width),(x2-width,y2),(x2+width,y2),(x2,y2-width)])
             if deg_45==1:
                 if x1==x2:
                     position_s1[0]=x2-width
