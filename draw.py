@@ -31,6 +31,13 @@ class Draw():
         if width==50:
             Tan=(Tan/2)
 
+        # align because hub axis
+        if abs(y3 - y4) != abs(x3 - x4):
+            if abs(y3 - y4) < abs(x3 - x4):
+                y4 = y3
+            else:
+                x4 = x3
+
         degree1 = Degree.getdegree(x1,y1,x2,y2)
         degree2 = Degree.getdegree(x2,y2,x3,y3)
         if x2==x3 and y2==y3:
@@ -160,7 +167,7 @@ class Draw():
                     position_s1[1]=y2+width
                     position_s2[0]=x2+Tan
                     position_s2[1]=y2-width
-        elif x1!=x2 and y1!=y2 and connect!=1:#and width!=50:
+        elif x1!=x2 and y1!=y2:#and width!=50:
             if x1>x2:
                 if y1>y2:
                     if y2==y3:
@@ -450,6 +457,8 @@ class Draw():
         position_s1 = [x2-width*degree1[1],y2+width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
         position_s2 = [x2+width*degree1[1],y2-width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
         deg_45=0
+        # 4/\1
+        # 3\/2
         Tan = 0.41421356237 * width
         if x2!=x3 and y2!=y3:
             if x2>x3:
@@ -508,7 +517,7 @@ class Draw():
                     position_s1[1]=y2+width
                     position_s2[0]=x2+Tan
                     position_s2[1]=y2-width
-        elif x1!=x2 and y1!=y2 and connect!=1 and width!=50:
+        elif x1!=x2 and y1!=y2:
             if x1>x2:
                 if y1>y2:
                     if y2==y3:
