@@ -57,6 +57,21 @@ class Mesh():
         self.electrodes = []
         self.contactpads = []
 
+    def point_distance_line(self, point, line_point1, line_point2):
+        vec1 = line_point1 - point
+        vec2 = line_point2 - point
+        distance = np.abs(np.cross(vec1,vec2)) / np.linalg.norm(line_point1-line_point2)
+        return distance
+
+    def clockwise_angle(self, v1, v2):
+        x1,y1 = v1
+        x2,y2 = v2
+        dot = x1*x2+y1*y2
+        det = x1*y2-y1*x2
+        theta = np.arctan2(det, dot)
+        theta = theta if theta>0 else 2*np.pi+theta
+        return (theta*180/np.pi)
+
     def create_block(self, x, y, grids, tiles, block_shift, UNIT_LENGTH):
         for i in range(x):
             for j in range(y):
@@ -387,76 +402,11 @@ class Mesh():
                             boundary_U=y1
                         if y1>boundary_D:
                             boundary_D=y1
-                        # check_corner=0
-                        if x1==x2: ## liking grid and elector
-                            if y1<y2:#downward
-                                E_grid_x1+=1
 
-                                E_grid_y1+=1
-                                for k in range(E_grid_y2 - E_grid_y1 + 1):
-                                    self.grids2[E_grid_x1][E_grid_y1+k].electrode_index=self.num_electrode #elector into grid
-                                    self.grids2[E_grid_x1][E_grid_y1+k].type+=1
-                                    self.grids2[E_grid_x1][E_grid_y1+k].electrode_x = x1 
-                                    self.grids2[E_grid_x1][E_grid_y1+k].electrode_y = self.grids2[E_grid_x1][E_grid_y1+k].real_y
-                                    # if (self.grids2[E_grid_x1][E_grid_y1-1].electrode_index == self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
-                                    #     self.grids2[E_grid_x1][E_grid_y1+k].electrode_x = x1 
-                                    #     self.grids2[E_grid_x1][E_grid_y1+k].electrode_y = self.grids2[E_grid_x1][E_grid_y1+k].real_y
-                                    # else:
-                                    # print('d', E_grid_x1, E_grid_y1+k, k)
-                            elif y1>y2:#upward
-                                # E_grid_x1-=1
+                        ang = self.clockwise_angle([0, 1], [x1-x2, y1-y2])
 
-                                E_grid_y2+=1
-                                for k in range(E_grid_y1-E_grid_y2+1):
-                                    self.grids2[E_grid_x1][E_grid_y1-k].electrode_index=self.num_electrode
-                                    self.grids2[E_grid_x1][E_grid_y1-k].type+=1
-                                    self.grids2[E_grid_x1][E_grid_y1-k].electrode_x = x1 
-                                    self.grids2[E_grid_x1][E_grid_y1-k].electrode_y = self.grids2[E_grid_x1][E_grid_y1-k].real_y
-                                    # if (self.grids2[E_grid_x1][E_grid_y1+1].electrode_index == self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
-                                    #     self.grids2[E_grid_x1][E_grid_y1-k].electrode_x = x1 
-                                    #     self.grids2[E_grid_x1][E_grid_y1-k].electrode_y = self.grids2[E_grid_x1][E_grid_y1-k].real_y
-                                    # else:
-                                    # print('u', E_grid_x1, E_grid_y1-k, k)
-                        elif y1==y2:
-                            if x1<x2:#----------------->
-                                # E_grid_y1-=1
-
-                                E_grid_x1+=1
-                                for k in range(E_grid_x2-E_grid_x1+1):
-                                    self.grids2[E_grid_x1+k][E_grid_y1].electrode_index=self.num_electrode
-                                    self.grids2[E_grid_x1+k][E_grid_y1].type+=1
-                                    self.grids2[E_grid_x1+k][E_grid_y1].electrode_x = self.grids2[E_grid_x1+k][E_grid_y1].real_x
-                                    self.grids2[E_grid_x1+k][E_grid_y1].electrode_y = y1
-                                    # if (self.grids2[E_grid_x1-1][E_grid_y1].electrode_index==self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
-                                    #     self.grids2[E_grid_x1+k][E_grid_y1].electrode_x = self.grids2[E_grid_x1+k][E_grid_y1].real_x
-                                    #     self.grids2[E_grid_x1+k][E_grid_y1].electrode_y = y1
-                                    # else:
-                                    # print('->', E_grid_x1+k, E_grid_y1, k)
-                            elif x1>x2:#<-----------------
-                                E_grid_y1+=1
-
-                                # E_grid_x2+=1
-                                for k in range(E_grid_x1-E_grid_x2+1):
-                                    self.grids2[E_grid_x1-k][E_grid_y1].electrode_index=self.num_electrode
-                                    self.grids2[E_grid_x1-k][E_grid_y1].type+=1
-                                    self.grids2[E_grid_x1-k][E_grid_y1].electrode_x = self.grids2[E_grid_x1-k][E_grid_y1].real_x
-                                    self.grids2[E_grid_x1-k][E_grid_y1].electrode_y = y1
-                                    # if (self.grids2[E_grid_x1+1][E_grid_y1].electrode_index==self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
-                                    #     self.grids2[E_grid_x1-k][E_grid_y1].electrode_x = self.grids2[E_grid_x1-k][E_grid_y1].real_x
-                                    #     self.grids2[E_grid_x1-k][E_grid_y1].electrode_y = y1
-                                    # else:
-                                    # print('<-', E_grid_x1-k, E_grid_y1, k)
-                    for j in range(len(electrode_shape_path)-1):
-                        x1 = true_x+electrode_shape_path[j][0]
-                        y1 = true_y+electrode_shape_path[j][1]
-                        x2 = true_x+electrode_shape_path[j+1][0]
-                        y2 = true_y+electrode_shape_path[j+1][1]
-                        E_grid_x1 = (x1-self.block2_shift[0]) // self.Tile_Unit
-                        E_grid_x2 = (x2-self.block2_shift[0]) // self.Tile_Unit
-                        E_grid_y1 = (y1-self.block2_shift[1]) // self.Tile_Unit
-                        E_grid_y2 = (y2-self.block2_shift[1]) // self.Tile_Unit
-
-                        if x1 != x2 and y1 != y2:
+                        ######### 有角度
+                        if ang % 90 != 0:
                             # if (num_electrode == 1):
                             #     print('----',E_grid_x1,E_grid_y1, E_grid_x2,E_grid_y2)
                             # self.grids2[E_grid_x2,E_grid_y2].electrode_index=num_electrode
@@ -550,6 +500,127 @@ class Mesh():
                                     # self.grids2[E_grid_x1,E_grid_y1].electrode_y2 = y1
                                     # self.grids2[E_grid_x2-1,E_grid_y1-1].electrode_y2 = y1
                                     # print( '5', E_grid_x1, E_grid_y1, E_grid_x2, E_grid_y2)
+
+                        # check_corner=0
+                        ######### 直線
+                        else:
+                            ## ->
+                            if ang == 90:
+                                # E_grid_y1-=1
+                                E_grid_x1+=1
+                                for k in range(E_grid_x2-E_grid_x1+1):
+                                    self.grids2[E_grid_x1+k][E_grid_y1].electrode_index=self.num_electrode
+                                    self.grids2[E_grid_x1+k][E_grid_y1].type+=1
+                                    self.grids2[E_grid_x1+k][E_grid_y1].electrode_x = self.grids2[E_grid_x1+k][E_grid_y1].real_x
+                                    self.grids2[E_grid_x1+k][E_grid_y1].electrode_y = y1
+                                    # if (self.grids2[E_grid_x1-1][E_grid_y1].electrode_index==self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
+                                    #     self.grids2[E_grid_x1+k][E_grid_y1].electrode_x = self.grids2[E_grid_x1+k][E_grid_y1].real_x
+                                    #     self.grids2[E_grid_x1+k][E_grid_y1].electrode_y = y1
+                                    # else:
+                                    # print('->', E_grid_x1+k, E_grid_y1, k)
+                            ## | down
+                            elif ang == 180:
+                                E_grid_x1+=1
+                                E_grid_y1+=1
+                                for k in range(E_grid_y2 - E_grid_y1 + 1):
+                                    self.grids2[E_grid_x1][E_grid_y1+k].electrode_index=self.num_electrode #elector into grid
+                                    self.grids2[E_grid_x1][E_grid_y1+k].type+=1
+                                    self.grids2[E_grid_x1][E_grid_y1+k].electrode_x = x1 
+                                    self.grids2[E_grid_x1][E_grid_y1+k].electrode_y = self.grids2[E_grid_x1][E_grid_y1+k].real_y
+                                    # if (self.grids2[E_grid_x1][E_grid_y1-1].electrode_index == self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
+                                    #     self.grids2[E_grid_x1][E_grid_y1+k].electrode_x = x1 
+                                    #     self.grids2[E_grid_x1][E_grid_y1+k].electrode_y = self.grids2[E_grid_x1][E_grid_y1+k].real_y
+                                    # else:
+                                    # print('d', E_grid_x1, E_grid_y1+k, k)
+                            ## <-
+                            elif ang == 270:
+                                E_grid_y1+=1
+                                # E_grid_x2+=1
+                                for k in range(E_grid_x1-E_grid_x2+1):
+                                    self.grids2[E_grid_x1-k][E_grid_y1].electrode_index=self.num_electrode
+                                    self.grids2[E_grid_x1-k][E_grid_y1].type+=1
+                                    self.grids2[E_grid_x1-k][E_grid_y1].electrode_x = self.grids2[E_grid_x1-k][E_grid_y1].real_x
+                                    self.grids2[E_grid_x1-k][E_grid_y1].electrode_y = y1
+                                    # if (self.grids2[E_grid_x1+1][E_grid_y1].electrode_index==self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
+                                    #     self.grids2[E_grid_x1-k][E_grid_y1].electrode_x = self.grids2[E_grid_x1-k][E_grid_y1].real_x
+                                    #     self.grids2[E_grid_x1-k][E_grid_y1].electrode_y = y1
+                                    # else:
+                                    # print('<-', E_grid_x1-k, E_grid_y1, k)
+                            ## | up
+                            elif ang == 360:
+                                # E_grid_x1-=1
+                                E_grid_y2+=1
+                                for k in range(E_grid_y1-E_grid_y2+1):
+                                    self.grids2[E_grid_x1][E_grid_y1-k].electrode_index=self.num_electrode
+                                    self.grids2[E_grid_x1][E_grid_y1-k].type+=1
+                                    self.grids2[E_grid_x1][E_grid_y1-k].electrode_x = x1 
+                                    self.grids2[E_grid_x1][E_grid_y1-k].electrode_y = self.grids2[E_grid_x1][E_grid_y1-k].real_y
+                                    # print('*****1', abs(x1 - self.grids2[E_grid_x1][E_grid_y1-k].real_x))
+                                    # print('*****2', self.point_distance_line(np.array([self.grids2[E_grid_x1][E_grid_y1-k].real_x, self.grids2[E_grid_x1][E_grid_y1-k].real_y]), np.array([x1, y1]), np.array([x2, y2])))
+                                    # if (self.grids2[E_grid_x1][E_grid_y1+1].electrode_index == self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
+                                    #     self.grids2[E_grid_x1][E_grid_y1-k].electrode_x = x1 
+                                    #     self.grids2[E_grid_x1][E_grid_y1-k].electrode_y = self.grids2[E_grid_x1][E_grid_y1-k].real_y
+                                    # else:
+                                    # print('u', E_grid_x1, E_grid_y1-k, k)
+                            #     if y1<y2:#downward
+                            #         E_grid_x1+=1
+
+                            #         E_grid_y1+=1
+                            #         for k in range(E_grid_y2 - E_grid_y1 + 1):
+                            #             self.grids2[E_grid_x1][E_grid_y1+k].electrode_index=self.num_electrode #elector into grid
+                            #             self.grids2[E_grid_x1][E_grid_y1+k].type+=1
+                            #             self.grids2[E_grid_x1][E_grid_y1+k].electrode_x = x1 
+                            #             self.grids2[E_grid_x1][E_grid_y1+k].electrode_y = self.grids2[E_grid_x1][E_grid_y1+k].real_y
+                            #             # if (self.grids2[E_grid_x1][E_grid_y1-1].electrode_index == self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
+                            #             #     self.grids2[E_grid_x1][E_grid_y1+k].electrode_x = x1 
+                            #             #     self.grids2[E_grid_x1][E_grid_y1+k].electrode_y = self.grids2[E_grid_x1][E_grid_y1+k].real_y
+                            #             # else:
+                            #             # print('d', E_grid_x1, E_grid_y1+k, k)
+                            #     elif y1>y2:#upward
+                            #         # E_grid_x1-=1
+
+                            #         E_grid_y2+=1
+                            #         for k in range(E_grid_y1-E_grid_y2+1):
+                            #             self.grids2[E_grid_x1][E_grid_y1-k].electrode_index=self.num_electrode
+                            #             self.grids2[E_grid_x1][E_grid_y1-k].type+=1
+                            #             self.grids2[E_grid_x1][E_grid_y1-k].electrode_x = x1 
+                            #             self.grids2[E_grid_x1][E_grid_y1-k].electrode_y = self.grids2[E_grid_x1][E_grid_y1-k].real_y
+                            #             # print('*****1', abs(x1 - self.grids2[E_grid_x1][E_grid_y1-k].real_x))
+                            #             # print('*****2', self.point_distance_line(np.array([self.grids2[E_grid_x1][E_grid_y1-k].real_x, self.grids2[E_grid_x1][E_grid_y1-k].real_y]), np.array([x1, y1]), np.array([x2, y2])))
+                            #             # if (self.grids2[E_grid_x1][E_grid_y1+1].electrode_index == self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
+                            #             #     self.grids2[E_grid_x1][E_grid_y1-k].electrode_x = x1 
+                            #             #     self.grids2[E_grid_x1][E_grid_y1-k].electrode_y = self.grids2[E_grid_x1][E_grid_y1-k].real_y
+                            #             # else:
+                            #             # print('u', E_grid_x1, E_grid_y1-k, k)
+                            # elif y1==y2:
+                            #     if x1<x2:#----------------->
+                            #         # E_grid_y1-=1
+
+                            #         E_grid_x1+=1
+                            #         for k in range(E_grid_x2-E_grid_x1+1):
+                            #             self.grids2[E_grid_x1+k][E_grid_y1].electrode_index=self.num_electrode
+                            #             self.grids2[E_grid_x1+k][E_grid_y1].type+=1
+                            #             self.grids2[E_grid_x1+k][E_grid_y1].electrode_x = self.grids2[E_grid_x1+k][E_grid_y1].real_x
+                            #             self.grids2[E_grid_x1+k][E_grid_y1].electrode_y = y1
+                            #             # if (self.grids2[E_grid_x1-1][E_grid_y1].electrode_index==self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
+                            #             #     self.grids2[E_grid_x1+k][E_grid_y1].electrode_x = self.grids2[E_grid_x1+k][E_grid_y1].real_x
+                            #             #     self.grids2[E_grid_x1+k][E_grid_y1].electrode_y = y1
+                            #             # else:
+                            #             # print('->', E_grid_x1+k, E_grid_y1, k)
+                            #     elif x1>x2:#<-----------------
+                            #         E_grid_y1+=1
+
+                            #         # E_grid_x2+=1
+                            #         for k in range(E_grid_x1-E_grid_x2+1):
+                            #             self.grids2[E_grid_x1-k][E_grid_y1].electrode_index=self.num_electrode
+                            #             self.grids2[E_grid_x1-k][E_grid_y1].type+=1
+                            #             self.grids2[E_grid_x1-k][E_grid_y1].electrode_x = self.grids2[E_grid_x1-k][E_grid_y1].real_x
+                            #             self.grids2[E_grid_x1-k][E_grid_y1].electrode_y = y1
+                            #             # if (self.grids2[E_grid_x1+1][E_grid_y1].electrode_index==self.grids2[E_grid_x1][E_grid_y1].electrode_index) or k!=0:
+                            #             #     self.grids2[E_grid_x1-k][E_grid_y1].electrode_x = self.grids2[E_grid_x1-k][E_grid_y1].real_x
+                            #             #     self.grids2[E_grid_x1-k][E_grid_y1].electrode_y = y1
+                            #             # else:
+                            #             # print('<-', E_grid_x1-k, E_grid_y1, k)
                     self.electrodes[-1].boundary_U=boundary_U
                     self.electrodes[-1].boundary_D=boundary_D
                     self.electrodes[-1].boundary_L=boundary_L

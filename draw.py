@@ -17,6 +17,7 @@ class Draw():
         self.Tile_Unit = Tile_Unit
         self.electrode_wire = electrode_wire
         self.shape_scope = shape_scope
+        self.mini_width = 50
 
     def draw_orthogonal_path(self, x1, y1, x2, y2, x3, y3, x4, y4, width, connect, dxf):
         #polyline= dxf.polyline(linetype=None)
@@ -28,8 +29,8 @@ class Draw():
         # Tan = 82.842712 / 2 #82.842712/2
         Tan = 0.41421356237 * width
         # print('*********************', Tan)
-        if width==50:
-            Tan=(Tan/2)
+        # if width==50:
+        #     Tan=(Tan/2)
 
         # align because hub axis
         if abs(y3 - y4) != abs(x3 - x4):
@@ -45,21 +46,24 @@ class Draw():
         if x2==x1 and y2==y1:
             return 0
 
-        if y2 == y3 and width!=50:
+        if y2 == y3:
             degree1 = (1,0)
             degree2 = (1,0)
-        elif x2 == x3 and width!=50:
+        elif x2 == x3:
             degree1 = (0,1)
             degree2 = (0,1)
 
-        if y3 == y4 and x2!=x3 and width!=50:
+        if y3 == y4 and x2!=x3:
             degree2 = (1,0)
-        elif x3 == x4 and y2!=y3 and width!=50:
+        elif x3 == x4 and y2!=y3:
             degree2 = (0,1)
         # 1/\4
         # 2\/3
+        ###
+        # 4/\1
+        # 3\/2
         #45 angle
-        if x2!=x3 and y2!=y3 and width!=50:
+        if x2!=x3 and y2!=y3:
             if x2>x3:
                 if y2>y3:
                     deg_45=2
@@ -74,46 +78,46 @@ class Draw():
         #tail
 
         #90 angle
-        if (x3 == x4 and y2==y3) and width!=50:
+        if (x3 == x4 and y2==y3):
             deg_90_UD = 1
-        if (y3 == y4 and x2==x3) and width!=50:
+        if (y3 == y4 and x2==x3):
             deg_90_RL = 1
-        if y1 == y2 and x2!=x3 and width!=50:
+        if y1 == y2 and x2!=x3:
             degree1 = (1,0)
         position_s1 = [x2-width*degree1[1],y2+width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
         position_s2 = [x2+width*degree1[1],y2-width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
-        if width==50:
-            if x1!=x2 and y1!=y2:
-                if x2==x3:
-                    if x1>x2:
-                        if y2>y3:
-                            position_s1=[x2+width,y2,1]
-                            position_s2=[x2-width,y2,2]
-                        elif y2<y3:
-                            position_s1=[x2+width,y2,1]
-                            position_s2=[x2-width,y2,2]
-                    elif x1<x2:
-                        if y2>y3:
-                            position_s1=[x2-width,y2,1]
-                            position_s2=[x2+width,y2,2]
-                        elif y2<y3:
-                            position_s1=[x2-width,y2,1]
-                            position_s2=[x2+width,y2,2]
-                elif y2==y3:
-                    if y1>y2:
-                        if x2>x3:
-                            position_s1=[x2,y2-width,1]
-                            position_s2=[x2,y2+width,2]
-                        elif x2<x3:
-                            position_s1=[x2,y2-width,1]
-                            position_s2=[x2,y2+width,2]
-                    elif y1<y2:
-                        if x2>x3:
-                            position_s1=[x2,y2+width,1]
-                            position_s2=[x2,y2-width,2]
-                        elif x2<x3:
-                            position_s1=[x2,y2+width,1]
-                            position_s2=[x2,y2-width,2]
+        # if width==50:
+        #     if x1!=x2 and y1!=y2:
+        #         if x2==x3:
+        #             if x1>x2:
+        #                 if y2>y3:
+        #                     position_s1=[x2+width,y2,1]
+        #                     position_s2=[x2-width,y2,2]
+        #                 elif y2<y3:
+        #                     position_s1=[x2+width,y2,1]
+        #                     position_s2=[x2-width,y2,2]
+        #             elif x1<x2:
+        #                 if y2>y3:
+        #                     position_s1=[x2-width,y2,1]
+        #                     position_s2=[x2+width,y2,2]
+        #                 elif y2<y3:
+        #                     position_s1=[x2-width,y2,1]
+        #                     position_s2=[x2+width,y2,2]
+        #         elif y2==y3:
+        #             if y1>y2:
+        #                 if x2>x3:
+        #                     position_s1=[x2,y2-width,1]
+        #                     position_s2=[x2,y2+width,2]
+        #                 elif x2<x3:
+        #                     position_s1=[x2,y2-width,1]
+        #                     position_s2=[x2,y2+width,2]
+        #             elif y1<y2:
+        #                 if x2>x3:
+        #                     position_s1=[x2,y2+width,1]
+        #                     position_s2=[x2,y2-width,2]
+        #                 elif x2<x3:
+        #                     position_s1=[x2,y2+width,1]
+        #                     position_s2=[x2,y2-width,2]
         if abs(position_s1[2]-position_s2[2])>90:
             if min(position_s1[2],position_s2[2]) == position_s1[2]:
                 position_s2[2]-=360
@@ -221,7 +225,7 @@ class Draw():
         position_e2	= [x3-width*degree2[1],y3+width*degree2[0],Degree.inner_degree(x3-width*degree2[1],y3+width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
         if deg_45!=0 :
 
-            # dxf.add_solid([(x3,y3+width),(x3-width,y3),(x3+width,y3),(x3,y3-width)])
+            dxf.add_solid([(x3,y3+width),(x3-width,y3),(x3+width,y3),(x3,y3-width)])
             # print('***************', [(x3,y3+width),(x3-width,y3),(x3+width,y3),(x3,y3-width)])
             # print('***************', [(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3-(width*Tan/100)),(x3-(width/2),y3-(width*Tan/100))])
             # dxf.add_solid([(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3-(width*Tan/100)),(x3-(width/2),y3-(width*Tan/100))])
@@ -333,18 +337,18 @@ class Draw():
             elif y2<y3:
                 position_e1[1]+=width
                 position_e2[1]+=width		
-        if width==50:
-            if x2!=x3 and y2!=y3:
-                if x3==x4:
-                    position_e1[0]=x3+70.7
-                    position_e1[1]=y3
-                    position_e2[0]=x3-70.7
-                    position_e2[1]=y3
-                elif y3==y4:
-                    position_e1[0]=x3
-                    position_e1[1]=y3+70.7
-                    position_e2[0]=x3
-                    position_e2[1]=y3-70.7
+        # if width==50:
+        #     if x2!=x3 and y2!=y3:
+        #         if x3==x4:
+        #             position_e1[0]=x3+70.7
+        #             position_e1[1]=y3
+        #             position_e2[0]=x3-70.7
+        #             position_e2[1]=y3
+        #         elif y3==y4:
+        #             position_e1[0]=x3
+        #             position_e1[1]=y3+70.7
+        #             position_e2[0]=x3
+        #             position_e2[1]=y3-70.7
         if abs(position_e1[2]-position_e2[2])>90:
             if min(position_e1[2],position_e2[2]) == position_e1[2]:
                 position_e2[2]-=360
@@ -365,7 +369,7 @@ class Draw():
         y2 = -1*y2
         y3 = -1*y3
         y4 = -1*y4
-        if width==50:
+        if width==self.mini_width:
             dxf.add_arc(center=(x3,y3),radius=100,start=0, end=359)
         self.draw_orthogonal_path(x1,y1,x2,y2,x3,y3,x4,y4,width,connect,dxf)
         
@@ -472,7 +476,7 @@ class Draw():
                 elif y2<y3:
                     deg_45=4
         if deg_45!=0:
-            # dxf.add_solid([(x2,y2+width),(x2-width,y2),(x2+width,y2),(x2,y2-width)])
+            dxf.add_solid([(x2,y2+width),(x2-width,y2),(x2+width,y2),(x2,y2-width)])
             if deg_45==1:
                 if x1==x2:
                     position_s1[0]=x2-width

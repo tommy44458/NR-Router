@@ -182,15 +182,15 @@ print('create mesh:', time.time() - c_time)
 #     print(elec.to_dict())
         
 ## DEBUG print some grid
-for i in range(0, len(_mesh.grids2)-1):
-    for j in range(0, len(_mesh.grids2[i])-1):
-        if _mesh.grids2[i][j].electrode_index in [3]:
-            print('***\n', i, j)
-            # if i == 116 and j == 136:
-            #     grids2[i][j].electrode_y = 52055
-            for item in _mesh.grids2[i][j].to_dict():
-                if item == 'electrode_x' or item == 'electrode_y':
-                    print(item, _mesh.grids2[i][j].to_dict()[item])
+# for i in range(0, len(_mesh.grids2)-1):
+#     for j in range(0, len(_mesh.grids2[i])-1):
+#         if _mesh.grids2[i][j].electrode_index in [3]:
+#             print('***\n', i, j)
+#             # if i == 116 and j == 136:
+#             #     grids2[i][j].electrode_y = 52055
+#             for item in _mesh.grids2[i][j].to_dict():
+#                 if item == 'electrode_x' or item == 'electrode_y':
+#                     print(item, _mesh.grids2[i][j].to_dict()[item])
 
 c_time = time.time()
 
