@@ -30,6 +30,7 @@ class Grid():
         self.neighbor = []
         self.flow=0
         self.cost=0
+        self.conflict = False
     
     def to_dict(self):
         _dict = {

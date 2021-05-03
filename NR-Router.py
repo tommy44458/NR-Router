@@ -3,6 +3,7 @@ import math
 import sys
 import os
 from ezdxf.r12writer import r12writer
+import ezdxf
 from operator import itemgetter, attrgetter
 from math import atan2,degrees
 import time
@@ -48,7 +49,7 @@ if len(ewd_name) > 20:
 ###init coordinate###
 ## real ship size
 Control_pad_unit = 2540
-Tile_Unit = 315 #(line width) 200 + (spacing) 115
+Tile_Unit = 330 #(line width) 200 + (spacing) 115
 ## top down dot field dot
 block1_shift = (-18000 + 18000 % Control_pad_unit, -17745 + 17745 % Control_pad_unit)
 block2_shift = (-18000, 9258)
@@ -163,7 +164,8 @@ list_electrodes_d.sort(key=lambda x: (-x[0], -x[1]))
 
 # mesh connections
 _mesh.list_electrodes = list_electrodes_d + list_electrodes_u
-_mesh.set_grid_by_electrode_edge(shape, shape_scope)
+_mesh.set_grid_by_electrode_edge_internal(shape, shape_scope)
+_mesh.set_grid_by_electrode_edge_opt(shape, shape_scope)
             
 _mesh.create_neighbor_electrodes()
             
@@ -211,13 +213,56 @@ print('mcmf:', time.time() - c_time)
 c_time = time.time()           
 _draw = Draw(_mcmf.MaxFlowWithMinCost, _mcmf.min_cost_flow, _mesh.block2_shift, _mesh.Tile_Unit, _mcmf.electrode_wire, shape_scope)
 
-with r12writer('dwg/' + ewd_name + '.dwg') as dxf:
-    _draw.draw_contact_pads(_mesh.contactpads, dxf)
-    _draw.draw_electrodes(_mesh.electrodes, dxf)
-    _draw.draw_all_path(dxf, _mesh.grids2)
+doc = ezdxf.new(dxfversion='R2010')
+doc.layers.new('TEXTLAYER', dxfattribs={'color': 2})
+msp = doc.modelspace()
+hatch = msp.add_hatch(color=5)
+hatch1 = msp.add_hatch(color=6)
+hatch2 = msp.add_hatch(color=8)
+dxf = hatch.paths
+dxf1 = hatch1.paths
+dxf2 = hatch2.paths
+
+_draw.draw_contact_pads(_mesh.contactpads, msp)
+_draw.draw_all_path(msp, _mesh.grids2)
+_draw.draw_electrodes(_mesh.electrodes, dxf)
+_draw.draw_grid(block1_shift[0], block1_shift[1], Control_pad_unit, grids1_length[0], grids1_length[1], msp)
+_draw.draw_grid(block2_shift[0], block2_shift[1], Tile_Unit, grids2_length[0], grids2_length[1], msp)
+_draw.draw_grid(block3_shift[0], block3_shift[1], Control_pad_unit, grids3_length[0], grids3_length[1], msp)
+_draw.draw_pseudo_node(_mesh.grids2, dxf1)
+# _draw.draw_pseudo_node(_mesh.grids4, dxf2)
+
+doc.saveas('dwg/' + ewd_name + '.dwg')
+
+# with r12writer('dwg/' + ewd_name + '.dwg') as dxf:
+#     _draw.draw_contact_pads(_mesh.contactpads, dxf)
+#     _draw.draw_electrodes(_mesh.electrodes, dxf)
+#     _draw.draw_all_path(dxf, _mesh.grids2)
 
 print('draw:', time.time() - c_time)
+
+# print(_mesh.clockwise_angle([0, -1], [1, 0]))
+# deg = Degree.getdegree(1, 1, 0, 0)
+# dis = _mesh.point_distance_line([0, 0], [0, 2], [2, 0])
+# print(deg, dis)
+# print([0 + dis * deg[0], 0 + dis * deg[1]])
+# print(_mesh.get_short_point([0, 0], [0, 2], [2, 0]))
+# print(_mesh.get_short_point([41850, -43908], [42050, -43655], [41950, -43555]))
+# print(_mesh.get_short_point([-100, -355], [0, 0], [-100, 100]))
+# print(_mesh.get_points_lines(42050, -43655, 41950, -43555, 70.5))
+
+# str1 = ''
+# for i in range(0, 12):
+#     x = int(1000 + 1000 * math.cos(2 * math.pi * i / 12))
+#     y = int(1000 + 1000 * math.sin(2 * math.pi * i / 12))
+#     if i == 0:
+#         str1 += str('M' + str(x) + ' ' + str(y) + ' ')
+#     else:
+#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
     
+# str1 += 'Z'
+
+# print(str1)
 # response = ''
 # with open('dwg/' + ewd_name + '.dwg') as f:
 #     for line in f.readlines():
