@@ -31,6 +31,7 @@ class Grid():
         self.flow=0
         self.cost=0
         self.conflict = False
+        self.inner_grid = None
     
     def to_dict(self):
         _dict = {
@@ -56,6 +57,7 @@ class Grid():
             'neighbor': self.neighbor,
             'flow': self.flow,
             'cost': self.cost,
+            'inner_grid': self.inner_grid
         }
             
         return _dict

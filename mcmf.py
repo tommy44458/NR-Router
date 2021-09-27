@@ -132,6 +132,29 @@ class MCMF():
                     if self.flow.flownodes[tail] == 0:
                         tail -= 1
 
+                    # if type(self.flow.flownodes[head]) == Electrode and type(self.flow.flownodes[tail]) == Grid:
+                    #     index_list = []
+                    #     tmp_x = self.flow.flownodes[tail].grid_x
+                    #     tmp_y = self.flow.flownodes[tail].grid_y
+                    #     for en_node in self.flow.flownodes[tail].neighbor_electrode:
+                    #         if en_node[0] == self.flow.flownodes[head].electrode_index:
+                    #             index_list.append([en_node[1],en_node[2],en_node[3]])
+                    #     # if len(index_list)==1: ## only belong to ONE Electrode
+                    #     E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_x
+                    #     E_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_y
+                    #     Shift_x = E_x - self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
+                    #     Shift_y = E_y - self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
+                    #     #self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x),int(self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                    #     self.all_path.append(Wire(int(E_x),int(E_y),int(self.flow.flownodes[tail].real_x+Shift_x),int(self.flow.flownodes[tail].real_y+Shift_y)))
+                    #     self.all_path.append(Wire(int(self.flow.flownodes[tail].real_x+Shift_x),int(self.flow.flownodes[tail].real_y+Shift_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                    #     # else:
+                    #     #     for nb_list in index_list:
+                    #     #         if nb_list[0] == 1 or nb_list[0] == 6: ## dir of electrode left-top & right-top only have ONE E
+                    #     #             # if self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2!=0:
+                    #     #             #     self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y=self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2
+                    #     #             self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                    #     #         if nb_list[0] == 3 or nb_list[0] == 4:
+                    #     #             self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
                     if type(self.flow.flownodes[head]) == Electrode and type(self.flow.flownodes[tail]) == Grid:
                         index_list = []
                         tmp_x = self.flow.flownodes[tail].grid_x
@@ -139,22 +162,22 @@ class MCMF():
                         for en_node in self.flow.flownodes[tail].neighbor_electrode:
                             if en_node[0] == self.flow.flownodes[head].electrode_index:
                                 index_list.append([en_node[1],en_node[2],en_node[3]])
-                        if len(index_list)==1: ## only belong to ONE Electrode
-                            E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_x
-                            E_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_y
-                            Shift_x = E_x - self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
-                            Shift_y = E_y - self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
-                            #self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x),int(self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                            self.all_path.append(Wire(int(E_x),int(E_y),int(self.flow.flownodes[tail].real_x+Shift_x),int(self.flow.flownodes[tail].real_y+Shift_y)))
-                            self.all_path.append(Wire(int(self.flow.flownodes[tail].real_x+Shift_x),int(self.flow.flownodes[tail].real_y+Shift_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                        else:
-                            for nb_list in index_list:
-                                if nb_list[0] == 1 or nb_list[0] == 6: ## dir of electrode left-top & right-top only have ONE E
-                                    if self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2!=0:
-                                        self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y=self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2
-                                    self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                                if nb_list[0] == 3 or nb_list[0] == 4:
-                                    self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                        # if len(index_list)==1: ## only belong to ONE Electrode
+                        E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
+                        E_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
+                        # Shift_x = E_x - self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
+                        # Shift_y = E_y - self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
+                        #self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x),int(self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                        self.all_path.append(Wire(int(E_x),int(E_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                        # self.all_path.append(Wire(int(self.flow.flownodes[tail].real_x+Shift_x),int(self.flow.flownodes[tail].real_y+Shift_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                        # else:
+                        #     for nb_list in index_list:
+                        #         if nb_list[0] == 1 or nb_list[0] == 6: ## dir of electrode left-top & right-top only have ONE E
+                        #             # if self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2!=0:
+                        #             #     self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y=self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2
+                        #             self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                        #         if nb_list[0] == 3 or nb_list[0] == 4:
+                        #             self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
                     elif type(self.flow.flownodes[head]) == Grid and type(self.flow.flownodes[tail]) == Grid:
                         self.all_path.append(Wire(int(self.flow.flownodes[head].real_x),int(self.flow.flownodes[head].real_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
                         self.flow.flownodes[head].flow=1
