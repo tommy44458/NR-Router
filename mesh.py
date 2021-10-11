@@ -2,7 +2,7 @@ import numpy as np
 import math
 import sys
 import os
-from ezdxf.r12writer import r12writer
+from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
 from math import atan2,degrees
 
@@ -407,22 +407,24 @@ class Mesh():
         return None
 
     def grid_conflict(self, grid, x, y):
-        if grid[x, y].conflict is False:
-            if grid[x, y].inner_grid is not None:
-                self.grid_set_electrode(grid, grid[x, y].inner_grid.grid_x, grid[x, y].inner_grid.grid_y, grid[x, y].inner_grid.electrode_index, grid[x, y].inner_grid.electrode_x, grid[x, y].inner_grid.electrode_y)
-        grid[x, y].conflict = True
-        grid[x, y].electrode_index = -1
-        grid[x, y].type = 0
-        grid[x, y].electrode_x = 0
-        grid[x, y].electrode_y = 0
+        if self.grids4[x, y].electrode_index < 0:
+            if grid[x, y].conflict is False:
+                if grid[x, y].inner_grid is not None:
+                    self.grid_set_electrode(grid, grid[x, y].inner_grid.grid_x, grid[x, y].inner_grid.grid_y, grid[x, y].inner_grid.electrode_index, grid[x, y].inner_grid.electrode_x, grid[x, y].inner_grid.electrode_y)
+            grid[x, y].conflict = True
+            grid[x, y].electrode_index = -1
+            grid[x, y].type = 0
+            grid[x, y].electrode_x = 0
+            grid[x, y].electrode_y = 0
         # grid[x, y].cost = -1
         return False
 
-    def grid_set_electrode(self, grid, x, y, num_electrode, p1, p2):
+    def grid_set_electrode(self, grid, x, y, num_electrode, p1, p2, corner = False):
         grid[x, y].electrode_index = num_electrode
         grid[x, y].type += 1
         grid[x, y].electrode_x = p1
         grid[x, y].electrode_y = p2
+        grid[x, y].corner = corner
 
                 
     def set_grid_by_electrode_edge(self, shape, shape_scope):
@@ -1325,11 +1327,11 @@ class Mesh():
                             ## ->
                             if ang == 90:
                                 for k in range(E_grid_x2 - (E_grid_x1 + 1) + 1):
-                                    self.grid_set_electrode(self.grids4, E_grid_x1+1+k, E_grid_y1+1, num_electrode, self.grids4[E_grid_x1+k][E_grid_y1].real_x, y1)
+                                    self.grid_set_electrode(self.grids4, E_grid_x1+1+k, E_grid_y1+1, num_electrode, self.grids4[E_grid_x1+1+k][E_grid_y1+1].real_x, y1)
                             # ## | down
                             if ang == 180:
                                 for k in range(E_grid_y2 - (E_grid_y1 + 1) + 1):
-                                    self.grid_set_electrode(self.grids4, E_grid_x1, E_grid_y1+1+k, num_electrode, x1, self.grids4[E_grid_x1][E_grid_y1+k].real_y)
+                                    self.grid_set_electrode(self.grids4, E_grid_x1, E_grid_y1+1+k, num_electrode, x1, self.grids4[E_grid_x1][E_grid_y1+1+k].real_y)
                             ## <-
                             elif ang == 270:
                                 for k in range(E_grid_x1 - E_grid_x2):
@@ -1337,7 +1339,7 @@ class Mesh():
                             ## | up
                             elif ang == 360:
                                 for k in range(E_grid_y1 - (E_grid_y2 + 1) + 1):
-                                    self.grid_set_electrode(self.grids4, E_grid_x1+1, E_grid_y1-k, num_electrode, x1, self.grids4[E_grid_x1][E_grid_y1-k].real_y)
+                                    self.grid_set_electrode(self.grids4, E_grid_x1+1, E_grid_y1-k, num_electrode, x1, self.grids4[E_grid_x1+1][E_grid_y1-k].real_y)
                     for j in range(len(electrode_shape_path)-1):
                         x1 = true_x+electrode_shape_path[j][0]
                         y1 = true_y+electrode_shape_path[j][1]
@@ -1359,7 +1361,7 @@ class Mesh():
                                     E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
                                     in_x = int(E_grid_x+1)
                                     in_y = int(E_grid_y)
-                                    self.grid_set_electrode(self.grids4, in_x, in_y, self.num_electrode, point[0], point[1])
+                                    self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
                                 #  |
                                 # /
                                 else:
@@ -1368,7 +1370,7 @@ class Mesh():
                                     E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
                                     in_x = int(E_grid_x)
                                     in_y = int(E_grid_y)
-                                    self.grid_set_electrode(self.grids4, in_x, in_y, self.num_electrode, point[0], point[1])
+                                    self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
                             elif x1<x2:
                                 # \
                                 #  |
@@ -1378,7 +1380,7 @@ class Mesh():
                                     E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
                                     in_x = int(E_grid_x)
                                     in_y = int(E_grid_y+1)
-                                    self.grid_set_electrode(self.grids4, in_x, in_y, self.num_electrode, point[0], point[1])
+                                    self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
                                 #  /
                                 # |
                                 else:
@@ -1387,7 +1389,7 @@ class Mesh():
                                     E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
                                     in_x = int(E_grid_x+1)
                                     in_y = int(E_grid_y+1)
-                                    self.grid_set_electrode(self.grids4, in_x, in_y, self.num_electrode, point[0], point[1])
+                                    self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
             num_electrode+=1
 
     def set_grid_by_electrode_edge_opt2(self, shape, shape_scope):
@@ -1444,13 +1446,13 @@ class Mesh():
                                     in_x = int(E_grid_x+1)
                                     in_y = int(E_grid_y)
                                     if self.grid_is_available(self.grids2, ex_x, ex_y, self.num_electrode):
-                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1])
+                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1], True)
                                         self.grids2[ex_x][ex_y].inner_grid = self.grids4[in_x][in_y]
                                     # internal 1,0
                                     else:
                                         self.grid_conflict(self.grids2, ex_x, ex_y)
                                         self.grids2[in_x][in_y] = self.grids4[in_x][in_y]
-                                        self.grid_set_electrode(self.grids2, in_x, in_y, self.num_electrode, self.grids4[in_x][in_y].electrode_x, self.grids4[in_x][in_y].electrode_y)
+                                        self.grid_set_electrode(self.grids2, in_x, in_y, self.num_electrode, self.grids4[in_x][in_y].electrode_x, self.grids4[in_x][in_y].electrode_y, True)
                                 #  |
                                 # /
                                 else:
@@ -1462,11 +1464,11 @@ class Mesh():
                                     in_x = int(E_grid_x)
                                     in_y = int(E_grid_y)
                                     if self.grid_is_available(self.grids2, ex_x, ex_y, self.num_electrode):
-                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1])
+                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1], True)
                                         self.grids2[ex_x][ex_y].inner_grid = self.grids4[in_x][in_y]
                                     else:
                                         self.grid_conflict(self.grids2, ex_x, ex_y)
-                                        self.grid_set_electrode(self.grids2, in_x, in_y, self.num_electrode, self.grids4[in_x][in_y].electrode_x, self.grids4[in_x][in_y].electrode_y)
+                                        self.grid_set_electrode(self.grids2, in_x, in_y, self.num_electrode, self.grids4[in_x][in_y].electrode_x, self.grids4[in_x][in_y].electrode_y, True)
                             elif x1<x2:
                                 # \
                                 #  |
@@ -1479,11 +1481,11 @@ class Mesh():
                                     in_x = int(E_grid_x)
                                     in_y = int(E_grid_y+1)
                                     if self.grid_is_available(self.grids2, ex_x, ex_y, self.num_electrode):
-                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1])
+                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1], True)
                                         self.grids2[ex_x][ex_y].inner_grid = self.grids4[in_x][in_y]
                                     else:
                                         self.grid_conflict(self.grids2, ex_x, ex_y)
-                                        self.grid_set_electrode(self.grids2, in_x, in_y, self.num_electrode, self.grids4[in_x][in_y].electrode_x, self.grids4[in_x][in_y].electrode_y)
+                                        self.grid_set_electrode(self.grids2, in_x, in_y, self.num_electrode, self.grids4[in_x][in_y].electrode_x, self.grids4[in_x][in_y].electrode_y, True)
                                 #  /
                                 # |
                                 else:
@@ -1495,54 +1497,63 @@ class Mesh():
                                     in_x = int(E_grid_x+1)
                                     in_y = int(E_grid_y+1)
                                     if self.grid_is_available(self.grids2, ex_x, ex_y, self.num_electrode):
-                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1])
+                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1], True)
                                         self.grids2[ex_x][ex_y].inner_grid = self.grids4[in_x][in_y]
                                     else:
                                         self.grid_conflict(self.grids2, ex_x, ex_y)
-                                        self.grid_set_electrode(self.grids2, in_x, in_y, self.num_electrode, self.grids4[in_x][in_y].electrode_x, self.grids4[in_x][in_y].electrode_y)
+                                        self.grid_set_electrode(self.grids2, in_x, in_y, self.num_electrode, self.grids4[in_x][in_y].electrode_x, self.grids4[in_x][in_y].electrode_y, True)
                         # check_corner=0
                         ######### 直線
                         else:
                             ## ->
                             if ang == 90:
-                                for k in range(E_grid_x2 - (E_grid_x1) + 1):
+                                for k in range(E_grid_x2 - (E_grid_x1 + 1) + 1):
                                     # if self.grids4[E_grid_x1+1+k][E_grid_y1].electrode_index < 0:
-                                    if self.grid_is_available(self.grids2, E_grid_x1+1+k, E_grid_y1, self.num_electrode):
+                                    # if self.grid_is_available(self.grids2, E_grid_x1+1+k, E_grid_y1, self.num_electrode):
                                             # if self.grids2[E_grid_x1+1+k][E_grid_y1+1].electrode_index < 0:
+                                    ex_dis = abs(y1 - self.grids2[E_grid_x1+1+k][E_grid_y1].real_y)
+                                    in_dis = abs(y1 - self.grids4[E_grid_x1+1+k][E_grid_y1+1].real_y)
+                                    if ex_dis < in_dis :
                                         self.grid_set_electrode(self.grids2, E_grid_x1+1+k, E_grid_y1, self.num_electrode, self.grids2[E_grid_x1+1+k][E_grid_y1].real_x, y1)
                                     # internal 1,1
-                                    else:
-                                        self.grid_conflict(self.grids2, E_grid_x1+1+k, E_grid_y1)
+                                    # else:
+                                    #     self.grid_conflict(self.grids2, E_grid_x1+1+k, E_grid_y1)
                                         # self.grid_set_electrode(self.grids2, E_grid_x1+1+k, E_grid_y1+1, self.num_electrode, self.grids2[E_grid_x1+1+k][E_grid_y1+1].real_x, y1)
                             ## | down
                             elif ang == 180:
-                                for k in range(E_grid_y2 - (E_grid_y1 + 1)):
-                                    if self.grid_is_available(self.grids2, E_grid_x1+1, E_grid_y1+1+k, self.num_electrode):
-                                        # if self.grids2[E_grid_x1, E_grid_y1+1+k].electrode_index < 0:
+                                for k in range(E_grid_y2 - (E_grid_y1 + 1) + 1):
+                                    # if self.grid_is_available(self.grids2, E_grid_x1+1, E_grid_y1+1+k, self.num_electrode):
+                                    ex_dis = abs(x1 - self.grids2[E_grid_x1+1][E_grid_y1+1+k].real_x)
+                                    in_dis = abs(x1 - self.grids4[E_grid_x1][E_grid_y1+1+k].real_x)
+                                    if ex_dis < in_dis :
                                         self.grid_set_electrode(self.grids2, E_grid_x1+1, E_grid_y1+1+k, self.num_electrode, x1, self.grids2[E_grid_x1+1][E_grid_y1+1+k].real_y)
                                     # internal 0,1
-                                    else:
-                                        self.grid_conflict(self.grids2, E_grid_x1+1, E_grid_y1+1+k)
+                                    # else:
+                                    #     self.grid_conflict(self.grids2, E_grid_x1+1, E_grid_y1+1+k)
                                         # self.grid_set_electrode(self.grids2, E_grid_x1, E_grid_y1+1+k, self.num_electrode, x1, self.grids2[E_grid_x1][E_grid_y1+1+k].real_y)
                             ## <-
                             elif ang == 270:
                                 for k in range(E_grid_x1 - E_grid_x2):
-                                    if self.grid_is_available(self.grids2, E_grid_x1-k, E_grid_y1+1, self.num_electrode):
-                                        # if self.grids2[E_grid_x1-k, E_grid_y1].electrode_index < 0:
+                                    # if self.grid_is_available(self.grids2, E_grid_x1-k, E_grid_y1+1, self.num_electrode):
+                                    ex_dis = abs(y1 - self.grids2[E_grid_x1-k][E_grid_y1+1].real_y)
+                                    in_dis = abs(y1 - self.grids4[E_grid_x1-k][E_grid_y1].real_y)
+                                    if ex_dis < in_dis :
                                         self.grid_set_electrode(self.grids2, E_grid_x1-k, E_grid_y1+1, self.num_electrode, self.grids2[E_grid_x1-k][E_grid_y1+1].real_x, y1)
                                     # internal 0,0
-                                    else:
-                                        self.grid_conflict(self.grids2, E_grid_x1-k, E_grid_y1+1)
+                                    # else:
+                                    #     self.grid_conflict(self.grids2, E_grid_x1-k, E_grid_y1+1)
                                         # self.grid_set_electrode(self.grids2, E_grid_x1-k, E_grid_y1, self.num_electrode, self.grids2[E_grid_x1-k][E_grid_y1].real_x, y1)
                             ## | up
                             elif ang == 360:
                                 for k in range(E_grid_y1 - (E_grid_y2 + 1) + 1):
-                                    if self.grid_is_available(self.grids2, E_grid_x1, E_grid_y1-k, self.num_electrode):
-                                        # if self.grids2[E_grid_x1+1, E_grid_y1-k].electrode_index < 0:
+                                    # if self.grid_is_available(self.grids2, E_grid_x1, E_grid_y1-k, self.num_electrode):
+                                    ex_dis = abs(x1 - self.grids2[E_grid_x1][E_grid_y1-k].real_x)
+                                    in_dis = abs(x1 - self.grids4[E_grid_x1+1][E_grid_y1-k].real_x)
+                                    if ex_dis < in_dis :
                                         self.grid_set_electrode(self.grids2, E_grid_x1, E_grid_y1-k, self.num_electrode, x1, self.grids2[E_grid_x1][E_grid_y1-k].real_y)
                                     # internal 1,0
-                                    else:
-                                        self.grid_conflict(self.grids2, E_grid_x1, E_grid_y1-k)
+                                    # else:
+                                    #     self.grid_conflict(self.grids2, E_grid_x1, E_grid_y1-k)
                                             # self.grid_set_electrode(self.grids2, E_grid_x1+1, E_grid_y1-k, self.num_electrode, x1, self.grids2[E_grid_x1+1][E_grid_y1-k].real_y)
                     self.electrodes[-1].boundary_U=boundary_U
                     self.electrodes[-1].boundary_D=boundary_D

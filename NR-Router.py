@@ -2,7 +2,7 @@ import numpy as np
 import math
 import sys
 import os
-from ezdxf.r12writer import r12writer
+from ezdxf.addons import r12writer
 import ezdxf
 from operator import itemgetter, attrgetter
 from math import atan2,degrees
@@ -49,12 +49,12 @@ if len(ewd_name) > 20:
 ###init coordinate###
 ## real ship size
 Control_pad_unit = 2540
-# (wire width * 2 + 5) * 1.414
+# (wire width + 5) * 1.414
 Tile_Unit = 290 #(line width) 200 + (spacing) 115
 ## top down dot field dot
-block1_shift = (-18000 + 18000 % Control_pad_unit, -17745 + 17745 % Control_pad_unit)
-block2_shift = (-18000, 9258)
-block3_shift = (-18000 + 18000 % Control_pad_unit, 56896)
+block1_shift = (-3000 + 18000 % Control_pad_unit, -17745 + 17745 % Control_pad_unit)
+block2_shift = (-3000, 9258)
+block3_shift = (-3000 + 18000 % Control_pad_unit, 56896)
 # Grid_x = 317
 # Grid_y = 127
 grids1_length = ((100000 - 18000 - block1_shift[0]) // Control_pad_unit + 1, (7620 - block1_shift[1]) // Control_pad_unit + 1)
@@ -240,6 +240,7 @@ _draw.draw_electrodes(_mesh.electrodes, dxf)
 _draw.draw_grid(block2_shift[0], block2_shift[1], Tile_Unit, grids2_length[0], grids2_length[1], msp)
 # _draw.draw_grid(block3_shift[0], block3_shift[1], Control_pad_unit, grids3_length[0], grids3_length[1], msp)
 _draw.draw_pseudo_node(_mesh.grids2, dxf1)
+_draw.draw_pseudo_node_corner(_mesh.grids2, dxf2)
 # _draw.draw_pseudo_node(_mesh.grids4, dxf2)
 
 doc.saveas('dwg/' + ewd_name + '.dwg')

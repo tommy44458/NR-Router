@@ -2,7 +2,7 @@ import numpy as np
 import math
 import sys
 import os
-from ezdxf.r12writer import r12writer
+from ezdxf.addons import r12writer
 import operator
 import math
 from functools import reduce
@@ -21,7 +21,7 @@ class Draw():
         self.shape_scope = shape_scope
         self.mini_width = 2.5
         self.regular_width = 100
-        self.line_buffer = self.regular_width * 0.3
+        self.line_buffer = self.regular_width * 0.0
 
     def order_vertex(self, vertex):
         vertex.sort(key=lambda x:(x[0]))
@@ -705,6 +705,17 @@ class Draw():
                     # dxf.add_circle(center=(girds[i][j].real_x, -girds[i][j].real_y), radius = 20.0, dxfattribs={'color': color})
         print('grid num: ', num)
 
+    def draw_pseudo_node_corner(self, grids, dxf):
+        width = 60
+        for i in range(len(grids)):
+            for j in range(len(grids[i])):
+                if grids[i][j].electrode_index >= 0 and grids[i][j].corner:
+                    # print(girds[i][j].to_dict())
+                    x = grids[i][j].real_x
+                    y = -grids[i][j].real_y
+                    # dxf.add_edge_path().add_ellipse((girds[i][j].real_x, -girds[i][j].real_y), major_axis=(0, 10), ratio=0.5)
+                    dxf.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+
     def draw_all_path(self, dxf, grids2):
         MaxFlowWithMinCost = self.MaxFlowWithMinCost
         min_cost_flow = self.min_cost_flow
@@ -875,20 +886,24 @@ class Draw():
 
                 ## contact pad wire fix
 
-                # if electrode_wire[i][-1].start_x!=electrode_wire[i][-1].end_x:
-                #     electrode_wire[i][-1].start_y = electrode_wire[i][-1].end_y+np.sign(electrode_wire[i][-1].start_y-electrode_wire[i][-1].end_y)*abs(electrode_wire[i][-1].start_x-electrode_wire[i][-1].end_x)
-                #     electrode_wire[i][-2].end_y = electrode_wire[i][-1].start_y
+                if electrode_wire[i][-1].start_x!=electrode_wire[i][-1].end_x:
+                    electrode_wire[i][-1].start_y = electrode_wire[i][-1].end_y+np.sign(electrode_wire[i][-1].start_y-electrode_wire[i][-1].end_y)*abs(electrode_wire[i][-1].start_x-electrode_wire[i][-1].end_x)
+                    electrode_wire[i][-2].end_y = electrode_wire[i][-1].start_y
 
-                # for j in range(len(electrode_wire[i])-1):
-                #     if (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=0 and (electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)!=0 and abs(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y):
-                #         #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                #         electrode_wire[i][j].end_y = electrode_wire[i][j].start_y+np.sign(electrode_wire[i][j].end_y-electrode_wire[i][j].start_y)*abs(electrode_wire[i][j+1].start_x-electrode_wire[i][j].start_x)
-                #     if j == 1:
-                #         electrode_wire[i][j-1].end_y = electrode_wire[i][j].start_y
-                #         electrode_wire[i][j-1].end_x = electrode_wire[i][j].start_x
-                #     if j == len(electrode_wire[i]) - 2:
-                #         electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
-                #         electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                for j in range(len(electrode_wire[i])-5, len(electrode_wire[i])-1):
+                    if (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=0 and (electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)!=0 and abs(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y):
+                        #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
+                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y+np.sign(electrode_wire[i][j].end_y-electrode_wire[i][j].start_y)*abs(electrode_wire[i][j+1].start_x-electrode_wire[i][j].start_x)
+                    if j == 1:
+                        electrode_wire[i][j-1].end_y = electrode_wire[i][j].start_y
+                        electrode_wire[i][j-1].end_x = electrode_wire[i][j].start_x
+                    if j == len(electrode_wire[i]) - 2:
+                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+
+                for j in range(len(electrode_wire[i])-7, len(electrode_wire[i])-2):
+                    electrode_wire[i][j].end_x = electrode_wire[i][j+1].start_x
+                    electrode_wire[i][j].end_y = electrode_wire[i][j+1].start_y
 
                 ## contact pad wire fix
 

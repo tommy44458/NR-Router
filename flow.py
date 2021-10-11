@@ -2,7 +2,7 @@ import numpy as np
 import math
 import sys
 import os
-from ezdxf.r12writer import r12writer
+from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
 from math import atan2,degrees
 from ortools.graph import pywrapgraph
