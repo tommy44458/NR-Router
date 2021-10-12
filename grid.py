@@ -58,7 +58,8 @@ class Grid():
             'neighbor': self.neighbor,
             'flow': self.flow,
             'cost': self.cost,
-            'inner_grid': self.inner_grid
+            'inner_grid': self.inner_grid,
+            'corner': self.corner,
         }
             
         return _dict

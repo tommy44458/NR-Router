@@ -75,17 +75,16 @@ class MCMF():
                             self.end_nodes.append(nb_node[0].index)
                         self.capacities.append(int(nb_node[1]))
                         self.unit_costs.append(int(nb_node[2]))
-                if len(node.neighbor_electrode) > 0:
-                    for ne_node in node.neighbor_electrode:
-                        self.start_nodes.append(self.mesh.electrodes[ne_node[0]].index)
-                        self.end_nodes.append(node.index+1)
-                        self.capacities.append(1)
-                        # self.unit_costs.append(node.cost)
-                        # print(node.cost)
-                        if ne_node[1]==1 or ne_node[1]==6:
-                            self.unit_costs.append(node.cost)
-                        else:
-                            self.unit_costs.append(200)
+                    if len(node.neighbor_electrode) > 0:
+                        for ne_node in node.neighbor_electrode:
+                            self.start_nodes.append(self.mesh.electrodes[ne_node[0]].index)
+                            self.end_nodes.append(node.index+1)
+                            self.capacities.append(1)
+                            self.unit_costs.append(ne_node[-1])
+                            # if ne_node[1]==1 or ne_node[1]==6:
+                            #     self.unit_costs.append(node.cost)
+                            # else:
+                            #     self.unit_costs.append(ne_node[-1])
                 self.supplies[node.index] = 0	
             elif type(node) == Hub:
                 for nb_node in node.neighbor:

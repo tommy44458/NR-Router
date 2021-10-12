@@ -921,56 +921,56 @@ class Draw():
                 #             electrode_wire[i][j].end_y = electrode_wire[i][j+1].start_y
                 #             electrode_wire[i][j].end_x = electrode_wire[i][j+1].start_x
 
-                # for j in range(len(electrode_wire[i])-2):
-                #     deg = Degree.getdegree(electrode_wire[i][j].start_x, electrode_wire[i][j].start_y, electrode_wire[i][j].end_x, electrode_wire[i][j].end_y)
-                #     if abs(deg[0] - deg[1]) != 1:
-                #         if abs(deg[0]) > 0.7072 or abs(deg[1]) > 0.7072:
-                #             if electrode_wire[i][j].end_x < electrode_wire[i][j].start_x:
-                #                 c = 1
-                #                 if electrode_wire[i][j].end_y > electrode_wire[i][j].start_y:
-                #                     c = -1
-                #                 if j < len(electrode_wire[i]) - 2 and j > 1:
-                #                     dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
-                #                     dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
-                #                     if electrode_wire[i][j+1].start_x == electrode_wire[i][j+1].end_x:
-                #                         electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
-                #                         electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
-                #                     else:
-                #                         electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
-                #                         electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                for j in range(len(electrode_wire[i])-7, len(electrode_wire[i])-2):
+                    deg = Degree.getdegree(electrode_wire[i][j].start_x, electrode_wire[i][j].start_y, electrode_wire[i][j].end_x, electrode_wire[i][j].end_y)
+                    if abs(deg[0] - deg[1]) != 1:
+                        if abs(deg[0]) > 0.7072 or abs(deg[1]) > 0.7072:
+                            if electrode_wire[i][j].end_x < electrode_wire[i][j].start_x:
+                                c = 1
+                                if electrode_wire[i][j].end_y > electrode_wire[i][j].start_y:
+                                    c = -1
+                                if j < len(electrode_wire[i]) - 2 and j > 1:
+                                    dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
+                                    dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
+                                    if electrode_wire[i][j+1].start_x == electrode_wire[i][j+1].end_x:
+                                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
+                                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                                    else:
+                                        electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
+                                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
 
-                #                 if j < len(electrode_wire[i]) - 2:
-                #                     dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
-                #                     dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
-                #                     if abs(dis_x) < abs(dis_y):
-                #                         electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
-                #                         electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
-                #                     else:
-                #                         electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
-                #                         electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
-                #             else:
-                #                 c = -1
-                #                 if electrode_wire[i][j].end_y > electrode_wire[i][j].start_y:
-                #                     c = 1
-                #                 if j < len(electrode_wire[i]) - 2 and j > 1:
-                #                     dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
-                #                     dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
-                #                     if electrode_wire[i][j+1].start_x == electrode_wire[i][j+1].end_x:
-                #                         electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
-                #                         electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
-                #                     else:
-                #                         electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
-                #                         electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                                if j < len(electrode_wire[i]) - 2:
+                                    dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
+                                    dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
+                                    if abs(dis_x) < abs(dis_y):
+                                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
+                                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                                    else:
+                                        electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
+                                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                            else:
+                                c = -1
+                                if electrode_wire[i][j].end_y > electrode_wire[i][j].start_y:
+                                    c = 1
+                                if j < len(electrode_wire[i]) - 2 and j > 1:
+                                    dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
+                                    dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
+                                    if electrode_wire[i][j+1].start_x == electrode_wire[i][j+1].end_x:
+                                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
+                                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                                    else:
+                                        electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
+                                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
 
-                #                 if j < len(electrode_wire[i]) - 2:
-                #                     dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
-                #                     dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
-                #                     if abs(dis_x) < abs(dis_y):
-                #                         electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
-                #                         electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
-                #                     else:
-                #                         electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
-                #                         electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                                if j < len(electrode_wire[i]) - 2:
+                                    dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
+                                    dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
+                                    if abs(dis_x) < abs(dis_y):
+                                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
+                                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                                    else:
+                                        electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
+                                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
 
                 ####BUG 一直轉彎
                 # for j in range(len(electrode_wire[i])-1):

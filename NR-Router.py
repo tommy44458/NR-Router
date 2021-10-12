@@ -75,7 +75,8 @@ _mesh = Mesh(Control_pad_unit, Tile_Unit,
                 block1_shift, block2_shift, block3_shift,
                 grids1_length, grids2_length, grids3_length, 
                 tiles1_length, tiles2_length, tiles3_length,
-                hubs1_length, hubs1_y, hubs3_length, hubs3_y)
+                hubs1_length, hubs1_y, hubs3_length, hubs3_y,
+                100)
 
 # mesh structure
 _mesh.create_grid_electrode()
@@ -170,7 +171,7 @@ _mesh.set_grid_by_electrode_edge_opt2(shape, shape_scope)
 
 for i in range(len(_mesh.grids4)):
     for j in range(len(_mesh.grids4[i])):
-        if _mesh.grids4[i, j].electrode_index >= 0:
+        if _mesh.grids4[i, j].electrode_index >= 0 and _mesh.grids2[i, j].electrode_index < 0:
             _mesh.grids2[i, j] = _mesh.grids4[i, j]
             
 _mesh.create_neighbor_electrodes()
