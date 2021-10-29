@@ -20,8 +20,8 @@ class Mesh():
                     block1_shift, block2_shift, block3_shift,
                     grids1_length, grids2_length, grids3_length,
                     tiles1_length, tiles2_length, tiles3_length,
-                    hubs1_length, hubs1_y, hubs3_length, hubs3_y,
-                    wire_length):
+                    hubs1_length, hubs1_y, hubs3_length, hubs3_y
+                    ):
 
         self.Control_pad_unit = Control_pad_unit
         self.Tile_Unit = Tile_Unit
@@ -38,7 +38,6 @@ class Mesh():
         self.hubs1_y = hubs1_y
         self.hubs3_length = hubs3_length
         self.hubs3_y = hubs3_y
-        self.wire_length = wire_length
 
         # Grid
         self.grids1 = np.empty((grids1_length[0],grids1_length[1]), dtype = Grid)
@@ -108,19 +107,39 @@ class Mesh():
         else:
             return [grid_p[0], grid_p[1]+1]
 
-    def find_short_grid_internal(self, grid, grid_p, elec_p, poly_ps):
+    def find_short_grid_external(self, grid, grid_p, elec_p, poly_ps):
+        grid_ps = []
+        p1 = [grid[grid_p[0]][grid_p[1]].real_x, grid[grid_p[0]][grid_p[1]].real_y]
+        p2 = [grid[grid_p[0]+1][grid_p[1]].real_x, grid[grid_p[0]+1][grid_p[1]].real_y]
+        p3 = [grid[grid_p[0]+1][grid_p[1]+1].real_x, grid[grid_p[0]+1][grid_p[1]+1].real_y]
+        p4 = [grid[grid_p[0]][grid_p[1]+1].real_x, grid[grid_p[0]][grid_p[1]+1].real_y]
+        if self.is_poi_with_in_poly(p1, poly_ps) is False:
+            grid_ps.append([grid_p[0], grid_p[1]])
+        if self.is_poi_with_in_poly(p2, poly_ps) is False:
+            grid_ps.append([grid_p[0]+1, grid_p[1]])
+        if self.is_poi_with_in_poly(p3, poly_ps) is False:
+            grid_ps.append([grid_p[0]+1, grid_p[1]+1])
+        if self.is_poi_with_in_poly(p4, poly_ps) is False:
+            grid_ps.append([grid_p[0], grid_p[1]+1])
+        return self.find_short_grid_from_points(grid, grid_ps, elec_p)
+
+    def find_short_grid_internal(self, grid, grid_p, elec_p, poly_ps, conflict_p = [-1, -1]):
         grid_ps = []
         p1 = [grid[grid_p[0]][grid_p[1]].real_x, grid[grid_p[0]][grid_p[1]].real_y]
         p2 = [grid[grid_p[0]+1][grid_p[1]].real_x, grid[grid_p[0]+1][grid_p[1]].real_y]
         p3 = [grid[grid_p[0]+1][grid_p[1]+1].real_x, grid[grid_p[0]+1][grid_p[1]+1].real_y]
         p4 = [grid[grid_p[0]][grid_p[1]+1].real_x, grid[grid_p[0]][grid_p[1]+1].real_y]
         if self.is_poi_with_in_poly(p1, poly_ps):
+            # if conflict_p[0] != grid_p[0] and conflict_p[1] != grid_p[1]:
             grid_ps.append([grid_p[0], grid_p[1]])
         if self.is_poi_with_in_poly(p2, poly_ps):
+            # if conflict_p[0] != grid_p[0]+1 and conflict_p[1] != grid_p[1]:
             grid_ps.append([grid_p[0]+1, grid_p[1]])
         if self.is_poi_with_in_poly(p3, poly_ps):
+            # if conflict_p[0] != grid_p[0]+1 and conflict_p[1] != grid_p[1]+1:
             grid_ps.append([grid_p[0]+1, grid_p[1]+1])
         if self.is_poi_with_in_poly(p4, poly_ps):
+            # if conflict_p[0] != grid_p[0] and conflict_p[1] != grid_p[1]+1:
             grid_ps.append([grid_p[0], grid_p[1]+1])
         return self.find_short_grid_from_points(grid, grid_ps, elec_p)
 
@@ -253,80 +272,53 @@ class Mesh():
                     i+=1
                     self.hubs1[i] = Hub(real_x=(thub_grid_x1+1)*self.Tile_Unit+self.block2_shift[0], real_y=self.hubs1_y, type=1, hub_index=i)
                     self.hubs3[i] = Hub(real_x=(thub_grid_x1+1)*self.Tile_Unit+self.block2_shift[0], real_y=self.hubs3_y, type=1, hub_index=i)
-                
-    def _create_neighbor_electrodes(self, i, j, dir): 
-        if self.grids2[i][j].conflict is False:
-            if dir[0]==1 and self.grids2[i-1][j-1].type>0:   #012
-                                                        #3 4
-                                                        #567
-                if self.grids2[i][j-1].type>0 and self.grids2[i-1][j].type>0:
-                    self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j-1].electrode_index,0,-1,-1, self.Tile_Unit*2-1]) # index dir self.grids2[i-1][j-1]
-            if dir[1]==1 and self.grids2[i][j-1].type>0:
-                #avoid wire over boundary
-                # if self.grids2[i][j].real_x < self.electrodes[self.grids2[i][j-1].electrode_index].boundary_L + self.wire_length or self.grids2[i][j].real_x > self.electrodes[self.grids2[i][j-1].electrode_index].boundary_R - self.wire_length:
-                #     pass
-                # else:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i][j-1].electrode_index,1,0,-1, self.Tile_Unit])
-            if dir[2]==1 and self.grids2[i+1][j-1].type>0:
-                if self.grids2[i][j-1].type>0 and self.grids2[i+1][j].type>0:
-                    self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j-1].electrode_index,2,1,-1, self.Tile_Unit*2-1])
-            if dir[3]==1 and self.grids2[i-1][j].type>0:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j].electrode_index,3,-1,0, self.Tile_Unit])
-            if dir[4]==1 and self.grids2[i+1][j].type>0:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j].electrode_index,4,1,0, self.Tile_Unit])
-            if dir[5]==1 and self.grids2[i-1][j+1].type>0:
-                if self.grids2[i-1][j].type>0 and self.grids2[i][j+1].type>0:
-                    self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j+1].electrode_index,5,-1,1, self.Tile_Unit*2-1])
-            if dir[6]==1 and self.grids2[i][j+1].type>0:
-                #avoid wire over boundary
-                # if self.grids2[i][j].real_x < self.electrodes[self.grids2[i][j+1].electrode_index].boundary_L + self.wire_length or self.grids2[i][j].real_x > self.electrodes[self.grids2[i][j+1].electrode_index].boundary_R - self.wire_length:
-                #     pass
-                # else:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i][j+1].electrode_index,6,0,1, self.Tile_Unit])
-            if dir[7]==1 and self.grids2[i+1][j+1].type>0:
-                if self.grids2[i+1][j].type>0 and self.grids2[i][j+1].type>0:
-                    self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j+1].electrode_index,7,1,1, self.Tile_Unit*2-1])
+            
+    def trian_corner_electrode_index(self, a, b, c):
+        if (a!=b and b!=c and c!=a):
+            return True
         else:
-            if dir[0]==1 and self.grids2[i-1][j-1].type>0 and self.grids2[i-1][j-1].corner:   
-                #012
-                #3 4
-                #567
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j-1].electrode_index,0,-1,-1, self.Tile_Unit*2-1]) # index dir self.grids2[i-1][j-1]
-            if dir[1]==1 and self.grids2[i][j-1].type>0 and self.grids2[i][j-1].corner:
-                #avoid wire over boundary
-                # if self.grids2[i][j].real_x < self.electrodes[self.grids2[i][j-1].electrode_index].boundary_L + self.wire_length or self.grids2[i][j].real_x > self.electrodes[self.grids2[i][j-1].electrode_index].boundary_R - self.wire_length:
-                #     pass
-                # else:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i][j-1].electrode_index,1,0,-1, self.Tile_Unit])
-            if dir[2]==1 and self.grids2[i+1][j-1].type>0 and self.grids2[i+1][j-1].corner:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j-1].electrode_index,2,1,-1, self.Tile_Unit*2-1])
-            if dir[3]==1 and self.grids2[i-1][j].type>0 and self.grids2[i-1][j].corner:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j].electrode_index,3,-1,0, self.Tile_Unit])
-            if dir[4]==1 and self.grids2[i+1][j].type>0 and self.grids2[i+1][j].corner:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j].electrode_index,4,1,0, self.Tile_Unit])
-            if dir[5]==1 and self.grids2[i-1][j+1].type>0 and self.grids2[i-1][j+1].corner:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j+1].electrode_index,5,-1,1, self.Tile_Unit*2-1])
-            if dir[6]==1 and self.grids2[i][j+1].type>0 and self.grids2[i][j+1].corner:
-                #avoid wire over boundary
-                # if self.grids2[i][j].real_x < self.electrodes[self.grids2[i][j+1].electrode_index].boundary_L + self.wire_length or self.grids2[i][j].real_x > self.electrodes[self.grids2[i][j+1].electrode_index].boundary_R - self.wire_length:
-                #     pass
-                # else:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i][j+1].electrode_index,6,0,1, self.Tile_Unit])
-            if dir[7]==1 and self.grids2[i+1][j+1].type>0 and self.grids2[i+1][j+1].corner:
-                self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j+1].electrode_index,7,1,1, self.Tile_Unit*2-1])
+            return False
+    
+    def is_trian_corner(self, i, j):
+        if i == 0 or j == 0:
+            return 0
+        if i == self.grids2_length[0]-1 or j == self.grids2_length[1]-1:
+            return 0
+        # --
+        # |*
+        if self.grids2[i-1,j-1].type > 0 and self.grids2[i-1,j].type > 0 and self.grids2[i,j-1].type > 0 and self.grids2[i+1,j+1].type == 0 and self.grids2[i,j+1].type == 0:
+            if self.trian_corner_electrode_index(self.grids2[i-1,j-1].electrode_index, self.grids2[i-1,j].electrode_index, self.grids2[i,j-1].electrode_index):
+                return 1
+        # --
+        # *|
+        if self.grids2[i,j-1].type > 0 and self.grids2[i+1,j-1].type > 0 and self.grids2[i+1,j].type > 0 and self.grids2[i-1,j+1].type == 0 and self.grids2[i,j+1].type == 0:
+            if self.trian_corner_electrode_index(self.grids2[i,j-1].electrode_index, self.grids2[i+1,j-1].electrode_index, self.grids2[i+1,j].electrode_index):
+                return 2
+        # *|
+        # --
+        if self.grids2[i+1,j].type > 0 and self.grids2[i+1,j+1].type > 0 and self.grids2[i,j+1].type > 0 and self.grids2[i-1,j-1].type == 0 and self.grids2[i,j-1].type == 0:
+            if self.trian_corner_electrode_index(self.grids2[i+1,j].electrode_index, self.grids2[i+1,j+1].electrode_index, self.grids2[i,j+1].electrode_index):
+                return 3
+        # |*
+        # --
+        if self.grids2[i-1,j].type > 0 and self.grids2[i-1,j+1].type > 0 and self.grids2[i,j+1].type > 0 and self.grids2[i+1,j-1].type == 0 and self.grids2[i,j-1].type == 0:
+            if self.trian_corner_electrode_index(self.grids2[i-1,j].electrode_index, self.grids2[i-1,j+1].electrode_index, self.grids2[i,j+1].electrode_index):
+                return 4
+        return 0
 
+    # 對電極鄰近的grid建立連線
     def create_neighbor_electrodes(self):
         for i in range(self.grids2_length[0]):
             lock = False
             for j in range(self.grids2_length[1]):
-                if lock==False and self.grids2[i,j].type>0 and self.grids2[i,j+1].type==0 and self.grids2[i,j-1].electrode_index!=self.grids2[i,j].electrode_index :
-                    lock = True
-                elif lock==True and self.grids2[i,j].type>0 and self.grids2[i,j-1].type==0 and self.grids2[i,j+1].electrode_index!=self.grids2[i,j].electrode_index :
-                    lock = False
-                elif lock==True and self.grids2[i,j].type>0 and self.grids2[i,j+1].type==0 and self.next_electrode_index(i,j,self.grids2,self.grids2_length[1])!=self.grids2[i,j].electrode_index :
-                    lock = False
+                # if lock==False and self.grids2[i,j].type>0 and self.grids2[i,j+1].type==0 and self.grids2[i,j-1].electrode_index!=self.grids2[i,j].electrode_index :
+                #     lock = True
+                # elif lock==True and self.grids2[i,j].type>0 and self.grids2[i,j-1].type==0 and self.grids2[i,j+1].electrode_index!=self.grids2[i,j].electrode_index :
+                #     lock = False
+                # elif lock==True and self.grids2[i,j].type>0 and self.grids2[i,j+1].type==0 and self.next_electrode_index(i,j,self.grids2,self.grids2_length[1])!=self.grids2[i,j].electrode_index :
+                #     lock = False
                 dir = [0,0,0,0,0,0,0,0]
-                if self.grids2[i,j].type==0 and lock==False:
+                if (self.grids2[i,j].type==0 and lock==False):
                     #check 9 directions
                     if i == 0:
                         if j == 0:						# O *
@@ -359,6 +351,64 @@ class Mesh():
                             dir = [1,1,1,1,1,1,1,1]		# * O *
                                                         # * * *
                     self._create_neighbor_electrodes(i,j,dir)
+                # else:
+                trian_corner = self.is_trian_corner(i, j)
+                if trian_corner > 0:
+                    self.grids2[i][j].electrode_index = -1
+                    self.grids2[i][j].type = 0
+                    self.grids2[i][j].electrode_x = 0
+                    self.grids2[i][j].electrode_y = 0
+                    if trian_corner == 1:
+                        self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1,j-1].electrode_index,0,-1,-1, self.Tile_Unit*2-100, True])
+                    if trian_corner == 2:
+                        self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1,j-1].electrode_index,2,1,-1, self.Tile_Unit*2-100, True])
+                    if trian_corner == 3:
+                        self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1,j+1].electrode_index,7,1,1, self.Tile_Unit*2-100, True])
+                    if trian_corner == 4:
+                        self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1,j+1].electrode_index,5,-1,1, self.Tile_Unit*2-100, True])
+
+    def _create_neighbor_electrodes(self, i, j, dir): 
+        #012
+        #3 4
+        #567
+        # if self.grids2[i][j].conflict is False:
+        if dir[0]==1 and self.grids2[i-1][j-1].type>0:   
+            if self.grids2[i][j-1].type>0 and self.grids2[i-1][j].type>0:
+                self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j-1].electrode_index,0,-1,-1, self.Tile_Unit*2-100, False]) # index dir self.grids2[i-1][j-1]
+        if dir[1]==1 and self.grids2[i][j-1].type>0:
+            self.grids2[i][j].neighbor_electrode.append([self.grids2[i][j-1].electrode_index,1,0,-1, self.Tile_Unit, False])
+        if dir[2]==1 and self.grids2[i+1][j-1].type>0:
+            if self.grids2[i][j-1].type>0 and self.grids2[i+1][j].type>0:
+                self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j-1].electrode_index,2,1,-1, self.Tile_Unit*2-100, False])
+        if dir[3]==1 and self.grids2[i-1][j].type>0:
+            self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j].electrode_index,3,-1,0, self.Tile_Unit, False])
+        if dir[4]==1 and self.grids2[i+1][j].type>0:
+            self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j].electrode_index,4,1,0, self.Tile_Unit, False])
+        if dir[5]==1 and self.grids2[i-1][j+1].type>0:
+            if self.grids2[i-1][j].type>0 and self.grids2[i][j+1].type>0:
+                self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j+1].electrode_index,5,-1,1, self.Tile_Unit*2-100, False])
+        if dir[6]==1 and self.grids2[i][j+1].type>0:
+            self.grids2[i][j].neighbor_electrode.append([self.grids2[i][j+1].electrode_index,6,0,1, self.Tile_Unit, False])
+        if dir[7]==1 and self.grids2[i+1][j+1].type>0:
+            if self.grids2[i+1][j].type>0 and self.grids2[i][j+1].type>0:
+                self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j+1].electrode_index,7,1,1, self.Tile_Unit*2-100, False])
+        # else:
+        #     if dir[0]==1 and self.grids2[i-1][j-1].type>0 and self.grids2[i-1][j-1].corner:   
+        #         self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j-1].electrode_index,0,-1,-1, self.Tile_Unit*2-1, True]) # index dir self.grids2[i-1][j-1]
+        #     if dir[1]==1 and self.grids2[i][j-1].type>0 and self.grids2[i][j-1].corner:
+        #         self.grids2[i][j].neighbor_electrode.append([self.grids2[i][j-1].electrode_index,1,0,-1, self.Tile_Unit, False])
+        #     if dir[2]==1 and self.grids2[i+1][j-1].type>0 and self.grids2[i+1][j-1].corner:
+        #         self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j-1].electrode_index,2,1,-1, self.Tile_Unit*2-1, True])
+        #     if dir[3]==1 and self.grids2[i-1][j].type>0 and self.grids2[i-1][j].corner:
+        #         self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j].electrode_index,3,-1,0, self.Tile_Unit, False])
+        #     if dir[4]==1 and self.grids2[i+1][j].type>0 and self.grids2[i+1][j].corner:
+        #         self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j].electrode_index,4,1,0, self.Tile_Unit, False])
+        #     if dir[5]==1 and self.grids2[i-1][j+1].type>0 and self.grids2[i-1][j+1].corner:
+        #         self.grids2[i][j].neighbor_electrode.append([self.grids2[i-1][j+1].electrode_index,5,-1,1, self.Tile_Unit*2-1, True])
+        #     if dir[6]==1 and self.grids2[i][j+1].type>0 and self.grids2[i][j+1].corner:
+        #         self.grids2[i][j].neighbor_electrode.append([self.grids2[i][j+1].electrode_index,6,0,1, self.Tile_Unit, False])
+        #     if dir[7]==1 and self.grids2[i+1][j+1].type>0 and self.grids2[i+1][j+1].corner:
+        #         self.grids2[i][j].neighbor_electrode.append([self.grids2[i+1][j+1].electrode_index,7,1,1, self.Tile_Unit*2-1, True])
             
     def next_electrode_index(self, x,y,grids,length):
         for i in range(y+1,length):
@@ -392,75 +442,7 @@ class Mesh():
                         self.grids2[i+1][j].safe_distance2=1
                         #dxf.add_circle(center=(grids2[i+1][j].real_x, -grids2[i][j].real_y), radius = 200.0)
 
-    #create grids connection
-    def _create_grids_connection(self, grids,x,y,dir):
-        if grids[x][y].conflict is False:
-            if dir[0]==1:
-                if grids[x-1][y-1].type==0 and len(grids[x-1][y-1].neighbor_electrode)==0 and grids[x-1][y-1].safe_distance==0 and grids[x-1][y-1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x-1][y-1].safe_distance==1) or (grids[x-1][y-1].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x-1][y-1], 1, self.Tile_Unit*2-1]) #self.Tile_Unit*math.sqrt(2)
-            if dir[1]==1:
-                if grids[x][y-1].type==0 and len(grids[x][y-1].neighbor_electrode)==0 and grids[x][y-1].safe_distance==0 and grids[x][y-1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x][y-1].safe_distance==1) or (grids[x][y-1].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x][y-1], 1, self.Tile_Unit])# max(0,self.Tile_Unit-grids[x][y-1].cost*500)])
-            if dir[2]==1:
-                if grids[x+1][y-1].type==0 and len(grids[x+1][y-1].neighbor_electrode)==0 and grids[x+1][y-1].safe_distance==0 and grids[x+1][y-1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y-1].safe_distance==1) or (grids[x+1][y-1].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x+1][y-1], 1, self.Tile_Unit*2-1])
-            if dir[3]==1:
-                if grids[x-1][y].type==0 and len(grids[x-1][y].neighbor_electrode)==0 and grids[x-1][y].safe_distance==0 and grids[x-1][y].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x-1][y].safe_distance==1) or (grids[x-1][y].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x-1][y], 1, self.Tile_Unit])
-            if dir[4]==1:
-                if grids[x+1][y].type==0 and len(grids[x+1][y].neighbor_electrode)==0 and grids[x+1][y].safe_distance==0 and grids[x+1][y].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y].safe_distance==1) or (grids[x+1][y].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x+1][y], 1, self.Tile_Unit])
-            if dir[5]==1:
-                if grids[x-1][y+1].type==0 and len(grids[x-1][y+1].neighbor_electrode)==0 and grids[x-1][y+1].safe_distance==0 and grids[x-1][y+1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x-1][y+1].safe_distance==1) or (grids[x-1][y+1].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x-1][y+1], 1, self.Tile_Unit*2-1])
-            if dir[6]==1:
-                if grids[x][y+1].type==0 and len(grids[x][y+1].neighbor_electrode)==0 and grids[x][y+1].safe_distance==0 and grids[x][y+1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x][y+1].safe_distance==1) or (grids[x][y+1].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x][y+1], 1, self.Tile_Unit])# max(0,self.Tile_Unit-grids[x][y+1].cost*500)])
-            if dir[7]==1:
-                if grids[x+1][y+1].type==0 and len(grids[x+1][y+1].neighbor_electrode)==0 and grids[x+1][y+1].safe_distance==0  and grids[x+1][y+1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y+1].safe_distance==1) or (grids[x+1][y+1].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x+1][y+1], 1, self.Tile_Unit*2-1])
-        else:
-            if dir[0]==1:
-                if grids[x-1][y-1].type==0 and len(grids[x-1][y-1].neighbor_electrode)==0 and grids[x-1][y-1].safe_distance==0 and grids[x-1][y-1].safe_distance2==0:
-                    grids[x][y].neighbor.append([grids[x-1][y-1], 1, self.Tile_Unit*math.sqrt(2)-50])
-                if grids[x-1][y-1].corner:
-                    grids[x][y].neighbor.append([grids[x-1][y-1], 1, self.Tile_Unit*math.sqrt(2)-50])
-            if dir[1]==1:
-                if grids[x][y-1].type==0 and len(grids[x][y-1].neighbor_electrode)==0 and grids[x][y-1].safe_distance==0 and grids[x][y-1].safe_distance2==0:
-                    grids[x][y].neighbor.append([grids[x][y-1], 1, self.Tile_Unit-100])# max(0,self.Tile_Unit-grids[x][y-1].cost*500)])
-                if grids[x][y-1].corner:
-                    grids[x][y].neighbor.append([grids[x][y-1], 1, self.Tile_Unit-100])
-            if dir[2]==1:
-                if grids[x+1][y-1].type==0 and len(grids[x+1][y-1].neighbor_electrode)==0 and grids[x+1][y-1].safe_distance==0 and grids[x+1][y-1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y-1].corner and grids[x+1][y-1].safe_distance==1) or (grids[x+1][y-1].safe_distance2==1 and grids[x][y].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x+1][y-1], 1, self.Tile_Unit*math.sqrt(2)-50])
-                if grids[x+1][y-1].corner:
-                    grids[x][y].neighbor.append([grids[x+1][y-1], 1, self.Tile_Unit*math.sqrt(2)-50])
-            if dir[3]==1:
-                if grids[x-1][y].type==0 and len(grids[x-1][y].neighbor_electrode)==0 and grids[x-1][y].safe_distance==0 and grids[x-1][y].safe_distance2==0:
-                    grids[x][y].neighbor.append([grids[x-1][y], 1, self.Tile_Unit])
-                if grids[x-1][y].corner:
-                    grids[x][y].neighbor.append([grids[x-1][y], 1, self.Tile_Unit*math.sqrt(2)-50])
-            if dir[4]==1:
-                if grids[x+1][y].type==0 and len(grids[x+1][y].neighbor_electrode)==0 and grids[x+1][y].safe_distance==0 and grids[x+1][y].safe_distance2==0:
-                    grids[x][y].neighbor.append([grids[x+1][y], 1, self.Tile_Unit])
-                if grids[x+1][y].corner:
-                    grids[x][y].neighbor.append([grids[x+1][y], 1, self.Tile_Unit])
-            if dir[5]==1:
-                if grids[x-1][y+1].type==0 and len(grids[x-1][y+1].neighbor_electrode)==0 and grids[x-1][y+1].safe_distance==0 and grids[x-1][y+1].safe_distance2==0:
-                    grids[x][y].neighbor.append([grids[x-1][y+1], 1, self.Tile_Unit*math.sqrt(2)-50])
-                if grids[x-1][y+1].corner:
-                    grids[x][y].neighbor.append([grids[x-1][y+1], 1, self.Tile_Unit*math.sqrt(2)-50])
-            if dir[6]==1:
-                if grids[x][y+1].type==0 and len(grids[x][y+1].neighbor_electrode)==0 and grids[x][y+1].safe_distance==0 and grids[x][y+1].safe_distance2==0:
-                    grids[x][y].neighbor.append([grids[x][y+1], 1, self.Tile_Unit-100])# max(0,self.Tile_Unit-grids[x][y+1].cost*500)])
-                if grids[x][y+1].corner:
-                    grids[x][y].neighbor.append([grids[x][y+1], 1, self.Tile_Unit-100])
-            if dir[7]==1:
-                if grids[x+1][y+1].type==0 and len(grids[x+1][y+1].neighbor_electrode)==0 and grids[x+1][y+1].safe_distance==0  and grids[x+1][y+1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y+1].corner and grids[x+1][y+1].safe_distance==1):
-                    grids[x][y].neighbor.append([grids[x+1][y+1], 1, self.Tile_Unit*math.sqrt(2)-50])
-                if grids[x+1][y+1].corner:
-                    grids[x][y].neighbor.append([grids[x+1][y+1], 1, self.Tile_Unit*math.sqrt(2)-50])
-    
+    # 對所有不被電極覆蓋的grid建立連線
     def create_grids_connection(self):
         for i in range (self.grids2_length[0]):
             for j in range(self.grids2_length[1]):
@@ -497,7 +479,95 @@ class Mesh():
                         else:							# * * *
                             dir = [1,1,1,1,1,1,1,1]		# * O *
                                                         # * * *
-                    self._create_grids_connection(self.grids2, i, j, dir) 
+                    self._create_grids_connection(self.grids2, i, j, dir)
+                trian_corner = self.is_trian_corner(i, j)
+                if trian_corner > 0:
+                    # self.grids2[i][j].electrode_index = -1
+                    # self.grids2[i][j].type = 0
+                    # self.grids2[i][j].electrode_x = 0
+                    # self.grids2[i][j].electrode_y = 0
+                    self.grids2[i][j].neighbor = []
+                    if trian_corner == 1:
+                        self.grids2[i][j].neighbor.append([self.grids2[i-1,j-1],1,self.Tile_Unit*2-100])
+                        self.grids2[i][j].neighbor.append([self.grids2[i+1,j+1],1,self.Tile_Unit*2-100])
+                    if trian_corner == 2:
+                        self.grids2[i][j].neighbor.append([self.grids2[i+1,j-1],1,self.Tile_Unit*2-100])
+                        self.grids2[i][j].neighbor.append([self.grids2[i-1,j+1],1,self.Tile_Unit*2-100])
+                    if trian_corner == 3:
+                        self.grids2[i][j].neighbor.append([self.grids2[i+1,j+1],1,self.Tile_Unit*2-100])
+                        self.grids2[i][j].neighbor.append([self.grids2[i-1,j-1],1,self.Tile_Unit*2-100])
+                    if trian_corner == 4:
+                        self.grids2[i][j].neighbor.append([self.grids2[i-1,j+1],1,self.Tile_Unit*2-100])
+                        self.grids2[i][j].neighbor.append([self.grids2[i+1,j-1],1,self.Tile_Unit*2-100])
+
+    #create grids connection
+    def _create_grids_connection(self, grids,x,y,dir):
+        # if grids[x][y].conflict is False:
+        if dir[0]==1:
+            if grids[x-1][y-1].type==0 and len(grids[x-1][y-1].neighbor_electrode)==0 and grids[x-1][y-1].safe_distance==0 and grids[x-1][y-1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x-1][y-1].safe_distance==1) or (grids[x-1][y-1].safe_distance2==1 and grids[x][y].safe_distance==1):
+                grids[x][y].neighbor.append([grids[x-1][y-1], 1, self.Tile_Unit*2-100]) #self.Tile_Unit*math.sqrt(2)
+        if dir[1]==1:
+            if grids[x][y-1].type==0 and len(grids[x][y-1].neighbor_electrode)==0 and grids[x][y-1].safe_distance==0 and grids[x][y-1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x][y-1].safe_distance==1) or (grids[x][y-1].safe_distance2==1 and grids[x][y].safe_distance==1):
+                grids[x][y].neighbor.append([grids[x][y-1], 1, self.Tile_Unit])# max(0,self.Tile_Unit-grids[x][y-1].cost*500)])
+        if dir[2]==1:
+            if grids[x+1][y-1].type==0 and len(grids[x+1][y-1].neighbor_electrode)==0 and grids[x+1][y-1].safe_distance==0 and grids[x+1][y-1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y-1].safe_distance==1) or (grids[x+1][y-1].safe_distance2==1 and grids[x][y].safe_distance==1):
+                grids[x][y].neighbor.append([grids[x+1][y-1], 1, self.Tile_Unit*2-100])
+        if dir[3]==1:
+            if grids[x-1][y].type==0 and len(grids[x-1][y].neighbor_electrode)==0 and grids[x-1][y].safe_distance==0 and grids[x-1][y].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x-1][y].safe_distance==1) or (grids[x-1][y].safe_distance2==1 and grids[x][y].safe_distance==1):
+                grids[x][y].neighbor.append([grids[x-1][y], 1, self.Tile_Unit])
+        if dir[4]==1:
+            if grids[x+1][y].type==0 and len(grids[x+1][y].neighbor_electrode)==0 and grids[x+1][y].safe_distance==0 and grids[x+1][y].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y].safe_distance==1) or (grids[x+1][y].safe_distance2==1 and grids[x][y].safe_distance==1):
+                grids[x][y].neighbor.append([grids[x+1][y], 1, self.Tile_Unit])
+        if dir[5]==1:
+            if grids[x-1][y+1].type==0 and len(grids[x-1][y+1].neighbor_electrode)==0 and grids[x-1][y+1].safe_distance==0 and grids[x-1][y+1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x-1][y+1].safe_distance==1) or (grids[x-1][y+1].safe_distance2==1 and grids[x][y].safe_distance==1):
+                grids[x][y].neighbor.append([grids[x-1][y+1], 1, self.Tile_Unit*2-100])
+        if dir[6]==1:
+            if grids[x][y+1].type==0 and len(grids[x][y+1].neighbor_electrode)==0 and grids[x][y+1].safe_distance==0 and grids[x][y+1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x][y+1].safe_distance==1) or (grids[x][y+1].safe_distance2==1 and grids[x][y].safe_distance==1):
+                grids[x][y].neighbor.append([grids[x][y+1], 1, self.Tile_Unit])# max(0,self.Tile_Unit-grids[x][y+1].cost*500)])
+        if dir[7]==1:
+            if grids[x+1][y+1].type==0 and len(grids[x+1][y+1].neighbor_electrode)==0 and grids[x+1][y+1].safe_distance==0  and grids[x+1][y+1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y+1].safe_distance==1) or (grids[x+1][y+1].safe_distance2==1 and grids[x][y].safe_distance==1):
+                grids[x][y].neighbor.append([grids[x+1][y+1], 1, self.Tile_Unit*2-100])
+        # else:
+        #     if dir[0]==1:
+        #         if grids[x-1][y-1].type==0 and len(grids[x-1][y-1].neighbor_electrode)==0 and grids[x-1][y-1].safe_distance==0 and grids[x-1][y-1].safe_distance2==0:
+        #             grids[x][y].neighbor.append([grids[x-1][y-1], 1, self.Tile_Unit*math.sqrt(2)-50])
+        #         if grids[x-1][y-1].corner:
+        #             grids[x][y].neighbor.append([grids[x-1][y-1], 1, self.Tile_Unit*math.sqrt(2)-50])
+        #     if dir[1]==1:
+        #         if grids[x][y-1].type==0 and len(grids[x][y-1].neighbor_electrode)==0 and grids[x][y-1].safe_distance==0 and grids[x][y-1].safe_distance2==0:
+        #             grids[x][y].neighbor.append([grids[x][y-1], 1, self.Tile_Unit-100])# max(0,self.Tile_Unit-grids[x][y-1].cost*500)])
+        #         if grids[x][y-1].corner:
+        #             grids[x][y].neighbor.append([grids[x][y-1], 1, self.Tile_Unit-100])
+        #     if dir[2]==1:
+        #         if grids[x+1][y-1].type==0 and len(grids[x+1][y-1].neighbor_electrode)==0 and grids[x+1][y-1].safe_distance==0 and grids[x+1][y-1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y-1].corner and grids[x+1][y-1].safe_distance==1) or (grids[x+1][y-1].safe_distance2==1 and grids[x][y].safe_distance==1):
+        #             grids[x][y].neighbor.append([grids[x+1][y-1], 1, self.Tile_Unit*math.sqrt(2)-50])
+        #         if grids[x+1][y-1].corner:
+        #             grids[x][y].neighbor.append([grids[x+1][y-1], 1, self.Tile_Unit*math.sqrt(2)-50])
+        #     if dir[3]==1:
+        #         if grids[x-1][y].type==0 and len(grids[x-1][y].neighbor_electrode)==0 and grids[x-1][y].safe_distance==0 and grids[x-1][y].safe_distance2==0:
+        #             grids[x][y].neighbor.append([grids[x-1][y], 1, self.Tile_Unit])
+        #         if grids[x-1][y].corner:
+        #             grids[x][y].neighbor.append([grids[x-1][y], 1, self.Tile_Unit*math.sqrt(2)-50])
+        #     if dir[4]==1:
+        #         if grids[x+1][y].type==0 and len(grids[x+1][y].neighbor_electrode)==0 and grids[x+1][y].safe_distance==0 and grids[x+1][y].safe_distance2==0:
+        #             grids[x][y].neighbor.append([grids[x+1][y], 1, self.Tile_Unit])
+        #         if grids[x+1][y].corner:
+        #             grids[x][y].neighbor.append([grids[x+1][y], 1, self.Tile_Unit])
+        #     if dir[5]==1:
+        #         if grids[x-1][y+1].type==0 and len(grids[x-1][y+1].neighbor_electrode)==0 and grids[x-1][y+1].safe_distance==0 and grids[x-1][y+1].safe_distance2==0:
+        #             grids[x][y].neighbor.append([grids[x-1][y+1], 1, self.Tile_Unit*math.sqrt(2)-50])
+        #         if grids[x-1][y+1].corner:
+        #             grids[x][y].neighbor.append([grids[x-1][y+1], 1, self.Tile_Unit*math.sqrt(2)-50])
+        #     if dir[6]==1:
+        #         if grids[x][y+1].type==0 and len(grids[x][y+1].neighbor_electrode)==0 and grids[x][y+1].safe_distance==0 and grids[x][y+1].safe_distance2==0:
+        #             grids[x][y].neighbor.append([grids[x][y+1], 1, self.Tile_Unit-100])# max(0,self.Tile_Unit-grids[x][y+1].cost*500)])
+        #         if grids[x][y+1].corner:
+        #             grids[x][y].neighbor.append([grids[x][y+1], 1, self.Tile_Unit-100])
+        #     if dir[7]==1:
+        #         if grids[x+1][y+1].type==0 and len(grids[x+1][y+1].neighbor_electrode)==0 and grids[x+1][y+1].safe_distance==0  and grids[x+1][y+1].safe_distance2==0 or (len(grids[x][y].neighbor_electrode)>0 and grids[x+1][y+1].corner and grids[x+1][y+1].safe_distance==1):
+        #             grids[x][y].neighbor.append([grids[x+1][y+1], 1, self.Tile_Unit*math.sqrt(2)-50])
+        #         if grids[x+1][y+1].corner:
+        #             grids[x][y].neighbor.append([grids[x+1][y+1], 1, self.Tile_Unit*math.sqrt(2)-50])
                 
     def create_tiles_connection(self, tile_length, grids, tiles, block):
         for i in range(tile_length[0]):
@@ -584,212 +654,6 @@ class Mesh():
         grid[x, y].electrode_y = p2
         grid[x, y].corner = corner
 
-                
-    def set_grid_by_electrode_edge(self, shape, shape_scope):
-        for electrode in self.list_electrodes:
-            for i in range (len(shape)):
-                if electrode[2] == shape[i]:
-                    true_x = electrode[1]
-                    true_y = electrode[0]
-                    new_electrode = Electrode(true_x, true_y, i, self.num_electrode)
-                    # print(new_electrode.to_dict())
-                    self.electrodes.append(new_electrode)
-                    boundary_U=true_y
-                    boundary_D=true_y
-                    boundary_L=true_x
-                    boundary_R=true_x
-                    electrode_shape_path = shape_scope[i]
-                    for j in range(len(electrode_shape_path)-1):
-                        x1 = true_x+electrode_shape_path[j][0]
-                        y1 = true_y+electrode_shape_path[j][1]
-                        x2 = true_x+electrode_shape_path[j+1][0]
-                        y2 = true_y+electrode_shape_path[j+1][1]
-                        E_grid_x1 = (x1-self.block2_shift[0]) // self.Tile_Unit
-                        E_grid_x2 = (x2-self.block2_shift[0]) // self.Tile_Unit
-                        E_grid_y1 = (y1-self.block2_shift[1]) // self.Tile_Unit
-                        E_grid_y2 = (y2-self.block2_shift[1]) // self.Tile_Unit
-
-                        # print('grid:', E_grid_x1, E_grid_y1, E_grid_x2, E_grid_y2)
-                        # print('addr:', x1, y1, x2, y2)
-                        if x1>boundary_R:
-                            boundary_R=x1
-                        if x1<boundary_L:
-                            boundary_L=x1
-                        if y1<boundary_U:
-                            boundary_U=y1
-                        if y1>boundary_D:
-                            boundary_D=y1
-
-
-                        ang = self.clockwise_angle([0, -1], [x2-x1, y2-y1])
-                        deg = Degree.getdegree(x2, y2, x1, y1)
-                        # print(ang, deg)
-
-                        ######### 有角度
-                        if ang % 90 != 0:
-                            if x1>x2:
-                                # |
-                                #  \ _
-                                if y1>y2:
-                                    points = self.get_points_lines(x1, y1, x2, y2, (self.contact_line_width/2) + self.contact_line_width_gap)
-                                    # print('point = ', [x1, y1], [x2, y2], 'contact points = ', points)
-                                    for p in points:
-                                        if points.index(p) == 0:
-                                            E_grid_x = (x1-self.block2_shift[0]) // self.Tile_Unit
-                                            E_grid_y = (y1-self.block2_shift[1]) // self.Tile_Unit
-                                            _grid = self.grids2[E_grid_x, E_grid_y+1]
-                                            _grid.electrode_index=self.num_electrode
-                                            _grid.type+=1
-                                            _grid.electrode_x = p[0]
-                                            _grid.electrode_y = p[1]
-                                        if points.index(p) == len(points) - 1:
-                                            E_grid_x = (x2-self.block2_shift[0]) // self.Tile_Unit
-                                            E_grid_y = (y2-self.block2_shift[1]) // self.Tile_Unit
-                                            _grid = self.grids2[E_grid_x, E_grid_y+1]
-                                            _grid.electrode_index=self.num_electrode
-                                            _grid.type+=1
-                                            _grid.electrode_x = p[0]
-                                            _grid.electrode_y = p[1]
-                                        E_grid_x = (p[0]-self.block2_shift[0]) // self.Tile_Unit
-                                        E_grid_y = (p[1]-self.block2_shift[1]) // self.Tile_Unit
-                                        _grid = self.grids2[E_grid_x, E_grid_y+1]
-                                        _grid.electrode_index=self.num_electrode
-                                        _grid.type+=1
-                                        _grid.electrode_x = p[0]
-                                        _grid.electrode_y = p[1]
-
-                                #  |
-                                # /
-                                else:
-                                    points = self.get_points_lines(x1, y1, x2, y2, (self.contact_line_width/2) + self.contact_line_width_gap)
-                                    # print('point = ', [x1, y1], [x2, y2], 'contact points = ', points)
-                                    for p in points:
-                                        if points.index(p) == 0:
-                                            E_grid_x = (x1-self.block2_shift[0]) // self.Tile_Unit
-                                            E_grid_y = (y1-self.block2_shift[1]) // self.Tile_Unit
-                                            _grid = self.grids2[E_grid_x+1, E_grid_y+1]
-                                            _grid.electrode_index=self.num_electrode
-                                            _grid.type+=1
-                                            _grid.electrode_x = p[0]
-                                            _grid.electrode_y = p[1]
-                                        if points.index(p) == len(points) - 1:
-                                            E_grid_x = (x2-self.block2_shift[0]) // self.Tile_Unit
-                                            E_grid_y = (y2-self.block2_shift[1]) // self.Tile_Unit
-                                            _grid = self.grids2[E_grid_x+1, E_grid_y+1]
-                                            _grid.electrode_index=self.num_electrode
-                                            _grid.type+=1
-                                            _grid.electrode_x = p[0]
-                                            _grid.electrode_y = p[1]
-                                        E_grid_x = (p[0]-self.block2_shift[0]) // self.Tile_Unit
-                                        E_grid_y = (p[1]-self.block2_shift[1]) // self.Tile_Unit
-                                        _grid = self.grids2[E_grid_x+1, E_grid_y+1]
-                                        _grid.electrode_index=self.num_electrode
-                                        _grid.type+=1
-                                        _grid.electrode_x = p[0]
-                                        _grid.electrode_y = p[1]
-
-                            elif x1<x2:
-                                # \
-                                #  |
-                                if y1<y2:
-                                    points = self.get_points_lines(x1, y1, x2, y2, (self.contact_line_width/2) + self.contact_line_width_gap)
-                                    # print('point = ', [x1, y1], [x2, y2], 'contact points = ', points)
-                                    for p in points:
-                                        if points.index(p) == 0:
-                                            E_grid_x = (x1-self.block2_shift[0]) // self.Tile_Unit
-                                            E_grid_y = (y1-self.block2_shift[1]) // self.Tile_Unit
-                                            _grid = self.grids2[E_grid_x+1, E_grid_y]
-                                            _grid.electrode_index=self.num_electrode
-                                            _grid.type+=1
-                                            _grid.electrode_x = p[0]
-                                            _grid.electrode_y = p[1]
-                                        if points.index(p) == len(points) - 1:
-                                            E_grid_x = (x2-self.block2_shift[0]) // self.Tile_Unit
-                                            E_grid_y = (y2-self.block2_shift[1]) // self.Tile_Unit
-                                            _grid = self.grids2[E_grid_x+1, E_grid_y]
-                                            _grid.electrode_index=self.num_electrode
-                                            _grid.type+=1
-                                            _grid.electrode_x = p[0]
-                                            _grid.electrode_y = p[1]
-                                        E_grid_x = (p[0]-self.block2_shift[0]) // self.Tile_Unit
-                                        E_grid_y = (p[1]-self.block2_shift[1]) // self.Tile_Unit
-                                        _grid = self.grids2[E_grid_x+1, E_grid_y]
-                                        _grid.electrode_index=self.num_electrode
-                                        _grid.type+=1
-                                        _grid.electrode_x = p[0]
-                                        _grid.electrode_y = p[1]
-
-                                #  /
-                                # |
-                                else:
-                                    points = self.get_points_lines(x1, y1, x2, y2, (self.contact_line_width/2) + self.contact_line_width_gap)
-                                    # print('point = ', [x1, y1], [x2, y2], 'contact points = ', points)
-                                    for p in points:
-                                        if points.index(p) == 0:
-                                            E_grid_x = (x1-self.block2_shift[0]) // self.Tile_Unit
-                                            E_grid_y = (y1-self.block2_shift[1]) // self.Tile_Unit
-                                            _grid = self.grids2[E_grid_x, E_grid_y]
-                                            _grid.electrode_index=self.num_electrode
-                                            _grid.type+=1
-                                            _grid.electrode_x = p[0]
-                                            _grid.electrode_y = p[1]
-                                        if points.index(p) == len(points) - 1:
-                                            E_grid_x = (x2-self.block2_shift[0]) // self.Tile_Unit
-                                            E_grid_y = (y2-self.block2_shift[1]) // self.Tile_Unit
-                                            _grid = self.grids2[E_grid_x, E_grid_y]
-                                            _grid.electrode_index=self.num_electrode
-                                            _grid.type+=1
-                                            _grid.electrode_x = p[0]
-                                            _grid.electrode_y = p[1]
-                                        E_grid_x = (p[0]-self.block2_shift[0]) // self.Tile_Unit
-                                        E_grid_y = (p[1]-self.block2_shift[1]) // self.Tile_Unit
-                                        _grid = self.grids2[E_grid_x, E_grid_y]
-                                        _grid.electrode_index=self.num_electrode
-                                        _grid.type+=1
-                                        _grid.electrode_x = p[0]
-                                        _grid.electrode_y = p[1]
-
-                        # check_corner=0
-                        ######### 直線
-                        else:
-                            ## ->
-                            if ang == 90:
-                                for k in range(E_grid_x2 - (E_grid_x1 + 1) + 1):
-                                    _gird = self.grids2[E_grid_x1+1+k][E_grid_y1]
-                                    _gird.electrode_index=self.num_electrode
-                                    _gird.type+=1
-                                    _gird.electrode_x = _gird.real_x
-                                    _gird.electrode_y = y1
-                            ## | down
-                            elif ang == 180:
-                                for k in range(E_grid_y2 - (E_grid_y1 + 1) + 1):
-                                    _grid = self.grids2[E_grid_x1+1][E_grid_y1+1+k]
-                                    _grid.electrode_index=self.num_electrode #elector into grid
-                                    _grid.type+=1
-                                    _grid.electrode_x = x1 
-                                    _grid.electrode_y = _grid.real_y
-                            ## <-
-                            elif ang == 270:
-                                for k in range(E_grid_x1 - E_grid_x2):
-                                    _grid = self.grids2[E_grid_x1-k][E_grid_y1+1]
-                                    _grid.electrode_index=self.num_electrode
-                                    _grid.type+=1
-                                    _grid.electrode_x = _grid.real_x
-                                    _grid.electrode_y = y1
-                            ## | up
-                            elif ang == 360:
-                                for k in range(E_grid_y1 - (E_grid_y2 + 1) + 1):
-                                    _grid = self.grids2[E_grid_x1][E_grid_y1-k]
-                                    _grid.electrode_index=self.num_electrode
-                                    _grid.type+=1
-                                    _grid.electrode_x = x1 
-                                    _grid.electrode_y = _grid.real_y                    
-                    self.electrodes[-1].boundary_U=boundary_U
-                    self.electrodes[-1].boundary_D=boundary_D
-                    self.electrodes[-1].boundary_L=boundary_L
-                    self.electrodes[-1].boundary_R=boundary_R
-            self.num_electrode+=1
-
     def set_grid_by_electrode_edge_internal2(self, shape, shape_scope):
         num_electrode = 0
         for electrode in self.list_electrodes:
@@ -829,56 +693,56 @@ class Mesh():
                             elif ang == 360:
                                 for k in range(E_grid_y1 - (E_grid_y2 + 1) + 1):
                                     self.grid_set_electrode(self.grids4, E_grid_x1+1, E_grid_y1-k, num_electrode, x1, self.grids4[E_grid_x1+1][E_grid_y1-k].real_y)
-                    # for j in range(len(electrode_shape_path)-1):
-                    #     x1 = true_x+electrode_shape_path[j][0]
-                    #     y1 = true_y+electrode_shape_path[j][1]
-                    #     x2 = true_x+electrode_shape_path[j+1][0]
-                    #     y2 = true_y+electrode_shape_path[j+1][1]
-                    #     E_grid_x1 = (x1-self.block2_shift[0]) // self.Tile_Unit
-                    #     E_grid_x2 = (x2-self.block2_shift[0]) // self.Tile_Unit
-                    #     E_grid_y1 = (y1-self.block2_shift[1]) // self.Tile_Unit
-                    #     E_grid_y2 = (y2-self.block2_shift[1]) // self.Tile_Unit
+                    for j in range(len(electrode_shape_path)-1):
+                        x1 = true_x+electrode_shape_path[j][0]
+                        y1 = true_y+electrode_shape_path[j][1]
+                        x2 = true_x+electrode_shape_path[j+1][0]
+                        y2 = true_y+electrode_shape_path[j+1][1]
+                        E_grid_x1 = (x1-self.block2_shift[0]) // self.Tile_Unit
+                        E_grid_x2 = (x2-self.block2_shift[0]) // self.Tile_Unit
+                        E_grid_y1 = (y1-self.block2_shift[1]) // self.Tile_Unit
+                        E_grid_y2 = (y2-self.block2_shift[1]) // self.Tile_Unit
 
-                    #     ang = self.clockwise_angle([0, -1], [x2-x1, y2-y1])
-                    #     if ang % 90 != 0:
-                    #         if x1>x2:
-                    #             # |
-                    #             #  \ _
-                    #             if y1>y2:
-                    #                 point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                    #                 E_grid_x = (point[0] - self.block2_shift[0]) // self.Tile_Unit
-                    #                 E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
-                    #                 in_x = int(E_grid_x+1)
-                    #                 in_y = int(E_grid_y)
-                    #                 self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
-                    #             #  |
-                    #             # /
-                    #             else:
-                    #                 point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                    #                 E_grid_x = (point[0] - self.block2_shift[0]) // self.Tile_Unit
-                    #                 E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
-                    #                 in_x = int(E_grid_x)
-                    #                 in_y = int(E_grid_y)
-                    #                 self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
-                    #         elif x1<x2:
-                    #             # \
-                    #             #  |
-                    #             if y1<y2:
-                    #                 point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                    #                 E_grid_x = (point[0] - self.block2_shift[0]) // self.Tile_Unit
-                    #                 E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
-                    #                 in_x = int(E_grid_x)
-                    #                 in_y = int(E_grid_y+1)
-                    #                 self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
-                    #             #  /
-                    #             # |
-                    #             else:
-                    #                 point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                    #                 E_grid_x = (point[0] - self.block2_shift[0]) // self.Tile_Unit
-                    #                 E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
-                    #                 in_x = int(E_grid_x+1)
-                    #                 in_y = int(E_grid_y+1)
-                    #                 self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
+                        ang = self.clockwise_angle([0, -1], [x2-x1, y2-y1])
+                        if ang % 90 != 0:
+                            if x1>x2:
+                                # |
+                                #  \ _
+                                if y1>y2:
+                                    point = [(x1 + x2) / 2, (y1 + y2) / 2]
+                                    E_grid_x = (point[0] - self.block2_shift[0]) // self.Tile_Unit
+                                    E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
+                                    in_x = int(E_grid_x+1)
+                                    in_y = int(E_grid_y)
+                                    self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
+                                #  |
+                                # /
+                                else:
+                                    point = [(x1 + x2) / 2, (y1 + y2) / 2]
+                                    E_grid_x = (point[0] - self.block2_shift[0]) // self.Tile_Unit
+                                    E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
+                                    in_x = int(E_grid_x)
+                                    in_y = int(E_grid_y)
+                                    self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
+                            elif x1<x2:
+                                # \
+                                #  |
+                                if y1<y2:
+                                    point = [(x1 + x2) / 2, (y1 + y2) / 2]
+                                    E_grid_x = (point[0] - self.block2_shift[0]) // self.Tile_Unit
+                                    E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
+                                    in_x = int(E_grid_x)
+                                    in_y = int(E_grid_y+1)
+                                    self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
+                                #  /
+                                # |
+                                else:
+                                    point = [(x1 + x2) / 2, (y1 + y2) / 2]
+                                    E_grid_x = (point[0] - self.block2_shift[0]) // self.Tile_Unit
+                                    E_grid_y = (point[1] - self.block2_shift[1]) // self.Tile_Unit
+                                    in_x = int(E_grid_x+1)
+                                    in_y = int(E_grid_y+1)
+                                    self.grid_set_electrode(self.grids4, in_x, in_y, num_electrode, point[0], point[1], True)
             num_electrode+=1
 
     def set_grid_by_electrode_edge_opt2(self, shape, shape_scope):
@@ -901,6 +765,7 @@ class Mesh():
                         y = true_y+electrode_shape_path[j][1]
                         poly_points.append([x, y])
                     poly_points.append([poly_points[0][0], poly_points[0][1]])
+                    new_electrode.poly = poly_points
                     for j in range(len(electrode_shape_path)-1):
                         x1 = true_x+electrode_shape_path[j][0]
                         y1 = true_y+electrode_shape_path[j][1]
@@ -975,24 +840,6 @@ class Mesh():
                         ######### 有角度
                         if ang % 90 != 0:
                             point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                            if x1>x2:
-                                # |
-                                #  \ _
-                                if y1>y2:
-                                    point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                                #  |
-                                # /
-                                else:
-                                    point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                            elif x1<x2:
-                                # \
-                                #  |
-                                if y1<y2:
-                                    point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                                #  /
-                                # |
-                                else:
-                                    point = [(x1 + x2) / 2, (y1 + y2) / 2]
                             E_grid_x = int((point[0] - self.block2_shift[0]) // self.Tile_Unit)
                             E_grid_y = int((point[1] - self.block2_shift[1]) // self.Tile_Unit)
                             short_p = self.find_short_grid(self.grids2, [E_grid_x, E_grid_y], point)
@@ -1000,65 +847,14 @@ class Mesh():
                             ex_y = short_p[1]
                             if self.grid_is_available(self.grids2, ex_x, ex_y, self.num_electrode):
                                 self.grid_set_electrode(self.grids2, ex_x, ex_y, self.num_electrode, point[0], point[1], True)
-                                short_p_inner = self.find_short_grid_internal(self.grids2, [E_grid_x, E_grid_y], point, poly_points)
+                                short_p_inner = self.find_short_grid_internal(self.grids4, [E_grid_x, E_grid_y], point, poly_points)
                                 self.grid_set_electrode(self.grids4, short_p_inner[0], short_p_inner[1], self.num_electrode, point[0], point[1], True)
                                 self.grids2[ex_x][ex_y].inner_grid = self.grids4[short_p_inner[0]][short_p_inner[1]]
                             else:
                                 self.grid_conflict(self.grids2, ex_x, ex_y)
-                                short_p_inner = self.find_short_grid_internal(self.grids2, [E_grid_x, E_grid_y], point, poly_points)
+                                short_p_inner = self.find_short_grid_internal(self.grids2, [E_grid_x, E_grid_y], point, poly_points, [ex_x, ex_y])
+                                # if short_p_inner[0] != ex_x and short_p_inner[1] != ex_y:
                                 self.grid_set_electrode(self.grids2, short_p_inner[0], short_p_inner[1], self.num_electrode, point[0], point[1], True)
-                        ######### 直線
-                        # else:
-                        #     ## ->
-                        #     if ang == 90:
-                        #         for k in range(E_grid_x2 - (E_grid_x1 + 1) + 1):
-                        #             # if self.grids4[E_grid_x1+1+k][E_grid_y1].electrode_index < 0:
-                        #             # if self.grid_is_available(self.grids2, E_grid_x1+1+k, E_grid_y1, self.num_electrode):
-                        #                     # if self.grids2[E_grid_x1+1+k][E_grid_y1+1].electrode_index < 0:
-                        #             ex_dis = abs(y1 - self.grids2[E_grid_x1+1+k][E_grid_y1].real_y)
-                        #             in_dis = abs(y1 - self.grids4[E_grid_x1+1+k][E_grid_y1+1].real_y)
-                        #             if ex_dis < in_dis :
-                        #                 self.grid_set_electrode(self.grids2, E_grid_x1+1+k, E_grid_y1, self.num_electrode, self.grids2[E_grid_x1+1+k][E_grid_y1].real_x, y1)
-                        #             # internal 1,1
-                        #             # else:
-                        #             #     self.grid_conflict(self.grids2, E_grid_x1+1+k, E_grid_y1)
-                        #                 # self.grid_set_electrode(self.grids2, E_grid_x1+1+k, E_grid_y1+1, self.num_electrode, self.grids2[E_grid_x1+1+k][E_grid_y1+1].real_x, y1)
-                        #     ## | down
-                        #     elif ang == 180:
-                        #         for k in range(E_grid_y2 - (E_grid_y1 + 1) + 1):
-                        #             # if self.grid_is_available(self.grids2, E_grid_x1+1, E_grid_y1+1+k, self.num_electrode):
-                        #             ex_dis = abs(x1 - self.grids2[E_grid_x1+1][E_grid_y1+1+k].real_x)
-                        #             in_dis = abs(x1 - self.grids4[E_grid_x1][E_grid_y1+1+k].real_x)
-                        #             if ex_dis < in_dis :
-                        #                 self.grid_set_electrode(self.grids2, E_grid_x1+1, E_grid_y1+1+k, self.num_electrode, x1, self.grids2[E_grid_x1+1][E_grid_y1+1+k].real_y)
-                        #             # internal 0,1
-                        #             # else:
-                        #             #     self.grid_conflict(self.grids2, E_grid_x1+1, E_grid_y1+1+k)
-                        #                 # self.grid_set_electrode(self.grids2, E_grid_x1, E_grid_y1+1+k, self.num_electrode, x1, self.grids2[E_grid_x1][E_grid_y1+1+k].real_y)
-                        #     ## <-
-                        #     elif ang == 270:
-                        #         for k in range(E_grid_x1 - E_grid_x2):
-                        #             # if self.grid_is_available(self.grids2, E_grid_x1-k, E_grid_y1+1, self.num_electrode):
-                        #             ex_dis = abs(y1 - self.grids2[E_grid_x1-k][E_grid_y1+1].real_y)
-                        #             in_dis = abs(y1 - self.grids4[E_grid_x1-k][E_grid_y1].real_y)
-                        #             if ex_dis < in_dis :
-                        #                 self.grid_set_electrode(self.grids2, E_grid_x1-k, E_grid_y1+1, self.num_electrode, self.grids2[E_grid_x1-k][E_grid_y1+1].real_x, y1)
-                        #             # internal 0,0
-                        #             # else:
-                        #             #     self.grid_conflict(self.grids2, E_grid_x1-k, E_grid_y1+1)
-                        #                 # self.grid_set_electrode(self.grids2, E_grid_x1-k, E_grid_y1, self.num_electrode, self.grids2[E_grid_x1-k][E_grid_y1].real_x, y1)
-                        #     ## | up
-                        #     elif ang == 360:
-                        #         for k in range(E_grid_y1 - (E_grid_y2 + 1) + 1):
-                        #             # if self.grid_is_available(self.grids2, E_grid_x1, E_grid_y1-k, self.num_electrode):
-                        #             ex_dis = abs(x1 - self.grids2[E_grid_x1][E_grid_y1-k].real_x)
-                        #             in_dis = abs(x1 - self.grids4[E_grid_x1+1][E_grid_y1-k].real_x)
-                        #             if ex_dis < in_dis :
-                        #                 self.grid_set_electrode(self.grids2, E_grid_x1, E_grid_y1-k, self.num_electrode, x1, self.grids2[E_grid_x1][E_grid_y1-k].real_y)
-                        #             # internal 1,0
-                        #             # else:
-                        #             #     self.grid_conflict(self.grids2, E_grid_x1, E_grid_y1-k)
-                        #                     # self.grid_set_electrode(self.grids2, E_grid_x1+1, E_grid_y1-k, self.num_electrode, x1, self.grids2[E_grid_x1+1][E_grid_y1-k].real_y)
                     self.electrodes[-1].boundary_U=boundary_U
                     self.electrodes[-1].boundary_D=boundary_D
                     self.electrodes[-1].boundary_L=boundary_L

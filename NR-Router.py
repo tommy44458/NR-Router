@@ -44,13 +44,17 @@ if len(ewd_input) < 10:
 if len(ewd_name) > 20:
     ewd_name = 'mask'
                     
-                    
+
 ###start###
 ###init coordinate###
 ## real ship size
+electrode_size = 1000
+regular_line_width = int(electrode_size / 10)
 Control_pad_unit = 2540
 # (wire width + 5) * 1.414
-Tile_Unit = 290 #(line width) 200 + (spacing) 115
+Tile_Unit = int((regular_line_width + 5) * 1.414) + 1 #(line width) 200 + (spacing) 115
+if Tile_Unit < 150:
+    Tile_Unit = 150
 ## top down dot field dot
 block1_shift = (-3000 + 18000 % Control_pad_unit, -17745 + 17745 % Control_pad_unit)
 block2_shift = (-3000, 9258)
@@ -75,8 +79,7 @@ _mesh = Mesh(Control_pad_unit, Tile_Unit,
                 block1_shift, block2_shift, block3_shift,
                 grids1_length, grids2_length, grids3_length, 
                 tiles1_length, tiles2_length, tiles3_length,
-                hubs1_length, hubs1_y, hubs3_length, hubs3_y,
-                100)
+                hubs1_length, hubs1_y, hubs3_length, hubs3_y)
 
 # mesh structure
 _mesh.create_grid_electrode()
@@ -90,7 +93,7 @@ shape_scope = []
 shape_count=0
 
 if _use_ewd_file == True:
-    dir = os.path.join(__location__, 'ewd/test_0909_3.ewd')
+    dir = os.path.join(__location__, 'ewd/test_1012_2.ewd')
     readfile = open(dir, "r")
     for index, line in enumerate(readfile):
         ewd_input+=line
@@ -155,17 +158,18 @@ for line in ewd_content:
                 _mesh.grids3[grid_x, grid_y].real_x = (((true_x-block2_shift[0])//Tile_Unit)*Tile_Unit+block2_shift[0])
     ## electrodes
     elif line.split()[0] in shape:
-        grid_y = (true_y-block2_shift[1]) // Tile_Unit
-        if grid_y >= 73:
-            list_electrodes_d.append([true_y, true_x, line.split()[0]])
-        else:
-            list_electrodes_u.append([true_y, true_x, line.split()[0]])
+        _mesh.list_electrodes.append([true_y, true_x, line.split()[0]])
+        # grid_y = (true_y-block2_shift[1]) // Tile_Unit
+        # if grid_y >= 73:
+        #     list_electrodes_d.append([true_y, true_x, line.split()[0]])
+        # else:
+        #     list_electrodes_u.append([true_y, true_x, line.split()[0]])
 
-list_electrodes_u.sort(key=lambda x: (x[0], x[1]))
-list_electrodes_d.sort(key=lambda x: (-x[0], -x[1]))
+# list_electrodes_u.sort(key=lambda x: (x[0], x[1]))
+# list_electrodes_d.sort(key=lambda x: (-x[0], -x[1]))
 
 # mesh connections
-_mesh.list_electrodes = list_electrodes_d + list_electrodes_u
+# _mesh.list_electrodes = list_electrodes_d + list_electrodes_u
 _mesh.set_grid_by_electrode_edge_internal2(shape, shape_scope)
 _mesh.set_grid_by_electrode_edge_opt2(shape, shape_scope)
 
@@ -218,7 +222,7 @@ _mcmf.get_path()
 print('mcmf:', time.time() - c_time)
 
 c_time = time.time()           
-_draw = Draw(_mcmf.MaxFlowWithMinCost, _mcmf.min_cost_flow, _mesh.block2_shift, _mesh.Tile_Unit, _mcmf.electrode_wire, shape_scope)
+_draw = Draw(_mcmf.MaxFlowWithMinCost,_mcmf.min_cost_flow, _mesh.block2_shift, _mesh.Tile_Unit, _mcmf.electrode_wire, shape_scope, regular_line_width, 2.5)
 
 doc = ezdxf.new(dxfversion='R2010')
 doc.layers.new('TEXTLAYER', dxfattribs={'color': 2})

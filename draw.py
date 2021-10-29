@@ -12,15 +12,15 @@ from degree import Degree
 
 class Draw():
 
-    def __init__(self, MaxFlowWithMinCost, min_cost_flow, block2_shift, Tile_Unit, electrode_wire, shape_scope):
+    def __init__(self, MaxFlowWithMinCost, min_cost_flow, block2_shift, Tile_Unit, electrode_wire, shape_scope, regular_width, mini_width):
         self.MaxFlowWithMinCost = MaxFlowWithMinCost
         self.min_cost_flow = min_cost_flow
         self.block2_shift = block2_shift
         self.Tile_Unit = Tile_Unit
         self.electrode_wire = electrode_wire
         self.shape_scope = shape_scope
-        self.mini_width = 2.5
-        self.regular_width = 100
+        self.mini_width = mini_width
+        self.regular_width = regular_width / 2
         self.line_buffer = self.regular_width * 0.0
 
     def order_vertex(self, vertex):
@@ -921,7 +921,7 @@ class Draw():
                 #             electrode_wire[i][j].end_y = electrode_wire[i][j+1].start_y
                 #             electrode_wire[i][j].end_x = electrode_wire[i][j+1].start_x
 
-                for j in range(len(electrode_wire[i])-7, len(electrode_wire[i])-2):
+                for j in range(1, len(electrode_wire[i])-2):
                     deg = Degree.getdegree(electrode_wire[i][j].start_x, electrode_wire[i][j].start_y, electrode_wire[i][j].end_x, electrode_wire[i][j].end_y)
                     if abs(deg[0] - deg[1]) != 1:
                         if abs(deg[0]) > 0.7072 or abs(deg[1]) > 0.7072:

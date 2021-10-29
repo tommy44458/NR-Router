@@ -18,6 +18,7 @@ class Electrode():
         self.boundary_R=0
         self.surround=0
         self.index = -1
+        self.poly = []
 
     def to_dict(self):
         _dict = {
