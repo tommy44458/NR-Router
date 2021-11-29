@@ -33,6 +33,7 @@ class Grid():
         self.conflict = False
         self.inner_grid = None
         self.corner = False
+        self.covered = False
     
     def to_dict(self):
         _dict = {
