@@ -35,6 +35,13 @@ class Pseudo():
         theta = theta if theta > 0 else 2 * np.pi + theta
         return (theta * 180 / np.pi)
 
+    def grid_set_electrode(self, grid, x, y, electrode_index, p, corner = False):
+        grid[x, y].electrode_index = electrode_index
+        grid[x, y].type += 1
+        grid[x, y].electrode_x = p[0]
+        grid[x, y].electrode_y = p[1]
+        grid[x, y].corner = corner
+
     def internal_straight(self, grid):
         num_electrode = 0
         for electrode in self.elec_list:
@@ -44,6 +51,7 @@ class Pseudo():
                     for j in range(len(shape_path)-1):
                         p1 = self.get_point_by_shape([electrode[1], electrode[0]], shape_path[j])
                         p2 = self.get_point_by_shape([electrode[1], electrode[0]], shape_path[j + 1])
+                        # vertex in which grid
                         grid_p1 = self.get_grid_point(self, p1)
                         grid_p2 = self.get_grid_point(self, p2)
 
@@ -53,20 +61,20 @@ class Pseudo():
                         if ang % 90 == 0:
                             ## ->
                             if ang == 90:
-                                for k in range(E_grid_x2 - (E_grid_x1 + 1) + 1):
-                                    self.grid_set_electrode(self.grids4, E_grid_x1+1+k, E_grid_y1+1, num_electrode, self.grids4[E_grid_x1+1+k][E_grid_y1+1].real_x, y1)
+                                for k in range(grid_p2[0] - (grid_p1[0] + 1) + 1):
+                                    self.grid_set_electrode(self.grids4, grid_p1[0]+1+k, grid_p1[1]+1, num_electrode, self.grids4[grid_p1[0]+1+k][grid_p1[1]+1].real_x, y1)
                             # ## | down
                             if ang == 180:
-                                for k in range(E_grid_y2 - (E_grid_y1 + 1) + 1):
-                                    self.grid_set_electrode(self.grids4, E_grid_x1, E_grid_y1+1+k, num_electrode, x1, self.grids4[E_grid_x1][E_grid_y1+1+k].real_y)
+                                for k in range(grid_p2[1] - (grid_p1[1] + 1) + 1):
+                                    self.grid_set_electrode(self.grids4, grid_p1[0], grid_p1[1]+1+k, num_electrode, x1, self.grids4[grid_p1[0]][grid_p1[1]+1+k].real_y)
                             ## <-
                             elif ang == 270:
-                                for k in range(E_grid_x1 - E_grid_x2):
-                                    self.grid_set_electrode(self.grids4, E_grid_x1-k, E_grid_y1, num_electrode, self.grids4[E_grid_x1-k][E_grid_y1].real_x, y1)
+                                for k in range(grid_p1[0] - grid_p2[0]):
+                                    self.grid_set_electrode(self.grids4, grid_p1[0]-k, grid_p1[1], num_electrode, self.grids4[grid_p1[0]-k][grid_p1[1]].real_x, y1)
                             ## | up
                             elif ang == 360:
-                                for k in range(E_grid_y1 - (E_grid_y2 + 1) + 1):
-                                    self.grid_set_electrode(self.grids4, E_grid_x1+1, E_grid_y1-k, num_electrode, x1, self.grids4[E_grid_x1+1][E_grid_y1-k].real_y)
+                                for k in range(grid_p1[1] - (grid_p2[1] + 1) + 1):
+                                    self.grid_set_electrode(self.grids4, grid_p1[0]+1, grid_p1[1]-k, num_electrode, x1, self.grids4[grid_p1[0]+1][grid_p1[1]-k].real_y)
                     for j in range(len(electrode_shape_path)-1):
                         x1 = true_x+electrode_shape_path[j][0]
                         y1 = true_y+electrode_shape_path[j][1]

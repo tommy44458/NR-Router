@@ -48,7 +48,7 @@ if len(ewd_name) > 20:
 ###start###
 ###init coordinate###
 ## real ship size
-electrode_size = 1000
+electrode_size = 2000
 regular_line_width = int(electrode_size / 10)
 Control_pad_unit = 2540
 # (wire width + 5) * 1.414
@@ -93,7 +93,7 @@ shape_scope = []
 shape_count=0
 
 if _use_ewd_file == True:
-    dir = os.path.join(__location__, 'ewd/test_1012_2.ewd')
+    dir = os.path.join(__location__, 'ewd/test_1208_1.ewd')
     readfile = open(dir, "r")
     for index, line in enumerate(readfile):
         ewd_input+=line
