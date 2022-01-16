@@ -7,7 +7,7 @@ from operator import itemgetter, attrgetter
 from math import atan2,degrees
 
 class Electrode():
-    def __init__(self, real_x=-1, real_y=-1, shape=-1, electrode_index=-1):
+    def __init__(self, real_x = -1, real_y = -1, shape: str = 'base', electrode_index=-1):
         self.real_x = int(real_x)
         self.real_y = int(real_y)
         self.shape = shape

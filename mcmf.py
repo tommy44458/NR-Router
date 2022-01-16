@@ -32,7 +32,7 @@ class MCMF():
         self.min_cost_flow = None
 
         self.all_path = []
-        self.electrode_wire=[[] for _ in range(self.mesh.num_electrode)]
+        self.electrode_wire=[[] for _ in range(len(mesh.electrodes))]
 
     def init_structure(self):
         for node in self.flow.flownodes:
@@ -47,7 +47,7 @@ class MCMF():
                     self.start_nodes.append(node.index)
                     self.end_nodes.append(nb_node[0].index+1)
                     self.capacities.append(int(nb_node[1]))
-                    self.unit_costs.append(int(self.mesh.Control_pad_unit))
+                    self.unit_costs.append(int(self.mesh.control_pad_unit))
                 # add contact pads
                 for cp_node in node.contact_pads:
                     self.start_nodes.append(node.index)

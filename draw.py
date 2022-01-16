@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import math
 import sys
 import os
@@ -9,16 +10,16 @@ from functools import reduce
 from math import atan2,degrees
 
 from degree import Degree
+from electrode import Electrode
 
 class Draw():
 
-    def __init__(self, MaxFlowWithMinCost, min_cost_flow, block2_shift, Tile_Unit, electrode_wire, shape_scope, regular_width, mini_width):
+    def __init__(self, MaxFlowWithMinCost, min_cost_flow, block2_shift, tile_unit, electrode_wire, regular_width, mini_width):
         self.MaxFlowWithMinCost = MaxFlowWithMinCost
         self.min_cost_flow = min_cost_flow
         self.block2_shift = block2_shift
-        self.Tile_Unit = Tile_Unit
+        self.tile_unit = tile_unit
         self.electrode_wire = electrode_wire
-        self.shape_scope = shape_scope
         self.mini_width = mini_width
         self.regular_width = regular_width / 2
         self.line_buffer = self.regular_width * 0.0
@@ -673,15 +674,14 @@ class Draw():
         for i in range(len(contactpads)):
             dxf.add_circle(center=(contactpads[i][0], -contactpads[i][1]), radius = 750.0)
             
-    def draw_electrodes(self, electrodes, dxf):
-        for i in range(len(electrodes)):
-            x = electrodes[i].real_x
-            y = -electrodes[i].real_y
-            type = electrodes[i].shape
+    def draw_electrodes(self, electrodes: list, shape_lib: dict, dxf):
+        for elec in electrodes:
+            shape = elec[0]
+            x = elec[1]
+            y = -elec[2]
             vertices = []
-            for k,l in self.shape_scope[type]:
-                #vertices.append((x+k, y+l))
-                vertices.append((x+k, y-l))#mirrow
+            for shape_p in shape_lib[shape]:
+                vertices.append((x + shape_p[0], y - shape_p[1]))
             dxf.add_polyline_path(vertices)
             
     def draw_grid(self, start_x, start_y, unit_length, grids_x, grids_y, dxf):
@@ -720,7 +720,7 @@ class Draw():
         MaxFlowWithMinCost = self.MaxFlowWithMinCost
         min_cost_flow = self.min_cost_flow
         block2_shift = self.block2_shift
-        Tile_Unit = self.Tile_Unit
+        tile_unit = self.tile_unit
         electrode_wire = self.electrode_wire
 
         connect = 0
@@ -801,10 +801,10 @@ class Draw():
                 #             electrode_wire[i][j+1].start_x = electrode_wire[i][j+1].end_x
 
                 #     if electrode_wire[i][j].end_y > block2_shift[1] and electrode_wire[i][j].end_y < block2_shift[1]+46000:
-                #         S_grid_x = (electrode_wire[i][j].start_x-block2_shift[0])//Tile_Unit
-                #         S_grid_y = (electrode_wire[i][j].start_y-block2_shift[1])//Tile_Unit
-                #         T_grid_x = (electrode_wire[i][j].end_x-block2_shift[0])//Tile_Unit
-                #         T_grid_y = (electrode_wire[i][j].end_y-block2_shift[1])//Tile_Unit
+                #         S_grid_x = (electrode_wire[i][j].start_x-block2_shift[0])//tile_unit
+                #         S_grid_y = (electrode_wire[i][j].start_y-block2_shift[1])//tile_unit
+                #         T_grid_x = (electrode_wire[i][j].end_x-block2_shift[0])//tile_unit
+                #         T_grid_y = (electrode_wire[i][j].end_y-block2_shift[1])//tile_unit
                 #         grids2[S_grid_x,S_grid_y].flow=1
                 #         grids2[T_grid_x,T_grid_y].flow=1
 
@@ -813,21 +813,21 @@ class Draw():
                 # # |      \   j+1         |       |  j-1
 
                 # for j in range(3,len(electrode_wire[i])):		
-                #     if electrode_wire[i][j].end_y > block2_shift[1]+Tile_Unit and electrode_wire[i][j].end_y < block2_shift[1]+46000-Tile_Unit:
+                #     if electrode_wire[i][j].end_y > block2_shift[1]+tile_unit and electrode_wire[i][j].end_y < block2_shift[1]+46000-tile_unit:
                 #         if electrode_wire[i][j-1].start_x==electrode_wire[i][j-1].end_x and abs(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)==abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y):
-                #             check_grid_x = (electrode_wire[i][j].start_x-block2_shift[0])//Tile_Unit
-                #             check_grid_y = (electrode_wire[i][j].end_y-block2_shift[1])//Tile_Unit
+                #             check_grid_x = (electrode_wire[i][j].start_x-block2_shift[0])//tile_unit
+                #             check_grid_y = (electrode_wire[i][j].end_y-block2_shift[1])//tile_unit
                 #             if grids2[check_grid_x,check_grid_y].flow == 0 and grids2[check_grid_x,check_grid_y].safe_distance==0 and grids2[check_grid_x,check_grid_y].safe_distance2==0:
                 #                 k=1
                 #                 no_path=0
                 #                 while j+k < len(electrode_wire[i]) and electrode_wire[i][j+k].start_x!=electrode_wire[i][j+k].end_x:
-                #                     check_grid_x = (electrode_wire[i][j+k].start_x-block2_shift[0])//Tile_Unit
-                #                     check_grid_y = (electrode_wire[i][j+k].end_y-block2_shift[1])//Tile_Unit
+                #                     check_grid_x = (electrode_wire[i][j+k].start_x-block2_shift[0])//tile_unit
+                #                     check_grid_y = (electrode_wire[i][j+k].end_y-block2_shift[1])//tile_unit
                 #                     try:
                 #                         if grids2[check_grid_x,check_grid_y].flow != 0:
                 #                         # or grids2[check_grid_x,check_grid_y].safe_distance2==1 or grids2[check_grid_x,check_grid_y].safe_distance==1:
                 #                             no_path=1
-                #                         if electrode_wire[i][j+k].start_y < block2_shift[1]+Tile_Unit*2 or electrode_wire[i][j+k].start_y > block2_shift[1]+46000-Tile_Unit*2:
+                #                         if electrode_wire[i][j+k].start_y < block2_shift[1]+tile_unit*2 or electrode_wire[i][j+k].start_y > block2_shift[1]+46000-tile_unit*2:
                 #                             no_path=1
                 #                     except:
                 #                         break
@@ -840,8 +840,8 @@ class Draw():
                 #                     electrode_wire[i][j].end_x = electrode_wire[i][j].start_x
                 #                     k=1
                 #                     while j+k < len(electrode_wire[i]) and electrode_wire[i][j+k].start_x!=electrode_wire[i][j+k].end_x:# and check_grid_flow==0:
-                #                         check_grid_x = (electrode_wire[i][j+k].start_x-block2_shift[0])//Tile_Unit
-                #                         check_grid_y = (electrode_wire[i][j+k].end_y-block2_shift[1])//Tile_Unit	
+                #                         check_grid_x = (electrode_wire[i][j+k].start_x-block2_shift[0])//tile_unit
+                #                         check_grid_y = (electrode_wire[i][j+k].end_y-block2_shift[1])//tile_unit	
                 #                         grids2[check_grid_x,check_grid_y].flow=1
                 #                         grids2[check_grid_x+np.sign(electrode_wire[i][j+k].end_x-electrode_wire[i][j+k].start_x),check_grid_y].flow=0
                 #                         electrode_wire[i][j+k].end_x = electrode_wire[i][j+k].start_x
@@ -849,7 +849,7 @@ class Draw():
                 #                         k+=1
                 #                         if (j+k)>=(len(electrode_wire[i])-1):
                 #                             break
-                #                         if electrode_wire[i][j+k].start_y < block2_shift[1]+Tile_Unit*2 or electrode_wire[i][j+k].start_y > block2_shift[1]+46000-Tile_Unit*2:
+                #                         if electrode_wire[i][j+k].start_y < block2_shift[1]+tile_unit*2 or electrode_wire[i][j+k].start_y > block2_shift[1]+46000-tile_unit*2:
                 #                             break
                 #                     electrode_wire[i][j+k].start_x = electrode_wire[i][j+k-1].end_x	
 
@@ -860,7 +860,7 @@ class Draw():
                 # for j in range(len(electrode_wire[i])):
                 #     if (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)==0 and abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)==250:
                 #         if electrode_wire[i][j-1].start_x!=electrode_wire[i][j-1].end_x and electrode_wire[i][j+1].start_x!=electrode_wire[i][j+1].end_x and np.sign(electrode_wire[i][j-1].end_x-electrode_wire[i][j-1].start_x)==np.sign(electrode_wire[i][j+1].end_x-electrode_wire[i][j+1].start_x):
-                #             if grids2[(((electrode_wire[i][j].start_x-block2_shift[0])//Tile_Unit)+np.sign(electrode_wire[i][j-1].end_x-electrode_wire[i][j-1].start_x)), ((electrode_wire[i][j].start_y-block2_shift[1])//Tile_Unit)].flow==0:
+                #             if grids2[(((electrode_wire[i][j].start_x-block2_shift[0])//tile_unit)+np.sign(electrode_wire[i][j-1].end_x-electrode_wire[i][j-1].start_x)), ((electrode_wire[i][j].start_y-block2_shift[1])//tile_unit)].flow==0:
                 #                 #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
                 #                 electrode_wire[i][j-1].end_x = electrode_wire[i][j+1].end_x
                 #                 electrode_wire[i][j-1].end_y = electrode_wire[i][j-1].end_y+abs(electrode_wire[i][j+1].end_x-electrode_wire[i][j+1].start_x)*np.sign(electrode_wire[i][j+1].end_y-electrode_wire[i][j+1].start_y)

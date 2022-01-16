@@ -52,11 +52,11 @@ class Flow():
             self.node_index += 1
             self.flownodes.append(hubs[i])
 
-    def create_electrode_flownode(self, electrode, electrode_length):
-        for i in range(electrode_length):
-            electrode[i].index = self.node_index
+    def create_electrode_flownode(self, electrode_list: list):
+        for electrode in electrode_list:
+            electrode.index = self.node_index
             self.node_index += 1
-            self.flownodes.append(electrode[i])
+            self.flownodes.append(electrode)
 
     def create_all_flownode(self):
         self.create_grid_flownode(self.mesh.grids1_length, self.mesh.grids1)
@@ -66,7 +66,7 @@ class Flow():
         self.create_tile_flownode(self.mesh.tiles3_length, self.mesh.tiles3)
         self.create_hub_flownode(self.mesh.hubs1, self.mesh.hubs1_length)
         self.create_hub_flownode(self.mesh.hubs3, self.mesh.hubs3_length)
-        self.create_electrode_flownode(self.mesh.electrodes, self.mesh.num_electrode)
+        self.create_electrode_flownode(self.mesh.electrodes)
 
         self.global_t.index = self.node_index
         self.flownodes.append(self.global_t)
