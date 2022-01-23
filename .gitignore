@@ -1,0 +1,6 @@
+*.pyc
+.DS_Store
+*.cpython-37.opt-2.pyc
+*/__pycache__
+/.vscode
+*.dwg
