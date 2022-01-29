@@ -130,7 +130,7 @@ _draw = Draw(_mcmf.MaxFlowWithMinCost, _mcmf.min_cost_flow, _mesh.block2_shift,
              _mesh.tile_unit, _mcmf.electrode_wire, regular_line_width, 2.5)
 
 doc = ezdxf.new(dxfversion='R2010')
-doc.layers.new('TEXTLAYER', dxfattribs={'color': 2})
+doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
 msp = doc.modelspace()
 hatch = msp.add_hatch(color=7)
 hatch1 = msp.add_hatch(color=6)
@@ -144,8 +144,8 @@ dxf3 = hatch3.paths
 dxf4 = hatch4.paths
 
 _draw.draw_contact_pads(_mesh.contactpads, msp)
-_draw.draw_all_path(dxf3, _mesh.grids2)
-_draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, dxf)
+_draw.draw_all_path(msp, _mesh.grids2)
+_draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 # _draw.draw_grid(block1_shift[0], block1_shift[1], control_pad_unit, grids1_length[0], grids1_length[1], msp)
 # _draw.draw_grid(block2_shift[0], block2_shift[1], tile_unit, grids2_length[0], grids2_length[1], msp)
 # _draw.draw_grid(block3_shift[0], block3_shift[1], control_pad_unit, grids3_length[0], grids3_length[1], msp)
@@ -157,95 +157,3 @@ doc.saveas('dwg/' + ewd_name + '.dwg')
 
 print('draw:', time.time() - c_time)
 
-# print(_mesh.clockwise_angle([0, -1], [1, 0]))
-# deg = Degree.getdegree(1, 1, 0, 0)
-# dis = _mesh.point_distance_line([0, 0], [0, 2], [2, 0])
-# print(deg, dis)
-# print([0 + dis * deg[0], 0 + dis * deg[1]])
-# print(_mesh.get_short_point([0, 0], [0, 2], [2, 0]))
-# print(_mesh.get_short_point([41850, -43908], [42050, -43655], [41950, -43555]))
-# print(_mesh.get_short_point([-100, -355], [0, 0], [-100, 100]))
-# print(_mesh.get_points_lines(42050, -43655, 41950, -43555, 70.5))
-
-# str1 = ''
-# for i in range(0, 12):
-#     x = int(8000 + 8000 * math.cos(2 * math.pi * i / 12))
-#     y = int(8000 + 8000 * math.sin(2 * math.pi * i / 12))
-#     if i == 0:
-#         str1 += str('M' + str(x) + ' ' + str(y) + ' ')
-#     elif i == 11:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-#     else:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-    
-# # str1 += 'Z'
-
-# # str1 = ''
-# for i in range(11, -1, -1):
-#     x = int(8000 + 6000 * math.cos(2 * math.pi * i / 12))
-#     y = int(8000 + 6000 * math.sin(2 * math.pi * i / 12))
-#     if i == 11:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-#     elif i == 0:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-#     else:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-    
-# str1 += 'Z'
-
-# print(str1)
-
-# str1 = ''
-# for i in range(0, 12):
-#     x = int(8000 + 5900 * math.cos(2 * math.pi * i / 12))
-#     y = int(8000 + 5900 * math.sin(2 * math.pi * i / 12))
-#     if i == 0:
-#         str1 += str('M' + str(x) + ' ' + str(y) + ' ')
-#     elif i == 11:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-#     else:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-    
-# # str1 += 'Z'
-
-# # str1 = ''
-# for i in range(11, -1, -1):
-#     x = int(8000 + 3900 * math.cos(2 * math.pi * i / 12))
-#     y = int(8000 + 3900 * math.sin(2 * math.pi * i / 12))
-#     if i == 11:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-#     elif i == 0:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-#     else:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-    
-# str1 += 'Z'
-
-# print(str1)
-
-# str1 = ''
-# for i in range(0, 12):
-#     x = int(8000 + 3800 * math.cos(2 * math.pi * i / 12))
-#     y = int(8000 + 3800 * math.sin(2 * math.pi * i / 12))
-#     if i == 0:
-#         str1 += str('M' + str(x) + ' ' + str(y) + ' ')
-#     elif i == 11:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-#     else:
-#         str1 += str('L' + str(x) + ' ' + str(y) + ' ')
-    
-# # str1 += 'Z'
-    
-# str1 += 'Z'
-
-# print(str1)
-
-# response = ''
-# with open('dwg/' + ewd_name + '.dwg') as f:
-#     for line in f.readlines():
-#         response = response + line
-        
-# print(response)
-    
-    
-## show grid text view

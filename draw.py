@@ -3,6 +3,7 @@ from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import math
 import sys
 import os
+import ezdxf
 from ezdxf.addons import r12writer
 import operator
 import math
@@ -100,38 +101,6 @@ class Draw():
             degree1 = (1,0)
         position_s1 = [x2-width*degree1[1],y2+width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
         position_s2 = [x2+width*degree1[1],y2-width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
-        # if width==50:
-        #     if x1!=x2 and y1!=y2:
-        #         if x2==x3:
-        #             if x1>x2:
-        #                 if y2>y3:
-        #                     position_s1=[x2+width,y2,1]
-        #                     position_s2=[x2-width,y2,2]
-        #                 elif y2<y3:
-        #                     position_s1=[x2+width,y2,1]
-        #                     position_s2=[x2-width,y2,2]
-        #             elif x1<x2:
-        #                 if y2>y3:
-        #                     position_s1=[x2-width,y2,1]
-        #                     position_s2=[x2+width,y2,2]
-        #                 elif y2<y3:
-        #                     position_s1=[x2-width,y2,1]
-        #                     position_s2=[x2+width,y2,2]
-        #         elif y2==y3:
-        #             if y1>y2:
-        #                 if x2>x3:
-        #                     position_s1=[x2,y2-width,1]
-        #                     position_s2=[x2,y2+width,2]
-        #                 elif x2<x3:
-        #                     position_s1=[x2,y2-width,1]
-        #                     position_s2=[x2,y2+width,2]
-        #             elif y1<y2:
-        #                 if x2>x3:
-        #                     position_s1=[x2,y2+width,1]
-        #                     position_s2=[x2,y2-width,2]
-        #                 elif x2<x3:
-        #                     position_s1=[x2,y2+width,1]
-        #                     position_s2=[x2,y2-width,2]
         if abs(position_s1[2]-position_s2[2])>90:
             if min(position_s1[2],position_s2[2]) == position_s1[2]:
                 position_s2[2]-=360
@@ -139,8 +108,6 @@ class Draw():
                 position_s1[2]-=360
 
         if deg_45!=0:# and connect!=1:
-            #dxf.add_polyline_path([(x2+width/2,y2+width/2),(x2-width/2,y2+width/2),(x2+width/2,y2-width/2),(x2-width/2,y2-width/2)])
-
             if deg_45==1:
                 if x1==x2:
                     position_s1[0]=x2-width
@@ -239,12 +206,6 @@ class Draw():
         position_e1 = [x3+width*degree2[1],y3-width*degree2[0],Degree.inner_degree(x3+width*degree2[1],y3-width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
         position_e2	= [x3-width*degree2[1],y3+width*degree2[0],Degree.inner_degree(x3-width*degree2[1],y3+width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
         if deg_45!=0 :
-
-            # dxf.add_polyline_path([(x3,y3+width),(x3-width,y3),(x3+width,y3),(x3,y3-width)])
-            # print('***************', [(x3,y3+width),(x3-width,y3),(x3+width,y3),(x3,y3-width)])
-            # print('***************', [(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3-(width*Tan/100)),(x3-(width/2),y3-(width*Tan/100))])
-            # dxf.add_polyline_path([(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3+(width*Tan/100)),(x3+(width/2),y3-(width*Tan/100)),(x3-(width/2),y3-(width*Tan/100))])
-
             if deg_45==1:
                 if x3==x4:
                     position_e1[0]=x3+width
@@ -352,18 +313,6 @@ class Draw():
             elif y2<y3:
                 position_e1[1]+=width
                 position_e2[1]+=width		
-        # if width==50:
-        #     if x2!=x3 and y2!=y3:
-        #         if x3==x4:
-        #             position_e1[0]=x3+70.7
-        #             position_e1[1]=y3
-        #             position_e2[0]=x3-70.7
-        #             position_e2[1]=y3
-        #         elif y3==y4:
-        #             position_e1[0]=x3
-        #             position_e1[1]=y3+70.7
-        #             position_e2[0]=x3
-        #             position_e2[1]=y3-70.7
         if abs(position_e1[2]-position_e2[2])>90:
             if min(position_e1[2],position_e2[2]) == position_e1[2]:
                 position_e2[2]-=360
@@ -373,15 +322,13 @@ class Draw():
         position2.append(position_e2)
         vertex = [(position1[0][0],position1[0][1]), (position1[1][0],position1[1][1]), (position2[0][0],position2[0][1]), (position2[1][0],position2[1][1])]
         vertex_order = self.order_vertex(vertex)
-        dxf.add_polyline_path(vertex_order)
+        dxf.add_polyline2d(vertex_order, close = True)
         
     def draw_path(self, x1,y1,x2,y2,x3,y3,x4,y4,width,connect,dxf):
         y1 = -1*y1
         y2 = -1*y2
         y3 = -1*y3
         y4 = -1*y4
-        # if width==self.mini_width:
-        #     dxf.add_arc(center=(x3,y3),radius=100,start=0, end=359)
         self.draw_orthogonal_path(x1,y1,x2,y2,x3,y3,x4,y4,width,connect,dxf)
         
     def draw_start(self, x1,y1,x2,y2,x3,y3,width,dxf):
@@ -463,9 +410,7 @@ class Draw():
                         E2=(x2-Tan,y2+width)
             vertex = [S1, S2, E1, E2]
             vertex_order = self.order_vertex(vertex)
-            dxf.add_polyline_path(vertex_order)
-            # dxf.add_polyline_path(	[S1,S2,E1,E2])
-            # dxf.add_polyline_path(	[S1,S2,E2,E1])
+            dxf.add_polyline2d(vertex_order, close = True)
         # 垂直 水平
         else:
             # 垂直
@@ -503,7 +448,7 @@ class Draw():
                     E2=(x2,y2+width)
             vertex = [S1, S2, E1, E2]
             vertex_order = self.order_vertex(vertex)
-            dxf.add_polyline_path(vertex_order)
+            dxf.add_polyline2d(vertex_order, close = True)
 
     def draw_end(self, x1,y1,x2,y2,x3,y3,width,dxf,connect):
         y1 = -y1
@@ -519,11 +464,6 @@ class Draw():
         position2 = []
         degree1 = Degree.getdegree(x1,y1,x2,y2)
         degree2 = Degree.getdegree(x2,y2,x3,y3)
-        # if degree1[0] == degree2[0] and degree1[1] == degree2[1] and width==50:
-        #     dxf.add_polyline_path(	[(x3-width,y3),
-        #                     (x3,y3+width),
-        #                     (x3,y3-width),
-        #                     (x3+width,y3)])
         if x2==x3 and y2==y3:
             return 0
         if x2==x1 and y2==y1:
@@ -534,8 +474,6 @@ class Draw():
         elif x2 == x3:
             degree1 = (0,1)
             degree2 = (0,1)
-        
-        # if abs(y2 - y3) != abs(x2 - x3):
 
         position_s1 = [x2-width*degree1[1],y2+width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
         position_s2 = [x2+width*degree1[1],y2-width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
@@ -555,7 +493,6 @@ class Draw():
                 elif y2<y3:
                     deg_45=4
         if deg_45!=0:
-            # dxf.add_polyline_path([(x2,y2+width),(x2-width,y2),(x2+width,y2),(x2,y2-width)])
             if deg_45==1:
                 if x1==x2:
                     position_s1[0]=x2-width
@@ -668,21 +605,21 @@ class Draw():
 
         vertex = [(position1[0][0],position1[0][1]), (position1[1][0],position1[1][1]), (position2[0][0],position2[0][1]), (position2[1][0],position2[1][1])]
         vertex_order = self.order_vertex(vertex)
-        dxf.add_polyline_path(vertex_order)
+        dxf.add_polyline2d(vertex_order, close = True)
         
     def draw_contact_pads(self, contactpads, dxf):
         for i in range(len(contactpads)):
-            dxf.add_circle(center=(contactpads[i][0], -contactpads[i][1]), radius = 750.0)
+            dxf.add_circle(center = (contactpads[i][0], - contactpads[i][1]), radius = 750.0)
             
     def draw_electrodes(self, electrodes: list, shape_lib: dict, dxf):
         for elec in electrodes:
             shape = elec[0]
             x = elec[1]
             y = -elec[2]
-            vertices = []
+            vertex_order = []
             for shape_p in shape_lib[shape]:
-                vertices.append((x + shape_p[0], y - shape_p[1]))
-            dxf.add_polyline_path(vertices)
+                vertex_order.append((x + shape_p[0], y - shape_p[1]))
+            dxf.add_polyline2d(vertex_order, close = True)
             
     def draw_grid(self, start_x, start_y, unit_length, grids_x, grids_y, dxf):
         for i in range(grids_x):
@@ -690,22 +627,21 @@ class Draw():
         for i in range(grids_y):
             dxf.add_line((start_x, -(start_y+unit_length*i)),(start_x+unit_length*(grids_x-1),-(start_y+unit_length*i)))
 
-    def draw_pseudo_node(self, grids, dxf):
+    def draw_pseudo_node(self, grids, hatch_path):
         width = 60
         num = 0
         for i in range(len(grids)):
             for j in range(len(grids[i])):
                 if grids[i][j].electrode_index >= 0:
-                    # print(girds[i][j].to_dict())
                     x = grids[i][j].real_x
                     y = -grids[i][j].real_y
                     # dxf.add_edge_path().add_ellipse((girds[i][j].real_x, -girds[i][j].real_y), major_axis=(0, 10), ratio=0.5)
-                    dxf.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+                    hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)], close = True)
                     num += 1
                     # dxf.add_circle(center=(girds[i][j].real_x, -girds[i][j].real_y), radius = 20.0, dxfattribs={'color': color})
         print('grid num: ', num)
 
-    def draw_pseudo_node_corner(self, grids, dxf):
+    def draw_pseudo_node_corner(self, grids, hatch_path):
         width = 60
         for i in range(len(grids)):
             for j in range(len(grids[i])):
@@ -713,8 +649,7 @@ class Draw():
                     # print(girds[i][j].to_dict())
                     x = grids[i][j].real_x
                     y = -grids[i][j].real_y
-                    # dxf.add_edge_path().add_ellipse((girds[i][j].real_x, -girds[i][j].real_y), major_axis=(0, 10), ratio=0.5)
-                    dxf.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+                    hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)], close = True)
 
     def draw_all_path(self, dxf, grids2):
         MaxFlowWithMinCost = self.MaxFlowWithMinCost
@@ -984,7 +919,7 @@ class Draw():
                     if j == 0:
                         # if i==0:
                         #     draw_start(electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,electrode_wire[i][j+1].end_x,electrode_wire[i][j+1].end_y,200, dxf)
-                        #     dxf.add_polyline_path(	[(electrode_wire[i][j].end_x-200,-(electrode_wire[i][j].end_y-200)),
+                        #     dxf.add_lwpolyline(	[(electrode_wire[i][j].end_x-200,-(electrode_wire[i][j].end_y-200)),
                         #         (electrode_wire[i][j].end_x-200,-(electrode_wire[i][j].end_y+200)),
                         #         (electrode_wire[i][j].end_x+200,-(electrode_wire[i][j].end_y-200)),
                         #         (electrode_wire[i][j].end_x+200,-(electrode_wire[i][j].end_y+200))])
