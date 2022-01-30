@@ -28,7 +28,7 @@ class MCMF():
         self.supplies = [0 for i in range(len(self.flow.flownodes))]
         self.num_supply = 0
 
-        self.MaxFlowWithMinCost = None
+        self.mim_cost_max_flow_solver = None
         self.min_cost_flow = None
 
         self.all_path = []
@@ -117,7 +117,7 @@ class MCMF():
             sum += self.supplies[i]
         # print("Add node supplies")
 
-        self.MaxFlowWithMinCost = self.min_cost_flow.SolveMaxFlowWithMinCost()
+        self.mim_cost_max_flow_solver = self.min_cost_flow.SolveMaxFlowWithMinCost()
 
     def get_close_point_with_poly(self, _poly, _point):
         poly = Polygon(_poly)
@@ -131,7 +131,7 @@ class MCMF():
 
     def get_path(self):
         #Find the minimum cost flow between node 0 and node 4.
-        if self.MaxFlowWithMinCost == self.min_cost_flow.OPTIMAL and len(self.electrode_wire) > 0:
+        if self.mim_cost_max_flow_solver == self.min_cost_flow.OPTIMAL and len(self.electrode_wire) > 0:
             #print('Minimum cost:', self.min_cost_flow.OptimalCost())	
             for i in range(self.min_cost_flow.NumArcs()):
                 if self.min_cost_flow.Flow(i) != 0:

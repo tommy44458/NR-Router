@@ -1,361 +1,156 @@
 import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
+from ortools.graph.pywrapgraph import SimpleMinCostFlow
 import math
 import sys
 import os
 import ezdxf
-from ezdxf.addons import r12writer
+from ezdxf.addons.r12writer import R12FastStreamWriter
+# from ezdxf.addons import r12writer
 import operator
 import math
 from functools import reduce
-from math import atan2,degrees
+from math import atan2, degrees
 
-from degree import Degree
+from wire import Wire
+
+from degree import Degree, fill_degree_table
 from electrode import Electrode
 
-class Draw():
 
-    def __init__(self, MaxFlowWithMinCost, min_cost_flow, block2_shift, tile_unit, electrode_wire, regular_width, mini_width):
-        self.MaxFlowWithMinCost = MaxFlowWithMinCost
+class Draw():
+    def __init__(self, mim_cost_max_flow_solver: SimpleMinCostFlow.SolveMaxFlowWithMinCost, min_cost_flow: SimpleMinCostFlow,
+                 mid_block_shift: list, tile_unit: int, routing_wire: List[List[Wire]], regular_width: float, mini_width: float):
+        # mcmf
+        self.mim_cost_max_flow_solver = mim_cost_max_flow_solver
         self.min_cost_flow = min_cost_flow
-        self.block2_shift = block2_shift
+
+        # routing path from electrode to contact pad
+        self.routing_wire = routing_wire
+
+        # chip config
+        self.mid_block_shift = mid_block_shift
         self.tile_unit = tile_unit
-        self.electrode_wire = electrode_wire
         self.mini_width = mini_width
         self.regular_width = regular_width / 2
         self.line_buffer = self.regular_width * 0.0
 
-    def order_vertex(self, vertex):
-        vertex.sort(key=lambda x:(x[0]))
+        # wire config
+        self.fill_degree_table, self.dia = fill_degree_table()
+
+    def order_vertex(self, vertex: list) -> list:
+        vertex.sort(key=lambda x: (x[0]))
         vertex_left = vertex[0:2]
         vertex_right = vertex[2:4]
-        vertex_left.sort(key=lambda x:(x[1]))
-        vertex_right.sort(key=lambda x:(x[1]), reverse=True)
+        vertex_left.sort(key=lambda x: (x[1]))
+        vertex_right.sort(key=lambda x: (x[1]), reverse=False)
         vertex_left.extend(vertex_right)
         return vertex_left
 
-    def draw_orthogonal_path(self, x1, y1, x2, y2, x3, y3, x4, y4, width, connect, dxf):
-        #polyline= dxf.polyline(linetype=None)
-        position1 = []
-        position2 = []
-        deg_90_UD = 0
-        deg_90_RL = 0
-        deg_45 = 0
-        # Tan = 82.842712 / 2 #82.842712/2
-        Tan = 0.41421356237 * width
-        # print('*********************', Tan)
-        # if width==50:
-        #     Tan=(Tan/2)
+    def draw_orthogonal_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width, dxf: R12FastStreamWriter):
+        previous_point = [previous_wire.start_x, previous_wire.start_y]
+        start_point = [wire.start_x, wire.start_y]
+        end_point = [wire.end_x, wire.end_y]
+        next_point = [next_wire.end_x, next_wire.end_y]
+        # x1, y1, x2, y2, x3, y3, x4, y4 = 0, 0, 0, 0, 0, 0, 0, 0
 
-        # align because hub axis
-        if abs(y3 - y4) != abs(x3 - x4):
-            if abs(y3 - y4) < abs(x3 - x4):
-                y4 = y3
-            else:
-                x4 = x3
+        # wire length = 0
+        if start_point == end_point:
+            return None
 
-        degree1 = Degree.getdegree(x1,y1,x2,y2)
-        degree2 = Degree.getdegree(x2,y2,x3,y3)
-        if x2==x3 and y2==y3:
-            return 0
-        if x2==x1 and y2==y1:
-            return 0
+        tan = 0.41421356237 * width
+        dia_offset = self.dia * width
 
-        if y2 == y3:
-            degree1 = (1,0)
-            degree2 = (1,0)
-        elif x2 == x3:
-            degree1 = (0,1)
-            degree2 = (0,1)
+        # align because hub axisd
+        if abs(wire.end_y - next_wire.end_y) < abs(wire.end_x - next_wire.end_x):
+            next_point[1] = end_point[1]
+        elif abs(wire.end_y - next_wire.end_y) > abs(wire.end_x - next_wire.end_x):
+            next_point[0] = end_point[0]
 
-        if y3 == y4 and x2!=x3:
-            degree2 = (1,0)
-        elif x3 == x4 and y2!=y3:
-            degree2 = (0,1)
-        # 1/\4
-        # 2\/3
-        ###
-        # 4/\1
-        # 3\/2
-        #45 angle
-        if x2!=x3 and y2!=y3:
-            if x2>x3:
-                if y2>y3:
-                    deg_45=2
-                elif y2<y3:
-                    deg_45=1
-            elif x2<x3:
-                if y2>y3:
-                    deg_45=3
-                elif y2<y3:
-                    deg_45=4
-        #head
-        #tail
+        degree_previous_start = Degree.getdegree(previous_point[0], previous_point[1], start_point[0], start_point[1])
+        degree_start_end = Degree.getdegree(start_point[0], start_point[1], end_point[0], end_point[1])
+        degree_end_next = Degree.getdegree(end_point[0], end_point[1], next_point[0], next_point[1])
 
-        #90 angle
-        if (x3 == x4 and y2==y3):
-            deg_90_UD = 1
-        if (y3 == y4 and x2==x3):
-            deg_90_RL = 1
-        if y1 == y2 and x2!=x3:
-            degree1 = (1,0)
-        position_s1 = [x2-width*degree1[1],y2+width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
-        position_s2 = [x2+width*degree1[1],y2-width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
-        if abs(position_s1[2]-position_s2[2])>90:
-            if min(position_s1[2],position_s2[2]) == position_s1[2]:
-                position_s2[2]-=360
-            else:
-                position_s1[2]-=360
+        # if degree_start_end == (self.dia, self.dia):
 
-        if deg_45!=0:# and connect!=1:
-            if deg_45==1:
-                if x1==x2:
-                    position_s1[0]=x2-width
-                    position_s1[1]=y2-Tan
-                    position_s2[0]=x2+width
-                    position_s2[1]=y2+Tan
-                elif y1==y2:
-                    position_s1[0]=x2+Tan
-                    position_s1[1]=y2+width
-                    position_s2[0]=x2-Tan
-                    position_s2[1]=y2-width
-            elif deg_45==2:
-                if x1==x2:
-                    position_s1[0]=x2-width
-                    position_s1[1]=y2+Tan
-                    position_s2[0]=x2+width
-                    position_s2[1]=y2-Tan
-                elif y1==y2:
-                    position_s1[0]=x2+Tan
-                    position_s1[1]=y2-width
-                    position_s2[0]=x2-Tan
-                    position_s2[1]=y2+width
-            elif deg_45==3:
-                if x1==x2:
-                    position_s1[0]=x2+width
-                    position_s1[1]=y2+Tan
-                    position_s2[0]=x2-width
-                    position_s2[1]=y2-Tan
-                elif y1==y2:
-                    position_s1[0]=x2-Tan
-                    position_s1[1]=y2-width
-                    position_s2[0]=x2+Tan
-                    position_s2[1]=y2+width
-            elif deg_45==4:
-                if x1==x2:
-                    position_s1[0]=x2+width
-                    position_s1[1]=y2-Tan
-                    position_s2[0]=x2-width
-                    position_s2[1]=y2+Tan
-                elif y1==y2:
-                    position_s1[0]=x2-Tan
-                    position_s1[1]=y2+width
-                    position_s2[0]=x2+Tan
-                    position_s2[1]=y2-width
-        elif x1!=x2 and y1!=y2:#and width!=50:
-            if x1>x2:
-                if y1>y2:
-                    if y2==y3:
-                        position_s1[0]=x2-Tan
-                        position_s1[1]=y2+width
-                        position_s2[0]=x2+Tan
-                        position_s2[1]=y2-width
-                    elif x2==x3:
-                        position_s1[0]=x2+width
-                        position_s1[1]=y2-Tan
-                        position_s2[0]=x2-width
-                        position_s2[1]=y2+Tan
-                elif y1<y2:
-                    if y2==y3:
-                        position_s1[0]=x2-Tan
-                        position_s1[1]=y2-width
-                        position_s2[0]=x2+Tan
-                        position_s2[1]=y2+width
-                    elif x2==x3:
-                        position_s1[0]=x2+width
-                        position_s1[1]=y2+Tan
-                        position_s2[0]=x2-width
-                        position_s2[1]=y2-Tan
-            elif x1<x2:
-                if y1>y2:
-                    if y2==y3:
-                        position_s1[0]=x2+Tan
-                        position_s1[1]=y2+width
-                        position_s2[0]=x2-Tan
-                        position_s2[1]=y2-width
-                    elif x2==x3:
-                        position_s1[0]=x2-width
-                        position_s1[1]=y2-Tan
-                        position_s2[0]=x2+width
-                        position_s2[1]=y2+Tan
-                elif y1<y2:
-                    if y2==y3:
-                        position_s1[0]=x2+Tan
-                        position_s1[1]=y2-width
-                        position_s2[0]=x2-Tan
-                        position_s2[1]=y2+width
-                    elif x2==x3:
-                        position_s1[0]=x2-width
-                        position_s1[1]=y2+Tan
-                        position_s2[0]=x2+width
-                        position_s2[1]=y2-Tan
-        position1.append(position_s1)
-        position1.append(position_s2)
-        
-        # position1.sort(key=lambda k: [k[2]])
-        position_e1 = [x3+width*degree2[1],y3-width*degree2[0],Degree.inner_degree(x3+width*degree2[1],y3-width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
-        position_e2	= [x3-width*degree2[1],y3+width*degree2[0],Degree.inner_degree(x3-width*degree2[1],y3+width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
-        if deg_45!=0 :
-            if deg_45==1:
-                if x3==x4:
-                    position_e1[0]=x3+width
-                    position_e1[1]=y3+Tan
-                    position_e2[0]=x3-width
-                    position_e2[1]=y3-Tan
-                elif y3==y4:
-                    position_e1[0]=x3-Tan
-                    position_e1[1]=y3-width
-                    position_e2[0]=x3+Tan
-                    position_e2[1]=y3+width
-            elif deg_45==2:
-                if x3==x4:
-                    position_e1[0]=x3+width
-                    position_e1[1]=y3-Tan
-                    position_e2[0]=x3-width
-                    position_e2[1]=y3+Tan
-                elif y3==y4:
-                    position_e1[0]=x3-Tan
-                    position_e1[1]=y3+width
-                    position_e2[0]=x3+Tan
-                    position_e2[1]=y3-width
-            elif deg_45==3:
-                if x3==x4:
-                    position_e1[0]=x3-width
-                    position_e1[1]=y3-Tan
-                    position_e2[0]=x3+width
-                    position_e2[1]=y3+Tan
-                elif y3==y4:
-                    position_e1[0]=x3+Tan
-                    position_e1[1]=y3+width
-                    position_e2[0]=x3-Tan
-                    position_e2[1]=y3-width
-            elif deg_45==4:
-                if x3==x4:
-                    position_e1[0]=x3-width
-                    position_e1[1]=y3+Tan
-                    position_e2[0]=x3+width
-                    position_e2[1]=y3-Tan
-                elif y3==y4:
-                    position_e1[0]=x3+Tan
-                    position_e1[1]=y3-width
-                    position_e2[0]=x3-Tan
-                    position_e2[1]=y3+width
-        elif x3!=x4 and y3!=y4:# and width!=50:
-            if x3>x4:
-                if y3>y4:
-                    if y2==y3:
-                        position_e1[0]=x3+Tan
-                        position_e1[1]=y3-width
-                        position_e2[0]=x3-Tan
-                        position_e2[1]=y3+width
-                    elif x2==x3:
-                        position_e1[0]=x3-width
-                        position_e1[1]=y3+Tan
-                        position_e2[0]=x3+width
-                        position_e2[1]=y3-Tan
-                elif y3<y4:
-                    if y2==y3:
-                        position_e1[0]=x3+Tan
-                        position_e1[1]=y3+width
-                        position_e2[0]=x3-Tan
-                        position_e2[1]=y3-width
-                    elif x2==x3:
-                        position_e1[0]=x3-width
-                        position_e1[1]=y3-Tan
-                        position_e2[0]=x3+width
-                        position_e2[1]=y3+Tan
-            elif x3<x4:
-                if y3>y4:
-                    if y2==y3:
-                        position_e1[0]=x3-Tan
-                        position_e1[1]=y3-width
-                        position_e2[0]=x3+Tan
-                        position_e2[1]=y3+width
-                    elif x2==x3:
-                        position_e1[0]=x3+width
-                        position_e1[1]=y3+Tan
-                        position_e2[0]=x3-width
-                        position_e2[1]=y3-Tan
-                elif y3<y4:
-                    if y2==y3:
-                        position_e1[0]=x3-Tan
-                        position_e1[1]=y3+width
-                        position_e2[0]=x3+Tan
-                        position_e2[1]=y3-width
-                    elif x2==x3:
-                        position_e1[0]=x3+width
-                        position_e1[1]=y3-Tan
-                        position_e2[0]=x3-width
-                        position_e2[1]=y3+Tan
+        wire_start = [start_point[0], start_point[1], start_point[0], start_point[1]]
 
-        if deg_90_UD==1:
-            if x2>x3:
-                position_e1[0]-=width
-                position_e2[0]-=width
-            elif x2<x3:
-                position_e1[0]+=width
-                position_e2[0]+=width
+        start_offset = self.fill_degree_table.get(degree_previous_start, {}).get(degree_start_end, None)
+        if start_offset is not None:
+            for i in range(4):
+                if start_offset[i] == 1:
+                    wire_start[i] += width
+                elif start_offset[i] == -1:
+                    wire_start[i] -= width
+                elif start_offset[i] == 2:
+                    wire_start[i] += tan
+                elif start_offset[i] == -2:
+                    wire_start[i] -= tan
+                elif start_offset[i] == 3:
+                    wire_start[i] += dia_offset
+                elif start_offset[i] == -3:
+                    wire_start[i] -= dia_offset
 
-        if deg_90_RL==1:
-            if y2>y3:
-                position_e1[1]-=width
-                position_e2[1]-=width
-            elif y2<y3:
-                position_e1[1]+=width
-                position_e2[1]+=width		
-        if abs(position_e1[2]-position_e2[2])>90:
-            if min(position_e1[2],position_e2[2]) == position_e1[2]:
-                position_e2[2]-=360
-            else:
-                position_e1[2]-=360
-        position2.append(position_e1)
-        position2.append(position_e2)
-        vertex = [(position1[0][0],position1[0][1]), (position1[1][0],position1[1][1]), (position2[0][0],position2[0][1]), (position2[1][0],position2[1][1])]
-        vertex_order = self.order_vertex(vertex)
-        dxf.add_polyline2d(vertex_order, close = True)
-        
-    def draw_path(self, x1,y1,x2,y2,x3,y3,x4,y4,width,connect,dxf):
-        y1 = -1*y1
-        y2 = -1*y2
-        y3 = -1*y3
-        y4 = -1*y4
-        self.draw_orthogonal_path(x1,y1,x2,y2,x3,y3,x4,y4,width,connect,dxf)
-        
-    def draw_start(self, x1,y1,x2,y2,x3,y3,width,dxf):
+        wire_end = [end_point[0], end_point[1], end_point[0], end_point[1]]
+
+        end_offset = self.fill_degree_table.get(degree_start_end, {}).get(degree_end_next, None)
+        if end_offset is not None:
+            for i in range(4):
+                if end_offset[i] == 1:
+                    wire_end[i] += width
+                elif end_offset[i] == -1:
+                    wire_end[i] -= width
+                elif end_offset[i] == 2:
+                    wire_end[i] += tan
+                elif end_offset[i] == -2:
+                    wire_end[i] -= tan
+                elif end_offset[i] == 3:
+                    wire_end[i] += dia_offset
+                elif end_offset[i] == -3:
+                    wire_end[i] -= dia_offset
+
+        # if degree_previous_start == degree_start_end and degree_start_end == degree_end_next:
+            # print('&&', start_offset, end_offset)
+
+            # print('**', degree_previous_start, degree_start_end, degree_end_next)
+
+        if start_offset is None:
+
+            print('**', degree_previous_start, degree_start_end, degree_end_next)
+
+            vertex = [[wire_start[0], -wire_start[1]], [wire_start[2], -wire_start[3]], [wire_end[0], -wire_end[1]], [wire_end[2], -wire_end[3]]]
+            vertex_order = self.order_vertex(vertex)
+            dxf.add_solid(vertex_order)
+
+    def draw_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width, dxf):
+        # y value need to be negative
+        self.draw_orthogonal_path(previous_wire, wire, next_wire, width, dxf)
+
+    def draw_start(self, x1, y1, x2, y2, x3, y3, width, dxf):
         # if x1 == x2 and y1 == y2:
         #     return 0
         y1 = -y1
         y2 = -y2
         y3 = -y3
-        degree1 = Degree.getdegree(x1,y1,x2,y2)
+        degree1 = Degree.getdegree(x1, y1, x2, y2)
         Tan = 0.41421356237 * width
-        #/
-        #|
+        # /
+        # |
         if x1 < x2 and y1 < y2:
             x1 -= self.line_buffer
             y1 -= self.line_buffer
-        #|
-        #\
+        # |
+        # \
         elif x1 < x2 and y1 > y2:
             x1 -= self.line_buffer
             y1 += self.line_buffer
-        #\
+        # \
         # |
         elif x1 > x2 and y1 < y2:
             x1 += self.line_buffer
             y1 -= self.line_buffer
         # |
-        #/
+        # /
         elif x1 > x2 and y1 > y2:
             x1 += self.line_buffer
             y1 += self.line_buffer
@@ -367,93 +162,93 @@ class Draw():
             x1 -= self.line_buffer
         elif y1 == y2 and x1 > x2:
             x1 += self.line_buffer
-        S1=(x1-width*degree1[1],y1+width*degree1[0])
-        S2=(x1+width*degree1[1],y1-width*degree1[0])
+        S1 = (x1-width*degree1[1], y1+width*degree1[0])
+        S2 = (x1+width*degree1[1], y1-width*degree1[0])
         # 有角度
         if x1 != x2 and y1 != y2:
-            S1=(x1-width*degree1[1],y1+width*degree1[0])
-            S2=(x1+width*degree1[1],y1-width*degree1[0])
-            if x2!=x3 and y2!=y3:
-                E1=(x2-width*degree1[1],y2+width*degree1[0])
-                E2=(x2+width*degree1[1],y2-width*degree1[0])
-            elif x2==x3 and y2==y3:
+            S1 = (x1-width*degree1[1], y1+width*degree1[0])
+            S2 = (x1+width*degree1[1], y1-width*degree1[0])
+            if x2 != x3 and y2 != y3:
+                E1 = (x2-width*degree1[1], y2+width*degree1[0])
+                E2 = (x2+width*degree1[1], y2-width*degree1[0])
+            elif x2 == x3 and y2 == y3:
                 return 0
-            elif x2==x3:
-                if x1>x2:
-                    if y2>y3:
-                        E1=(x2+width,y2-Tan)
-                        E2=(x2-width,y2+Tan)
-                    elif y2<y3:
-                        E1=(x2+width,y2+Tan)
-                        E2=(x2-width,y2-Tan)
-                elif x1<x2:
-                    if y2>y3:
-                        E1=(x2-width,y2-Tan)
-                        E2=(x2+width,y2+Tan)
-                    elif y2<y3:
-                        E1=(x2-width,y2+Tan)
-                        E2=(x2+width,y2-Tan)
-            elif y2==y3:
-                if y1>y2:
-                    if x2>x3:
-                        E1=(x2-Tan,y2+width)
-                        E2=(x2+Tan,y2-width)
-                    elif x2<x3:
-                        E1=(x2+Tan,y2+width)
-                        E2=(x2-Tan,y2-width)
-                elif y1<y2:
-                    if x2>x3:
-                        E1=(x2-Tan,y2-width)
-                        E2=(x2+Tan,y2+width)
-                    elif x2<x3:
-                        E1=(x2+Tan,y2-width)
-                        E2=(x2-Tan,y2+width)
+            elif x2 == x3:
+                if x1 > x2:
+                    if y2 > y3:
+                        E1 = (x2+width, y2-Tan)
+                        E2 = (x2-width, y2+Tan)
+                    elif y2 < y3:
+                        E1 = (x2+width, y2+Tan)
+                        E2 = (x2-width, y2-Tan)
+                elif x1 < x2:
+                    if y2 > y3:
+                        E1 = (x2-width, y2-Tan)
+                        E2 = (x2+width, y2+Tan)
+                    elif y2 < y3:
+                        E1 = (x2-width, y2+Tan)
+                        E2 = (x2+width, y2-Tan)
+            elif y2 == y3:
+                if y1 > y2:
+                    if x2 > x3:
+                        E1 = (x2-Tan, y2+width)
+                        E2 = (x2+Tan, y2-width)
+                    elif x2 < x3:
+                        E1 = (x2+Tan, y2+width)
+                        E2 = (x2-Tan, y2-width)
+                elif y1 < y2:
+                    if x2 > x3:
+                        E1 = (x2-Tan, y2-width)
+                        E2 = (x2+Tan, y2+width)
+                    elif x2 < x3:
+                        E1 = (x2+Tan, y2-width)
+                        E2 = (x2-Tan, y2+width)
             vertex = [S1, S2, E1, E2]
             vertex_order = self.order_vertex(vertex)
-            dxf.add_polyline2d(vertex_order, close = True)
+            dxf.add_solid(vertex_order)
         # 垂直 水平
         else:
             # 垂直
             if x1 == x2:
                 if y3 > y2:
                     if x2 > x3:
-                        E1=(x2-width,y2-Tan)
-                        E2=(x2+width,y2+Tan)
+                        E1 = (x2-width, y2-Tan)
+                        E2 = (x2+width, y2+Tan)
                     elif x2 < x3:
-                        E1=(x2-width,y2+Tan)
-                        E2=(x2+width,y2-Tan)
+                        E1 = (x2-width, y2+Tan)
+                        E2 = (x2+width, y2-Tan)
                     else:
-                        E1=(x2-width,y2)
-                        E2=(x2+width,y2)
+                        E1 = (x2-width, y2)
+                        E2 = (x2+width, y2)
                 else:
                     if x2 > x3:
-                        E1=(x2-width,y2+Tan)
-                        E2=(x2+width,y2-Tan)
+                        E1 = (x2-width, y2+Tan)
+                        E2 = (x2+width, y2-Tan)
                     elif x2 < x3:
-                        E1=(x2-width,y2-Tan)
-                        E2=(x2+width,y2+Tan)
+                        E1 = (x2-width, y2-Tan)
+                        E2 = (x2+width, y2+Tan)
                     else:
-                        E1=(x2-width,y2)
-                        E2=(x2+width,y2)
+                        E1 = (x2-width, y2)
+                        E2 = (x2+width, y2)
             # 水平
             else:
                 if y2 > y3:
-                    E1=(x2-Tan,y2-width)
-                    E2=(x2+Tan,y2+width)
+                    E1 = (x2-Tan, y2-width)
+                    E2 = (x2+Tan, y2+width)
                 elif y2 < y3:
-                    E1=(x2+Tan,y2-width)
-                    E2=(x2-Tan,y2+width)
+                    E1 = (x2+Tan, y2-width)
+                    E2 = (x2-Tan, y2+width)
                 else:
-                    E1=(x2,y2-width)
-                    E2=(x2,y2+width)
+                    E1 = (x2, y2-width)
+                    E2 = (x2, y2+width)
             vertex = [S1, S2, E1, E2]
             vertex_order = self.order_vertex(vertex)
-            dxf.add_polyline2d(vertex_order, close = True)
+            dxf.add_solid(vertex_order)
 
-    def draw_end(self, x1,y1,x2,y2,x3,y3,width,dxf,connect):
-        y1 = -y1
-        y2 = -y2
-        y3 = -y3
+    def draw_end(self, x1, y1, x2, y2, x3, y3, width, dxf, connect):
+        # y1 = -y1
+        # y2 = -y2
+        # y3 = -y3
         # align to agr 90 (only 90 or 45)
         if abs(y2 - y3) != abs(x2 - x3):
             if abs(y2 - y3) < abs(x2 - x3):
@@ -462,155 +257,160 @@ class Draw():
                 x3 = x2
         position1 = []
         position2 = []
-        degree1 = Degree.getdegree(x1,y1,x2,y2)
-        degree2 = Degree.getdegree(x2,y2,x3,y3)
-        if x2==x3 and y2==y3:
+        degree1 = Degree.getdegree(x1, y1, x2, y2)
+        degree2 = Degree.getdegree(x2, y2, x3, y3)
+        if x2 == x3 and y2 == y3:
             return 0
-        if x2==x1 and y2==y1:
+        if x2 == x1 and y2 == y1:
             return 0
         if y2 == y3:
-            degree1 = (1,0)
-            degree2 = (1,0)
+            degree1 = (1, 0)
+            degree2 = (1, 0)
         elif x2 == x3:
-            degree1 = (0,1)
-            degree2 = (0,1)
+            degree1 = (0, 1)
+            degree2 = (0, 1)
 
-        position_s1 = [x2-width*degree1[1],y2+width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
-        position_s2 = [x2+width*degree1[1],y2-width*degree1[0],Degree.inner_degree(x2-width*degree1[1],y2+width*degree1[0],(x2+x3)/2,(y2+y3)/2)]
-        deg_45=0
+        position_s1 = [x2-width*degree1[1], y2+width*degree1[0], Degree.inner_degree(
+            x2-width*degree1[1], y2+width*degree1[0], (x2+x3)/2, (y2+y3)/2)]
+        position_s2 = [x2+width*degree1[1], y2-width*degree1[0], Degree.inner_degree(
+            x2-width*degree1[1], y2+width*degree1[0], (x2+x3)/2, (y2+y3)/2)]
+        deg_45 = 0
         # 4/\1
         # 3\/2
         Tan = 0.41421356237 * width
-        if x2!=x3 and y2!=y3:
-            if x2>x3:
-                if y2>y3:
-                    deg_45=2
-                elif y2<y3:
-                    deg_45=1
-            elif x2<x3:
-                if y2>y3:
-                    deg_45=3
-                elif y2<y3:
-                    deg_45=4
-        if deg_45!=0:
-            if deg_45==1:
-                if x1==x2:
-                    position_s1[0]=x2-width
-                    position_s1[1]=y2-Tan
-                    position_s2[0]=x2+width
-                    position_s2[1]=y2+Tan
-                elif y1==y2:
-                    position_s1[0]=x2+Tan
-                    position_s1[1]=y2+width
-                    position_s2[0]=x2-Tan
-                    position_s2[1]=y2-width
-            elif deg_45==2:
-                if x1==x2:
-                    position_s1[0]=x2-width
-                    position_s1[1]=y2+Tan
-                    position_s2[0]=x2+width
-                    position_s2[1]=y2-Tan
-                elif y1==y2:
-                    position_s1[0]=x2+Tan
-                    position_s1[1]=y2-width
-                    position_s2[0]=x2-Tan
-                    position_s2[1]=y2+width
-            elif deg_45==3:
-                if x1==x2:
-                    position_s1[0]=x2+width
-                    position_s1[1]=y2+Tan
-                    position_s2[0]=x2-width
-                    position_s2[1]=y2-Tan
-                elif y1==y2:
-                    position_s1[0]=x2-Tan
-                    position_s1[1]=y2-width
-                    position_s2[0]=x2+Tan
-                    position_s2[1]=y2+width
-            elif deg_45==4:
-                if x1==x2:
-                    position_s1[0]=x2+width
-                    position_s1[1]=y2-Tan
-                    position_s2[0]=x2-width
-                    position_s2[1]=y2+Tan
-                elif y1==y2:
-                    position_s1[0]=x2-Tan
-                    position_s1[1]=y2+width
-                    position_s2[0]=x2+Tan
-                    position_s2[1]=y2-width
-        elif x1!=x2 and y1!=y2:
-            if x1>x2:
-                if y1>y2:
-                    if y2==y3:
-                        position_s1[0]=x2-Tan
-                        position_s1[1]=y2+width
-                        position_s2[0]=x2+Tan
-                        position_s2[1]=y2-width
-                    elif x2==x3:
-                        position_s1[0]=x2+width
-                        position_s1[1]=y2-Tan
-                        position_s2[0]=x2-width
-                        position_s2[1]=y2+Tan
-                elif y1<y2:
-                    if y2==y3:
-                        position_s1[0]=x2-Tan
-                        position_s1[1]=y2-width
-                        position_s2[0]=x2+Tan
-                        position_s2[1]=y2+Tan
-                    elif x2==x3:
-                        position_s1[0]=x2+width
-                        position_s1[1]=y2+Tan
-                        position_s2[0]=x2-width
-                        position_s2[1]=y2-Tan
-            elif x1<x2:
-                if y1>y2:
-                    if y2==y3:
-                        position_s1[0]=x2+Tan
-                        position_s1[1]=y2+width
-                        position_s2[0]=x2-Tan
-                        position_s2[1]=y2-width
-                    elif x2==x3:
-                        position_s1[0]=x2-width
-                        position_s1[1]=y2-Tan
-                        position_s2[0]=x2+width
-                        position_s2[1]=y2+Tan
-                elif y1<y2:
-                    if y2==y3:
-                        position_s1[0]=x2+Tan
-                        position_s1[1]=y2-width
-                        position_s2[0]=x2-Tan
-                        position_s2[1]=y2+width
-                    elif x2==x3:
-                        position_s1[0]=x2-width
-                        position_s1[1]=y2+Tan
-                        position_s2[0]=x2+width
-                        position_s2[1]=y2-Tan
+        if x2 != x3 and y2 != y3:
+            if x2 > x3:
+                if y2 > y3:
+                    deg_45 = 2
+                elif y2 < y3:
+                    deg_45 = 1
+            elif x2 < x3:
+                if y2 > y3:
+                    deg_45 = 3
+                elif y2 < y3:
+                    deg_45 = 4
+        if deg_45 != 0:
+            if deg_45 == 1:
+                if x1 == x2:
+                    position_s1[0] = x2-width
+                    position_s1[1] = y2-Tan
+                    position_s2[0] = x2+width
+                    position_s2[1] = y2+Tan
+                elif y1 == y2:
+                    position_s1[0] = x2+Tan
+                    position_s1[1] = y2+width
+                    position_s2[0] = x2-Tan
+                    position_s2[1] = y2-width
+            elif deg_45 == 2:
+                if x1 == x2:
+                    position_s1[0] = x2-width
+                    position_s1[1] = y2+Tan
+                    position_s2[0] = x2+width
+                    position_s2[1] = y2-Tan
+                elif y1 == y2:
+                    position_s1[0] = x2+Tan
+                    position_s1[1] = y2-width
+                    position_s2[0] = x2-Tan
+                    position_s2[1] = y2+width
+            elif deg_45 == 3:
+                if x1 == x2:
+                    position_s1[0] = x2+width
+                    position_s1[1] = y2+Tan
+                    position_s2[0] = x2-width
+                    position_s2[1] = y2-Tan
+                elif y1 == y2:
+                    position_s1[0] = x2-Tan
+                    position_s1[1] = y2-width
+                    position_s2[0] = x2+Tan
+                    position_s2[1] = y2+width
+            elif deg_45 == 4:
+                if x1 == x2:
+                    position_s1[0] = x2+width
+                    position_s1[1] = y2-Tan
+                    position_s2[0] = x2-width
+                    position_s2[1] = y2+Tan
+                elif y1 == y2:
+                    position_s1[0] = x2-Tan
+                    position_s1[1] = y2+width
+                    position_s2[0] = x2+Tan
+                    position_s2[1] = y2-width
+        elif x1 != x2 and y1 != y2:
+            if x1 > x2:
+                if y1 > y2:
+                    if y2 == y3:
+                        position_s1[0] = x2-Tan
+                        position_s1[1] = y2+width
+                        position_s2[0] = x2+Tan
+                        position_s2[1] = y2-width
+                    elif x2 == x3:
+                        position_s1[0] = x2+width
+                        position_s1[1] = y2-Tan
+                        position_s2[0] = x2-width
+                        position_s2[1] = y2+Tan
+                elif y1 < y2:
+                    if y2 == y3:
+                        position_s1[0] = x2-Tan
+                        position_s1[1] = y2-width
+                        position_s2[0] = x2+Tan
+                        position_s2[1] = y2+Tan
+                    elif x2 == x3:
+                        position_s1[0] = x2+width
+                        position_s1[1] = y2+Tan
+                        position_s2[0] = x2-width
+                        position_s2[1] = y2-Tan
+            elif x1 < x2:
+                if y1 > y2:
+                    if y2 == y3:
+                        position_s1[0] = x2+Tan
+                        position_s1[1] = y2+width
+                        position_s2[0] = x2-Tan
+                        position_s2[1] = y2-width
+                    elif x2 == x3:
+                        position_s1[0] = x2-width
+                        position_s1[1] = y2-Tan
+                        position_s2[0] = x2+width
+                        position_s2[1] = y2+Tan
+                elif y1 < y2:
+                    if y2 == y3:
+                        position_s1[0] = x2+Tan
+                        position_s1[1] = y2-width
+                        position_s2[0] = x2-Tan
+                        position_s2[1] = y2+width
+                    elif x2 == x3:
+                        position_s1[0] = x2-width
+                        position_s1[1] = y2+Tan
+                        position_s2[0] = x2+width
+                        position_s2[1] = y2-Tan
 
-        if abs(position_s1[2]-position_s2[2])>90:
-            if min(position_s1[2],position_s2[2]) == position_s1[2]:
-                position_s2[2]-=360
+        if abs(position_s1[2]-position_s2[2]) > 90:
+            if min(position_s1[2], position_s2[2]) == position_s1[2]:
+                position_s2[2] -= 360
             else:
-                position_s1[2]-=360
+                position_s1[2] -= 360
         position1.append(position_s1)
         position1.append(position_s2)
         position1.sort(key=lambda k: [k[2]])
-        position_e1 = [x3+width*degree2[1],y3-width*degree2[0],Degree.inner_degree(x3+width*degree2[1],y3-width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
-        position_e2	= [x3-width*degree2[1],y3+width*degree2[0],Degree.inner_degree(x3-width*degree2[1],y3+width*degree2[0],(x2+x3)/2,(y2+y3)/2)]
-        if abs(position_e1[2]-position_e2[2])>90:
-            if min(position_e1[2],position_e2[2]) == position_e1[2]:
-                position_e2[2]-=360
+        position_e1 = [x3+width*degree2[1], y3-width*degree2[0], Degree.inner_degree(
+            x3+width*degree2[1], y3-width*degree2[0], (x2+x3)/2, (y2+y3)/2)]
+        position_e2 = [x3-width*degree2[1], y3+width*degree2[0], Degree.inner_degree(
+            x3-width*degree2[1], y3+width*degree2[0], (x2+x3)/2, (y2+y3)/2)]
+        if abs(position_e1[2]-position_e2[2]) > 90:
+            if min(position_e1[2], position_e2[2]) == position_e1[2]:
+                position_e2[2] -= 360
             else:
-                position_e1[2]-=360
+                position_e1[2] -= 360
         position2.append(position_e1)
         position2.append(position_e2)
 
-        vertex = [(position1[0][0],position1[0][1]), (position1[1][0],position1[1][1]), (position2[0][0],position2[0][1]), (position2[1][0],position2[1][1])]
+        vertex = [(position1[0][0], -position1[0][1]), (position1[1][0], -position1[1][1]),
+                  (position2[0][0], -position2[0][1]), (position2[1][0], -position2[1][1])]
         vertex_order = self.order_vertex(vertex)
-        dxf.add_polyline2d(vertex_order, close = True)
-        
+        dxf.add_solid(vertex_order)
+
     def draw_contact_pads(self, contactpads, dxf):
         for i in range(len(contactpads)):
-            dxf.add_circle(center = (contactpads[i][0], - contactpads[i][1]), radius = 750.0)
-            
+            dxf.add_circle(center=(contactpads[i][0], -contactpads[i][1]), radius=750.0)
+
     def draw_electrodes(self, electrodes: list, shape_lib: dict, dxf):
         for elec in electrodes:
             shape = elec[0]
@@ -619,13 +419,15 @@ class Draw():
             vertex_order = []
             for shape_p in shape_lib[shape]:
                 vertex_order.append((x + shape_p[0], y - shape_p[1]))
-            dxf.add_polyline2d(vertex_order, close = True)
-            
+            dxf.add_polyline2d(vertex_order, close=True)
+
     def draw_grid(self, start_x, start_y, unit_length, grids_x, grids_y, dxf):
         for i in range(grids_x):
-            dxf.add_line((start_x+unit_length*i, -start_y),(start_x+unit_length*i,-(start_y+unit_length*(grids_y-1))))
+            dxf.add_line((start_x+unit_length*i, -start_y), (start_x +
+                         unit_length*i, -(start_y+unit_length*(grids_y-1))))
         for i in range(grids_y):
-            dxf.add_line((start_x, -(start_y+unit_length*i)),(start_x+unit_length*(grids_x-1),-(start_y+unit_length*i)))
+            dxf.add_line((start_x, -(start_y+unit_length*i)),
+                         (start_x+unit_length*(grids_x-1), -(start_y+unit_length*i)))
 
     def draw_pseudo_node(self, grids, hatch_path):
         width = 60
@@ -635,10 +437,8 @@ class Draw():
                 if grids[i][j].electrode_index >= 0:
                     x = grids[i][j].real_x
                     y = -grids[i][j].real_y
-                    # dxf.add_edge_path().add_ellipse((girds[i][j].real_x, -girds[i][j].real_y), major_axis=(0, 10), ratio=0.5)
-                    hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)], close = True)
+                    hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
                     num += 1
-                    # dxf.add_circle(center=(girds[i][j].real_x, -girds[i][j].real_y), radius = 20.0, dxfattribs={'color': color})
         print('grid num: ', num)
 
     def draw_pseudo_node_corner(self, grids, hatch_path):
@@ -649,97 +449,98 @@ class Draw():
                     # print(girds[i][j].to_dict())
                     x = grids[i][j].real_x
                     y = -grids[i][j].real_y
-                    hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)], close = True)
+                    hatch_path.add_polyline_path(
+                        [(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
 
     def draw_all_path(self, dxf, grids2):
-        MaxFlowWithMinCost = self.MaxFlowWithMinCost
+        mim_cost_max_flow_solver = self.mim_cost_max_flow_solver
         min_cost_flow = self.min_cost_flow
-        block2_shift = self.block2_shift
+        mid_block_shift = self.mid_block_shift
         tile_unit = self.tile_unit
-        electrode_wire = self.electrode_wire
+        routing_wire = self.routing_wire
 
         connect = 0
-        if MaxFlowWithMinCost == min_cost_flow.OPTIMAL:
-            for i in range(len(electrode_wire)):
-                #tune path start 
-                ## reduce change way
-                if len(electrode_wire[i]) == 0:
+        if mim_cost_max_flow_solver == min_cost_flow.OPTIMAL:
+            for i in range(len(routing_wire)):
+                # tune path start
+                # reduce change way
+                if len(routing_wire[i]) == 0:
                     return False
-                
-                ## BUG 一些線斷消失
+
+                # BUG 一些線斷消失
                 # # 有起始線
-                # abs(electrode_wire[i][0].start_x - electrode_wire[i][0].end_x) != 0
-                # abs(electrode_wire[i][0].start_y - electrode_wire[i][0].end_y) != 0
+                # abs(routing_wire[i][0].start_x - routing_wire[i][0].end_x) != 0
+                # abs(routing_wire[i][0].start_y - routing_wire[i][0].end_y) != 0
                 # # 起始線與下一條線有轉彎
-                # (np.sign(electrode_wire[i][0].start_x - electrode_wire[i][0].end_x) != np.sign(electrode_wire[i][1].start_x-electrode_wire[i][1].end_x))
+                # (np.sign(routing_wire[i][0].start_x - routing_wire[i][0].end_x) != np.sign(routing_wire[i][1].start_x-routing_wire[i][1].end_x))
                 # # 起始線下下條線為垂直線
-                # (electrode_wire[i][2].start_x == electrode_wire[i][2].end_x)
+                # (routing_wire[i][2].start_x == routing_wire[i][2].end_x)
 
-                # if abs(electrode_wire[i][0].start_x-electrode_wire[i][0].end_x)!=0 and abs(electrode_wire[i][0].start_y-electrode_wire[i][0].end_y)!=0 and (np.sign(electrode_wire[i][0].start_x-electrode_wire[i][0].end_x)!=np.sign(electrode_wire[i][1].start_x-electrode_wire[i][1].end_x)) and (electrode_wire[i][2].start_x==electrode_wire[i][2].end_x):
-                #     electrode_wire[i][0].end_x = electrode_wire[i][2].start_x
-                #     electrode_wire[i][2].start_y = electrode_wire[i][0].start_y + abs(electrode_wire[i][2].start_x-electrode_wire[i][0].start_x) * np.sign(electrode_wire[i][2].start_y-electrode_wire[i][0].start_y)
-                #     electrode_wire[i][0].end_y = electrode_wire[i][2].start_y
-                #     del electrode_wire[i][1]
-                ## BUG 一些線斷消失
+                # if abs(routing_wire[i][0].start_x-routing_wire[i][0].end_x)!=0 and abs(routing_wire[i][0].start_y-routing_wire[i][0].end_y)!=0 and (np.sign(routing_wire[i][0].start_x-routing_wire[i][0].end_x)!=np.sign(routing_wire[i][1].start_x-routing_wire[i][1].end_x)) and (routing_wire[i][2].start_x==routing_wire[i][2].end_x):
+                #     routing_wire[i][0].end_x = routing_wire[i][2].start_x
+                #     routing_wire[i][2].start_y = routing_wire[i][0].start_y + abs(routing_wire[i][2].start_x-routing_wire[i][0].start_x) * np.sign(routing_wire[i][2].start_y-routing_wire[i][0].start_y)
+                #     routing_wire[i][0].end_y = routing_wire[i][2].start_y
+                #     del routing_wire[i][1]
+                # BUG 一些線斷消失
 
-                # if abs(electrode_wire[i][1].start_x-electrode_wire[i][1].end_x)!=abs(electrode_wire[i][1].start_y-electrode_wire[i][1].end_y) and abs(electrode_wire[i][1].start_x-electrode_wire[i][1].end_x)!=0 and abs(electrode_wire[i][1].start_y-electrode_wire[i][1].end_y)!=0:
-                #     if abs(electrode_wire[i][2].end_x-electrode_wire[i][1].start_x)>abs(electrode_wire[i][2].end_y-electrode_wire[i][1].start_y):
-                #         electrode_wire[i][1].end_x = electrode_wire[i][1].start_x+abs(electrode_wire[i][2].end_y-electrode_wire[i][1].start_y)*np.sign(electrode_wire[i][2].end_x-electrode_wire[i][1].start_x)
-                #         electrode_wire[i][1].end_y = electrode_wire[i][2].end_y
-                #         electrode_wire[i][2].start_x = electrode_wire[i][1].start_x+abs(electrode_wire[i][2].end_y-electrode_wire[i][1].start_y)*np.sign(electrode_wire[i][2].end_x-electrode_wire[i][1].start_x)
-                #         electrode_wire[i][2].start_y = electrode_wire[i][2].end_y
+                # if abs(routing_wire[i][1].start_x-routing_wire[i][1].end_x)!=abs(routing_wire[i][1].start_y-routing_wire[i][1].end_y) and abs(routing_wire[i][1].start_x-routing_wire[i][1].end_x)!=0 and abs(routing_wire[i][1].start_y-routing_wire[i][1].end_y)!=0:
+                #     if abs(routing_wire[i][2].end_x-routing_wire[i][1].start_x)>abs(routing_wire[i][2].end_y-routing_wire[i][1].start_y):
+                #         routing_wire[i][1].end_x = routing_wire[i][1].start_x+abs(routing_wire[i][2].end_y-routing_wire[i][1].start_y)*np.sign(routing_wire[i][2].end_x-routing_wire[i][1].start_x)
+                #         routing_wire[i][1].end_y = routing_wire[i][2].end_y
+                #         routing_wire[i][2].start_x = routing_wire[i][1].start_x+abs(routing_wire[i][2].end_y-routing_wire[i][1].start_y)*np.sign(routing_wire[i][2].end_x-routing_wire[i][1].start_x)
+                #         routing_wire[i][2].start_y = routing_wire[i][2].end_y
                 #     else:
-                #         electrode_wire[i][1].end_x = electrode_wire[i][2].end_x
-                #         electrode_wire[i][1].end_y = electrode_wire[i][1].start_y+abs(electrode_wire[i][2].end_x-electrode_wire[i][1].start_x)*np.sign(electrode_wire[i][2].end_y-electrode_wire[i][1].start_y)
-                #         electrode_wire[i][2].start_x = electrode_wire[i][2].end_x
-                #         electrode_wire[i][2].start_y = electrode_wire[i][1].start_y+abs(electrode_wire[i][2].end_x-electrode_wire[i][1].start_x)*np.sign(electrode_wire[i][2].end_y-electrode_wire[i][1].start_y)
+                #         routing_wire[i][1].end_x = routing_wire[i][2].end_x
+                #         routing_wire[i][1].end_y = routing_wire[i][1].start_y+abs(routing_wire[i][2].end_x-routing_wire[i][1].start_x)*np.sign(routing_wire[i][2].end_y-routing_wire[i][1].start_y)
+                #         routing_wire[i][2].start_x = routing_wire[i][2].end_x
+                #         routing_wire[i][2].start_y = routing_wire[i][1].start_y+abs(routing_wire[i][2].end_x-routing_wire[i][1].start_x)*np.sign(routing_wire[i][2].end_y-routing_wire[i][1].start_y)
 
-                # for j in range(len(electrode_wire[i])-2):
-                #     if np.sign(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=np.sign(electrode_wire[i][j+1].start_x-electrode_wire[i][j+1].end_x) and (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=0:
-                #         if abs(electrode_wire[i][j+1].end_x-electrode_wire[i][j].start_x)>abs(electrode_wire[i][j+1].end_y-electrode_wire[i][j].start_y):
-                #             electrode_wire[i][j].end_x = electrode_wire[i][j].start_x+abs(electrode_wire[i][j+1].end_y-electrode_wire[i][j].start_y)*np.sign(electrode_wire[i][j+1].end_x-electrode_wire[i][j].start_x)
-                #             electrode_wire[i][j].end_y = electrode_wire[i][j+1].end_y
-                #             electrode_wire[i][j+1].start_x = electrode_wire[i][j].start_x+abs(electrode_wire[i][j+1].end_y-electrode_wire[i][j].start_y)*np.sign(electrode_wire[i][j+1].end_x-electrode_wire[i][j].start_x)
-                #             electrode_wire[i][j+1].start_y = electrode_wire[i][j+1].end_y
+                # for j in range(len(routing_wire[i])-2):
+                #     if np.sign(routing_wire[i][j].start_x-routing_wire[i][j].end_x)!=np.sign(routing_wire[i][j+1].start_x-routing_wire[i][j+1].end_x) and (routing_wire[i][j].start_x-routing_wire[i][j].end_x)!=0:
+                #         if abs(routing_wire[i][j+1].end_x-routing_wire[i][j].start_x)>abs(routing_wire[i][j+1].end_y-routing_wire[i][j].start_y):
+                #             routing_wire[i][j].end_x = routing_wire[i][j].start_x+abs(routing_wire[i][j+1].end_y-routing_wire[i][j].start_y)*np.sign(routing_wire[i][j+1].end_x-routing_wire[i][j].start_x)
+                #             routing_wire[i][j].end_y = routing_wire[i][j+1].end_y
+                #             routing_wire[i][j+1].start_x = routing_wire[i][j].start_x+abs(routing_wire[i][j+1].end_y-routing_wire[i][j].start_y)*np.sign(routing_wire[i][j+1].end_x-routing_wire[i][j].start_x)
+                #             routing_wire[i][j+1].start_y = routing_wire[i][j+1].end_y
                 #         else:
-                #             electrode_wire[i][j].end_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j].end_y = electrode_wire[i][j].start_y+abs(electrode_wire[i][j+1].end_x-electrode_wire[i][j].start_x)*np.sign(electrode_wire[i][j+1].end_y-electrode_wire[i][j].start_y)
-                #             electrode_wire[i][j+1].start_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j+1].start_y = electrode_wire[i][j].start_y+abs(electrode_wire[i][j+1].end_x-electrode_wire[i][j].start_x)*np.sign(electrode_wire[i][j+1].end_y-electrode_wire[i][j].start_y)
+                #             routing_wire[i][j].end_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j].end_y = routing_wire[i][j].start_y+abs(routing_wire[i][j+1].end_x-routing_wire[i][j].start_x)*np.sign(routing_wire[i][j+1].end_y-routing_wire[i][j].start_y)
+                #             routing_wire[i][j+1].start_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j+1].start_y = routing_wire[i][j].start_y+abs(routing_wire[i][j+1].end_x-routing_wire[i][j].start_x)*np.sign(routing_wire[i][j+1].end_y-routing_wire[i][j].start_y)
 
-                # for j in range(len(electrode_wire[i])-2):	
-                #     if abs(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x) == 0 and abs(electrode_wire[i][j+1].start_y-electrode_wire[i][j+1].end_y) == 0:
-                #         electrode_wire[i][j].end_x = electrode_wire[i][j].start_x+abs(electrode_wire[i][j].end_y-electrode_wire[i][j].start_y)*np.sign(electrode_wire[i][j+1].end_x-electrode_wire[i][j+1].start_x)
-                #         electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
-                #     if abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y) == 0 and abs(electrode_wire[i][j+1].start_x-electrode_wire[i][j+1].end_x) == 0:
-                #         electrode_wire[i][j].end_y = electrode_wire[i][j].start_y+abs(electrode_wire[i][j].end_x-electrode_wire[i][j].start_x)*np.sign(electrode_wire[i][j+1].end_y-electrode_wire[i][j+1].start_y)
-                #         electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                # for j in range(len(routing_wire[i])-2):
+                #     if abs(routing_wire[i][j].start_x-routing_wire[i][j].end_x) == 0 and abs(routing_wire[i][j+1].start_y-routing_wire[i][j+1].end_y) == 0:
+                #         routing_wire[i][j].end_x = routing_wire[i][j].start_x+abs(routing_wire[i][j].end_y-routing_wire[i][j].start_y)*np.sign(routing_wire[i][j+1].end_x-routing_wire[i][j+1].start_x)
+                #         routing_wire[i][j+1].start_x = routing_wire[i][j].end_x
+                #     if abs(routing_wire[i][j].start_y-routing_wire[i][j].end_y) == 0 and abs(routing_wire[i][j+1].start_x-routing_wire[i][j+1].end_x) == 0:
+                #         routing_wire[i][j].end_y = routing_wire[i][j].start_y+abs(routing_wire[i][j].end_x-routing_wire[i][j].start_x)*np.sign(routing_wire[i][j+1].end_y-routing_wire[i][j+1].start_y)
+                #         routing_wire[i][j+1].start_y = routing_wire[i][j].end_y
 
-                # for j in range(len(electrode_wire[i])):
-                #     if (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)==0 and abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)==250:
-                #         #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                #         if np.sign(electrode_wire[i][j-1].start_x-electrode_wire[i][j-1].end_x)*np.sign(electrode_wire[i][j+1].start_x-electrode_wire[i][j+1].end_x)==-1:
-                #             #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                #             electrode_wire[i][j-1].end_y = electrode_wire[i][j].start_y+abs(electrode_wire[i][j+1].end_x-electrode_wire[i][j].start_x)*np.sign(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)
-                #             electrode_wire[i][j].start_y = electrode_wire[i][j-1].end_y
-                #             electrode_wire[i][j-1].end_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j].start_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j].end_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j+1].start_x = electrode_wire[i][j+1].end_x
-                #         if electrode_wire[i][j-1].start_x!=electrode_wire[i][j-1].end_x and electrode_wire[i][j+1].start_x!=electrode_wire[i][j+1].end_x:
-                #             #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                #             electrode_wire[i][j-1].end_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j-1].end_y = electrode_wire[i][j-1].end_y+abs(electrode_wire[i][j+1].end_x-electrode_wire[i][j+1].start_x)*np.sign(electrode_wire[i][j+1].end_y-electrode_wire[i][j+1].start_y)
-                #             electrode_wire[i][j].start_x = electrode_wire[i][j-1].end_x
-                #             electrode_wire[i][j].start_y = electrode_wire[i][j-1].end_y
-                #             electrode_wire[i][j].end_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j+1].start_x = electrode_wire[i][j+1].end_x
+                # for j in range(len(routing_wire[i])):
+                #     if (routing_wire[i][j].start_x-routing_wire[i][j].end_x)==0 and abs(routing_wire[i][j].start_y-routing_wire[i][j].end_y)==250:
+                #         #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
+                #         if np.sign(routing_wire[i][j-1].start_x-routing_wire[i][j-1].end_x)*np.sign(routing_wire[i][j+1].start_x-routing_wire[i][j+1].end_x)==-1:
+                #             #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
+                #             routing_wire[i][j-1].end_y = routing_wire[i][j].start_y+abs(routing_wire[i][j+1].end_x-routing_wire[i][j].start_x)*np.sign(routing_wire[i][j].start_y-routing_wire[i][j].end_y)
+                #             routing_wire[i][j].start_y = routing_wire[i][j-1].end_y
+                #             routing_wire[i][j-1].end_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j].start_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j].end_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j+1].start_x = routing_wire[i][j+1].end_x
+                #         if routing_wire[i][j-1].start_x!=routing_wire[i][j-1].end_x and routing_wire[i][j+1].start_x!=routing_wire[i][j+1].end_x:
+                #             #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
+                #             routing_wire[i][j-1].end_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j-1].end_y = routing_wire[i][j-1].end_y+abs(routing_wire[i][j+1].end_x-routing_wire[i][j+1].start_x)*np.sign(routing_wire[i][j+1].end_y-routing_wire[i][j+1].start_y)
+                #             routing_wire[i][j].start_x = routing_wire[i][j-1].end_x
+                #             routing_wire[i][j].start_y = routing_wire[i][j-1].end_y
+                #             routing_wire[i][j].end_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j+1].start_x = routing_wire[i][j+1].end_x
 
-                #     if electrode_wire[i][j].end_y > block2_shift[1] and electrode_wire[i][j].end_y < block2_shift[1]+46000:
-                #         S_grid_x = (electrode_wire[i][j].start_x-block2_shift[0])//tile_unit
-                #         S_grid_y = (electrode_wire[i][j].start_y-block2_shift[1])//tile_unit
-                #         T_grid_x = (electrode_wire[i][j].end_x-block2_shift[0])//tile_unit
-                #         T_grid_y = (electrode_wire[i][j].end_y-block2_shift[1])//tile_unit
+                #     if routing_wire[i][j].end_y > mid_block_shift[1] and routing_wire[i][j].end_y < mid_block_shift[1]+46000:
+                #         S_grid_x = (routing_wire[i][j].start_x-mid_block_shift[0])//tile_unit
+                #         S_grid_y = (routing_wire[i][j].start_y-mid_block_shift[1])//tile_unit
+                #         T_grid_x = (routing_wire[i][j].end_x-mid_block_shift[0])//tile_unit
+                #         T_grid_y = (routing_wire[i][j].end_y-mid_block_shift[1])//tile_unit
                 #         grids2[S_grid_x,S_grid_y].flow=1
                 #         grids2[T_grid_x,T_grid_y].flow=1
 
@@ -747,22 +548,22 @@ class Draw():
                 # #\  ->  |    j     or   \  ->    |  j
                 # # |      \   j+1         |       |  j-1
 
-                # for j in range(3,len(electrode_wire[i])):		
-                #     if electrode_wire[i][j].end_y > block2_shift[1]+tile_unit and electrode_wire[i][j].end_y < block2_shift[1]+46000-tile_unit:
-                #         if electrode_wire[i][j-1].start_x==electrode_wire[i][j-1].end_x and abs(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)==abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y):
-                #             check_grid_x = (electrode_wire[i][j].start_x-block2_shift[0])//tile_unit
-                #             check_grid_y = (electrode_wire[i][j].end_y-block2_shift[1])//tile_unit
+                # for j in range(3,len(routing_wire[i])):
+                #     if routing_wire[i][j].end_y > mid_block_shift[1]+tile_unit and routing_wire[i][j].end_y < mid_block_shift[1]+46000-tile_unit:
+                #         if routing_wire[i][j-1].start_x==routing_wire[i][j-1].end_x and abs(routing_wire[i][j].start_x-routing_wire[i][j].end_x)==abs(routing_wire[i][j].start_y-routing_wire[i][j].end_y):
+                #             check_grid_x = (routing_wire[i][j].start_x-mid_block_shift[0])//tile_unit
+                #             check_grid_y = (routing_wire[i][j].end_y-mid_block_shift[1])//tile_unit
                 #             if grids2[check_grid_x,check_grid_y].flow == 0 and grids2[check_grid_x,check_grid_y].safe_distance==0 and grids2[check_grid_x,check_grid_y].safe_distance2==0:
                 #                 k=1
                 #                 no_path=0
-                #                 while j+k < len(electrode_wire[i]) and electrode_wire[i][j+k].start_x!=electrode_wire[i][j+k].end_x:
-                #                     check_grid_x = (electrode_wire[i][j+k].start_x-block2_shift[0])//tile_unit
-                #                     check_grid_y = (electrode_wire[i][j+k].end_y-block2_shift[1])//tile_unit
+                #                 while j+k < len(routing_wire[i]) and routing_wire[i][j+k].start_x!=routing_wire[i][j+k].end_x:
+                #                     check_grid_x = (routing_wire[i][j+k].start_x-mid_block_shift[0])//tile_unit
+                #                     check_grid_y = (routing_wire[i][j+k].end_y-mid_block_shift[1])//tile_unit
                 #                     try:
                 #                         if grids2[check_grid_x,check_grid_y].flow != 0:
                 #                         # or grids2[check_grid_x,check_grid_y].safe_distance2==1 or grids2[check_grid_x,check_grid_y].safe_distance==1:
                 #                             no_path=1
-                #                         if electrode_wire[i][j+k].start_y < block2_shift[1]+tile_unit*2 or electrode_wire[i][j+k].start_y > block2_shift[1]+46000-tile_unit*2:
+                #                         if routing_wire[i][j+k].start_y < mid_block_shift[1]+tile_unit*2 or routing_wire[i][j+k].start_y > mid_block_shift[1]+46000-tile_unit*2:
                 #                             no_path=1
                 #                     except:
                 #                         break
@@ -771,192 +572,197 @@ class Draw():
                 #                 if no_path==0:
                 #                     #check_grid_flow=0
                 #                     grids2[check_grid_x,check_grid_y].flow=1
-                #                     grids2[check_grid_x+np.sign(electrode_wire[i][j].end_x-electrode_wire[i][j].start_x),check_grid_y].flow=0
-                #                     electrode_wire[i][j].end_x = electrode_wire[i][j].start_x
+                #                     grids2[check_grid_x+np.sign(routing_wire[i][j].end_x-routing_wire[i][j].start_x),check_grid_y].flow=0
+                #                     routing_wire[i][j].end_x = routing_wire[i][j].start_x
                 #                     k=1
-                #                     while j+k < len(electrode_wire[i]) and electrode_wire[i][j+k].start_x!=electrode_wire[i][j+k].end_x:# and check_grid_flow==0:
-                #                         check_grid_x = (electrode_wire[i][j+k].start_x-block2_shift[0])//tile_unit
-                #                         check_grid_y = (electrode_wire[i][j+k].end_y-block2_shift[1])//tile_unit	
+                #                     while j+k < len(routing_wire[i]) and routing_wire[i][j+k].start_x!=routing_wire[i][j+k].end_x:# and check_grid_flow==0:
+                #                         check_grid_x = (routing_wire[i][j+k].start_x-mid_block_shift[0])//tile_unit
+                #                         check_grid_y = (routing_wire[i][j+k].end_y-mid_block_shift[1])//tile_unit
                 #                         grids2[check_grid_x,check_grid_y].flow=1
-                #                         grids2[check_grid_x+np.sign(electrode_wire[i][j+k].end_x-electrode_wire[i][j+k].start_x),check_grid_y].flow=0
-                #                         electrode_wire[i][j+k].end_x = electrode_wire[i][j+k].start_x
-                #                         electrode_wire[i][j+k].start_x = electrode_wire[i][j+k-1].end_x	
+                #                         grids2[check_grid_x+np.sign(routing_wire[i][j+k].end_x-routing_wire[i][j+k].start_x),check_grid_y].flow=0
+                #                         routing_wire[i][j+k].end_x = routing_wire[i][j+k].start_x
+                #                         routing_wire[i][j+k].start_x = routing_wire[i][j+k-1].end_x
                 #                         k+=1
-                #                         if (j+k)>=(len(electrode_wire[i])-1):
+                #                         if (j+k)>=(len(routing_wire[i])-1):
                 #                             break
-                #                         if electrode_wire[i][j+k].start_y < block2_shift[1]+tile_unit*2 or electrode_wire[i][j+k].start_y > block2_shift[1]+46000-tile_unit*2:
+                #                         if routing_wire[i][j+k].start_y < mid_block_shift[1]+tile_unit*2 or routing_wire[i][j+k].start_y > mid_block_shift[1]+46000-tile_unit*2:
                 #                             break
-                #                     electrode_wire[i][j+k].start_x = electrode_wire[i][j+k-1].end_x	
+                #                     routing_wire[i][j+k].start_x = routing_wire[i][j+k-1].end_x
 
                 # #|     |    j+1           | 	 |
                 # #\  -> |    j      or     /  ->  |
                 # # |     \   j-1          | 		/
 
-                # for j in range(len(electrode_wire[i])):
-                #     if (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)==0 and abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)==250:
-                #         if electrode_wire[i][j-1].start_x!=electrode_wire[i][j-1].end_x and electrode_wire[i][j+1].start_x!=electrode_wire[i][j+1].end_x and np.sign(electrode_wire[i][j-1].end_x-electrode_wire[i][j-1].start_x)==np.sign(electrode_wire[i][j+1].end_x-electrode_wire[i][j+1].start_x):
-                #             if grids2[(((electrode_wire[i][j].start_x-block2_shift[0])//tile_unit)+np.sign(electrode_wire[i][j-1].end_x-electrode_wire[i][j-1].start_x)), ((electrode_wire[i][j].start_y-block2_shift[1])//tile_unit)].flow==0:
-                #                 #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                #                 electrode_wire[i][j-1].end_x = electrode_wire[i][j+1].end_x
-                #                 electrode_wire[i][j-1].end_y = electrode_wire[i][j-1].end_y+abs(electrode_wire[i][j+1].end_x-electrode_wire[i][j+1].start_x)*np.sign(electrode_wire[i][j+1].end_y-electrode_wire[i][j+1].start_y)
-                #                 electrode_wire[i][j].start_x = electrode_wire[i][j-1].end_x
-                #                 electrode_wire[i][j].start_y = electrode_wire[i][j-1].end_y
-                #                 electrode_wire[i][j].end_x = electrode_wire[i][j+1].end_x
-                #                 electrode_wire[i][j+1].start_x = electrode_wire[i][j+1].end_x
+                # for j in range(len(routing_wire[i])):
+                #     if (routing_wire[i][j].start_x-routing_wire[i][j].end_x)==0 and abs(routing_wire[i][j].start_y-routing_wire[i][j].end_y)==250:
+                #         if routing_wire[i][j-1].start_x!=routing_wire[i][j-1].end_x and routing_wire[i][j+1].start_x!=routing_wire[i][j+1].end_x and np.sign(routing_wire[i][j-1].end_x-routing_wire[i][j-1].start_x)==np.sign(routing_wire[i][j+1].end_x-routing_wire[i][j+1].start_x):
+                #             if grids2[(((routing_wire[i][j].start_x-mid_block_shift[0])//tile_unit)+np.sign(routing_wire[i][j-1].end_x-routing_wire[i][j-1].start_x)), ((routing_wire[i][j].start_y-mid_block_shift[1])//tile_unit)].flow==0:
+                #                 #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
+                #                 routing_wire[i][j-1].end_x = routing_wire[i][j+1].end_x
+                #                 routing_wire[i][j-1].end_y = routing_wire[i][j-1].end_y+abs(routing_wire[i][j+1].end_x-routing_wire[i][j+1].start_x)*np.sign(routing_wire[i][j+1].end_y-routing_wire[i][j+1].start_y)
+                #                 routing_wire[i][j].start_x = routing_wire[i][j-1].end_x
+                #                 routing_wire[i][j].start_y = routing_wire[i][j-1].end_y
+                #                 routing_wire[i][j].end_x = routing_wire[i][j+1].end_x
+                #                 routing_wire[i][j+1].start_x = routing_wire[i][j+1].end_x
 
-                # for j in range(len(electrode_wire[i])-1):
-                #     if (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)==0 and abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)==250:
-                #         #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                #         if np.sign(electrode_wire[i][j-1].start_x-electrode_wire[i][j-1].end_x)*np.sign(electrode_wire[i][j+1].start_x-electrode_wire[i][j+1].end_x)==-1:
-                #             #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                #             electrode_wire[i][j-1].end_y = electrode_wire[i][j].start_y+abs(electrode_wire[i][j+1].end_x-electrode_wire[i][j].start_x)*np.sign(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)
-                #             electrode_wire[i][j].start_y = electrode_wire[i][j-1].end_y
-                #             electrode_wire[i][j-1].end_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j].start_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j].end_x = electrode_wire[i][j+1].end_x
-                #             electrode_wire[i][j+1].start_x = electrode_wire[i][j+1].end_x
-                #     elif (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=0 and np.sign(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)*np.sign(electrode_wire[i][j+1].start_x-electrode_wire[i][j+1].end_x)==-1:
-                #         electrode_wire[i][j].end_x = electrode_wire[i][j].start_x
-                #         electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                # for j in range(len(routing_wire[i])-1):
+                #     if (routing_wire[i][j].start_x-routing_wire[i][j].end_x)==0 and abs(routing_wire[i][j].start_y-routing_wire[i][j].end_y)==250:
+                #         #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
+                #         if np.sign(routing_wire[i][j-1].start_x-routing_wire[i][j-1].end_x)*np.sign(routing_wire[i][j+1].start_x-routing_wire[i][j+1].end_x)==-1:
+                #             #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
+                #             routing_wire[i][j-1].end_y = routing_wire[i][j].start_y+abs(routing_wire[i][j+1].end_x-routing_wire[i][j].start_x)*np.sign(routing_wire[i][j].start_y-routing_wire[i][j].end_y)
+                #             routing_wire[i][j].start_y = routing_wire[i][j-1].end_y
+                #             routing_wire[i][j-1].end_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j].start_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j].end_x = routing_wire[i][j+1].end_x
+                #             routing_wire[i][j+1].start_x = routing_wire[i][j+1].end_x
+                #     elif (routing_wire[i][j].start_x-routing_wire[i][j].end_x)!=0 and np.sign(routing_wire[i][j].start_x-routing_wire[i][j].end_x)*np.sign(routing_wire[i][j+1].start_x-routing_wire[i][j+1].end_x)==-1:
+                #         routing_wire[i][j].end_x = routing_wire[i][j].start_x
+                #         routing_wire[i][j+1].start_x = routing_wire[i][j].end_x
 
-                ## contact pad wire fix
+                # contact pad wire fix
 
-                if electrode_wire[i][-1].start_x!=electrode_wire[i][-1].end_x:
-                    electrode_wire[i][-1].start_y = electrode_wire[i][-1].end_y+np.sign(electrode_wire[i][-1].start_y-electrode_wire[i][-1].end_y)*abs(electrode_wire[i][-1].start_x-electrode_wire[i][-1].end_x)
-                    electrode_wire[i][-2].end_y = electrode_wire[i][-1].start_y
+                if routing_wire[i][-1].start_x != routing_wire[i][-1].end_x:
+                    routing_wire[i][-1].start_y = routing_wire[i][-1].end_y+np.sign(
+                        routing_wire[i][-1].start_y-routing_wire[i][-1].end_y)*abs(routing_wire[i][-1].start_x-routing_wire[i][-1].end_x)
+                    routing_wire[i][-2].end_y = routing_wire[i][-1].start_y
 
-                for j in range(len(electrode_wire[i])-5, len(electrode_wire[i])-1):
-                    if (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=0 and (electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)!=0 and abs(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y):
-                        #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y+np.sign(electrode_wire[i][j].end_y-electrode_wire[i][j].start_y)*abs(electrode_wire[i][j+1].start_x-electrode_wire[i][j].start_x)
+                for j in range(len(routing_wire[i])-5, len(routing_wire[i])-1):
+                    if (routing_wire[i][j].start_x-routing_wire[i][j].end_x) != 0 and (routing_wire[i][j].start_y-routing_wire[i][j].end_y) != 0 and abs(routing_wire[i][j].start_x-routing_wire[i][j].end_x) != abs(routing_wire[i][j].start_y-routing_wire[i][j].end_y):
+                        #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
+                        routing_wire[i][j].end_y = routing_wire[i][j].start_y+np.sign(
+                            routing_wire[i][j].end_y-routing_wire[i][j].start_y)*abs(routing_wire[i][j+1].start_x-routing_wire[i][j].start_x)
                     if j == 1:
-                        electrode_wire[i][j-1].end_y = electrode_wire[i][j].start_y
-                        electrode_wire[i][j-1].end_x = electrode_wire[i][j].start_x
-                    if j == len(electrode_wire[i]) - 2:
-                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
-                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                        routing_wire[i][j -
+                                        1].end_y = routing_wire[i][j].start_y
+                        routing_wire[i][j -
+                                        1].end_x = routing_wire[i][j].start_x
+                    if j == len(routing_wire[i]) - 2:
+                        routing_wire[i][j +
+                                        1].start_y = routing_wire[i][j].end_y
+                        routing_wire[i][j +
+                                        1].start_x = routing_wire[i][j].end_x
 
-                for j in range(len(electrode_wire[i])-7, len(electrode_wire[i])-2):
-                    electrode_wire[i][j].end_x = electrode_wire[i][j+1].start_x
-                    electrode_wire[i][j].end_y = electrode_wire[i][j+1].start_y
+                for j in range(len(routing_wire[i])-7, len(routing_wire[i])-2):
+                    routing_wire[i][j].end_x = routing_wire[i][j+1].start_x
+                    routing_wire[i][j].end_y = routing_wire[i][j+1].start_y
 
-                ## contact pad wire fix
+                # contact pad wire fix
 
                 # 讓每條線連接一起
-                # for j in range(len(electrode_wire[i])-2):
-                #     electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
-                #     electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                # for j in range(len(routing_wire[i])-2):
+                #     routing_wire[i][j+1].start_x = routing_wire[i][j].end_x
+                #     routing_wire[i][j+1].start_y = routing_wire[i][j].end_y
 
-                # for j in range(len(electrode_wire[i])-2):
-                #     if j <= len(electrode_wire[i])-2:
-                #         deg1 = Degree.getdegree(electrode_wire[i][j].start_x, electrode_wire[i][j].start_y, electrode_wire[i][j].end_x, electrode_wire[i][j].end_y)
-                #         deg2 = Degree.getdegree(electrode_wire[i][j+1].start_x, electrode_wire[i][j+1].start_y, electrode_wire[i][j+1].end_x, electrode_wire[i][j+1].end_y)
+                # for j in range(len(routing_wire[i])-2):
+                #     if j <= len(routing_wire[i])-2:
+                #         deg1 = Degree.getdegree(routing_wire[i][j].start_x, routing_wire[i][j].start_y, routing_wire[i][j].end_x, routing_wire[i][j].end_y)
+                #         deg2 = Degree.getdegree(routing_wire[i][j+1].start_x, routing_wire[i][j+1].start_y, routing_wire[i][j+1].end_x, routing_wire[i][j+1].end_y)
                 #         if abs(deg1[0] - deg2[0]) == 1 and abs(deg1[1] - deg2[1]):
-                #             electrode_wire[i][j+1].start_y = electrode_wire[i][j+1].start_y - (electrode_wire[i][j+1].end_x - electrode_wire[i][j+1].start_x)
-                #             electrode_wire[i][j].end_y = electrode_wire[i][j+1].start_y
-                #             electrode_wire[i][j].end_x = electrode_wire[i][j+1].start_x
+                #             routing_wire[i][j+1].start_y = routing_wire[i][j+1].start_y - (routing_wire[i][j+1].end_x - routing_wire[i][j+1].start_x)
+                #             routing_wire[i][j].end_y = routing_wire[i][j+1].start_y
+                #             routing_wire[i][j].end_x = routing_wire[i][j+1].start_x
 
-                for j in range(1, len(electrode_wire[i])-2):
-                    deg = Degree.getdegree(electrode_wire[i][j].start_x, electrode_wire[i][j].start_y, electrode_wire[i][j].end_x, electrode_wire[i][j].end_y)
+                for j in range(1, len(routing_wire[i])-2):
+                    deg = Degree.getdegree(routing_wire[i][j].start_x, routing_wire[i]
+                                           [j].start_y, routing_wire[i][j].end_x, routing_wire[i][j].end_y)
                     if abs(deg[0] - deg[1]) != 1:
                         if abs(deg[0]) > 0.7072 or abs(deg[1]) > 0.7072:
-                            if electrode_wire[i][j].end_x < electrode_wire[i][j].start_x:
+                            if routing_wire[i][j].end_x < routing_wire[i][j].start_x:
                                 c = 1
-                                if electrode_wire[i][j].end_y > electrode_wire[i][j].start_y:
+                                if routing_wire[i][j].end_y > routing_wire[i][j].start_y:
                                     c = -1
-                                if j < len(electrode_wire[i]) - 2 and j > 1:
-                                    dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
-                                    dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
-                                    if electrode_wire[i][j+1].start_x == electrode_wire[i][j+1].end_x:
-                                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
-                                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                                if j < len(routing_wire[i]) - 2 and j > 1:
+                                    dis_x = routing_wire[i][j].end_x - \
+                                        routing_wire[i][j].start_x
+                                    dis_y = routing_wire[i][j].end_y - \
+                                        routing_wire[i][j].start_y
+                                    if routing_wire[i][j+1].start_x == routing_wire[i][j+1].end_x:
+                                        routing_wire[i][j].end_y = routing_wire[i][j].start_y + (
+                                            dis_x * c)
+                                        routing_wire[i][j +
+                                                        1].start_y = routing_wire[i][j].end_y
                                     else:
-                                        electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
-                                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                                        routing_wire[i][j].end_x = routing_wire[i][j].start_x + (
+                                            dis_y * c)
+                                        routing_wire[i][j +
+                                                        1].start_x = routing_wire[i][j].end_x
 
-                                if j < len(electrode_wire[i]) - 2:
-                                    dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
-                                    dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
+                                if j < len(routing_wire[i]) - 2:
+                                    dis_x = routing_wire[i][j].end_x - \
+                                        routing_wire[i][j].start_x
+                                    dis_y = routing_wire[i][j].end_y - \
+                                        routing_wire[i][j].start_y
                                     if abs(dis_x) < abs(dis_y):
-                                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
-                                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                                        routing_wire[i][j].end_y = routing_wire[i][j].start_y + (
+                                            dis_x * c)
+                                        routing_wire[i][j +
+                                                        1].start_y = routing_wire[i][j].end_y
                                     else:
-                                        electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
-                                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                                        routing_wire[i][j].end_x = routing_wire[i][j].start_x + (
+                                            dis_y * c)
+                                        routing_wire[i][j +
+                                                        1].start_x = routing_wire[i][j].end_x
                             else:
                                 c = -1
-                                if electrode_wire[i][j].end_y > electrode_wire[i][j].start_y:
+                                if routing_wire[i][j].end_y > routing_wire[i][j].start_y:
                                     c = 1
-                                if j < len(electrode_wire[i]) - 2 and j > 1:
-                                    dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
-                                    dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
-                                    if electrode_wire[i][j+1].start_x == electrode_wire[i][j+1].end_x:
-                                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
-                                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                                if j < len(routing_wire[i]) - 2 and j > 1:
+                                    dis_x = routing_wire[i][j].end_x - \
+                                        routing_wire[i][j].start_x
+                                    dis_y = routing_wire[i][j].end_y - \
+                                        routing_wire[i][j].start_y
+                                    if routing_wire[i][j+1].start_x == routing_wire[i][j+1].end_x:
+                                        routing_wire[i][j].end_y = routing_wire[i][j].start_y + (
+                                            dis_x * c)
+                                        routing_wire[i][j +
+                                                        1].start_y = routing_wire[i][j].end_y
                                     else:
-                                        electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
-                                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                                        routing_wire[i][j].end_x = routing_wire[i][j].start_x + (
+                                            dis_y * c)
+                                        routing_wire[i][j +
+                                                        1].start_x = routing_wire[i][j].end_x
 
-                                if j < len(electrode_wire[i]) - 2:
-                                    dis_x = electrode_wire[i][j].end_x - electrode_wire[i][j].start_x
-                                    dis_y = electrode_wire[i][j].end_y - electrode_wire[i][j].start_y
+                                if j < len(routing_wire[i]) - 2:
+                                    dis_x = routing_wire[i][j].end_x - \
+                                        routing_wire[i][j].start_x
+                                    dis_y = routing_wire[i][j].end_y - \
+                                        routing_wire[i][j].start_y
                                     if abs(dis_x) < abs(dis_y):
-                                        electrode_wire[i][j].end_y = electrode_wire[i][j].start_y + (dis_x * c)
-                                        electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
+                                        routing_wire[i][j].end_y = routing_wire[i][j].start_y + (
+                                            dis_x * c)
+                                        routing_wire[i][j +
+                                                        1].start_y = routing_wire[i][j].end_y
                                     else:
-                                        electrode_wire[i][j].end_x = electrode_wire[i][j].start_x + (dis_y * c)
-                                        electrode_wire[i][j+1].start_x = electrode_wire[i][j].end_x
+                                        routing_wire[i][j].end_x = routing_wire[i][j].start_x + (
+                                            dis_y * c)
+                                        routing_wire[i][j +
+                                                        1].start_x = routing_wire[i][j].end_x
 
-                ####BUG 一直轉彎
-                # for j in range(len(electrode_wire[i])-1):
-                #     if (electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=0 and (electrode_wire[i][j].start_y-electrode_wire[i][j].end_y)!=0 and abs(electrode_wire[i][j].start_x-electrode_wire[i][j].end_x)!=abs(electrode_wire[i][j].start_y-electrode_wire[i][j].end_y):
-                #         #dxf.add_circle(center=(electrode_wire[i][j].start_x, -electrode_wire[i][j].start_y), radius = 250.0)
-                #         electrode_wire[i][j].end_y = electrode_wire[i][j].start_y+np.sign(electrode_wire[i][j].end_y-electrode_wire[i][j].start_y)*abs(electrode_wire[i][j+1].start_x-electrode_wire[i][j].start_x)
-                #         electrode_wire[i][j+1].start_y = electrode_wire[i][j].end_y
-                #draw path
-                draw_second=0
-                for j in range(len(electrode_wire[i])):
+                # BUG 一直轉彎
+                # for j in range(len(routing_wire[i])-1):
+                #     if (routing_wire[i][j].start_x-routing_wire[i][j].end_x)!=0 and (routing_wire[i][j].start_y-routing_wire[i][j].end_y)!=0 and abs(routing_wire[i][j].start_x-routing_wire[i][j].end_x)!=abs(routing_wire[i][j].start_y-routing_wire[i][j].end_y):
+                #         #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
+                #         routing_wire[i][j].end_y = routing_wire[i][j].start_y+np.sign(routing_wire[i][j].end_y-routing_wire[i][j].start_y)*abs(routing_wire[i][j+1].start_x-routing_wire[i][j].start_x)
+                #         routing_wire[i][j+1].start_y = routing_wire[i][j].end_y
+                # draw path
+                draw_second = 0
+                for j in range(len(routing_wire[i])):
                     if j == 0:
-                        # if i==0:
-                        #     draw_start(electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,electrode_wire[i][j+1].end_x,electrode_wire[i][j+1].end_y,200, dxf)
-                        #     dxf.add_lwpolyline(	[(electrode_wire[i][j].end_x-200,-(electrode_wire[i][j].end_y-200)),
-                        #         (electrode_wire[i][j].end_x-200,-(electrode_wire[i][j].end_y+200)),
-                        #         (electrode_wire[i][j].end_x+200,-(electrode_wire[i][j].end_y-200)),
-                        #         (electrode_wire[i][j].end_x+200,-(electrode_wire[i][j].end_y+200))])
-                        # else:
-                        self.draw_start(electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,electrode_wire[i][j+1].end_x,electrode_wire[i][j+1].end_y,self.mini_width, dxf)
-                        draw_second+=1
-                    elif j == len(electrode_wire[i])-1:
-                        # if i==0:
-                        #     draw_end(electrode_wire[i][j-1].start_x,electrode_wire[i][j-1].start_y,
-                        #           electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,
-                        #           electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,200,dxf)
-                        # else:
-                        self.draw_end(electrode_wire[i][j-1].start_x,electrode_wire[i][j-1].start_y,
-                                electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,
-                                electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,self.regular_width,dxf, connect)
+                        self.draw_start(routing_wire[i][j].start_x, routing_wire[i][j].start_y, routing_wire[i][j].end_x,
+                                        routing_wire[i][j].end_y, routing_wire[i][j+1].end_x, routing_wire[i][j+1].end_y, self.regular_width, dxf)
+                        draw_second += 1
+                    elif j == len(routing_wire[i])-1:
+                        self.draw_end(routing_wire[i][j-1].start_x, routing_wire[i][j-1].start_y,
+                                      routing_wire[i][j].start_x, routing_wire[i][j].start_y,
+                                      routing_wire[i][j].end_x, routing_wire[i][j].end_y, self.regular_width, dxf, connect)
                     elif draw_second <= 3:
-                        # if i==0:
-                        #     draw_path(electrode_wire[i][j-1].start_x,electrode_wire[i][j-1].start_y,
-                        #         electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,
-                        #         electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,
-                        #         electrode_wire[i][j+1].end_x,electrode_wire[i][j+1].end_y,200,connect,dxf)
-
-                        # else:
-                        self.draw_path(electrode_wire[i][j-1].start_x,electrode_wire[i][j-1].start_y,
-                            electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,
-                            electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,
-                            electrode_wire[i][j+1].end_x,electrode_wire[i][j+1].end_y,self.mini_width,connect,dxf)
-                        draw_second+=1
-                        connect=1
+                        self.draw_path(routing_wire[i][j-1],
+                                       routing_wire[i][j],
+                                       routing_wire[i][j+1], self.regular_width, dxf)
+                        draw_second += 1
+                        connect = 1
                     else:
-                        # if i==0:
-                        #     draw_path(electrode_wire[i][j-1].start_x,electrode_wire[i][j-1].start_y,
-                        #           electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,
-                        #           electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,
-                        #           electrode_wire[i][j+1].end_x,electrode_wire[i][j+1].end_y,200,connect,dxf)
-                        # else:
-                        self.draw_path(electrode_wire[i][j-1].start_x,electrode_wire[i][j-1].start_y,
-                                electrode_wire[i][j].start_x,electrode_wire[i][j].start_y,
-                                electrode_wire[i][j].end_x,electrode_wire[i][j].end_y,
-                                electrode_wire[i][j+1].end_x,electrode_wire[i][j+1].end_y,self.regular_width,connect,dxf)
+                        self.draw_path(routing_wire[i][j-1],
+                                       routing_wire[i][j],
+                                       routing_wire[i][j+1], self.regular_width, dxf)
