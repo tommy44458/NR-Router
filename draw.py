@@ -1,15 +1,7 @@
 import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 from ortools.graph.pywrapgraph import SimpleMinCostFlow
-import math
-import sys
-import os
-import ezdxf
 from ezdxf.addons.r12writer import R12FastStreamWriter
-# from ezdxf.addons import r12writer
-import operator
-import math
-from functools import reduce
 from math import atan2, degrees
 
 from wire import Wire
@@ -37,8 +29,16 @@ class Draw():
 
         # wire config
         self.fill_degree_table, self.dia = fill_degree_table()
+        self.regular_tan_offset = 0.41421356237 * self.regular_width
+        self.mini_tan_offset = 0.41421356237 * self.mini_width
+        # ang(45)
+        self.regular_dia_offset = self.dia * self.regular_width
+        self.mini_dia_offset = self.dia * self.mini_width
 
     def order_vertex(self, vertex: list) -> list:
+        """
+            Order the vertex list
+        """
         vertex.sort(key=lambda x: (x[0]))
         vertex_left = vertex[0:2]
         vertex_right = vertex[2:4]
@@ -47,31 +47,41 @@ class Draw():
         vertex_left.extend(vertex_right)
         return vertex_left
 
-    def draw_orthogonal_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width, dxf: R12FastStreamWriter):
-        previous_point = [previous_wire.start_x, previous_wire.start_y]
+    def draw_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width: float, dxf: R12FastStreamWriter):
+        # get current wire start and end
         start_point = [wire.start_x, wire.start_y]
         end_point = [wire.end_x, wire.end_y]
-        next_point = [next_wire.end_x, next_wire.end_y]
-        # x1, y1, x2, y2, x3, y3, x4, y4 = 0, 0, 0, 0, 0, 0, 0, 0
 
-        # wire length = 0
+        if previous_wire is not None:
+            previous_point = [previous_wire.start_x, previous_wire.start_y]
+            degree_previous_start = Degree.getdegree(previous_point[0], previous_point[1], start_point[0], start_point[1])
+        else:
+            # no previous wire
+            degree_previous_start = None
+
+        if next_wire is not None:
+            next_point = [next_wire.end_x, next_wire.end_y]
+            # align to hub axis (contact pad section)
+            if abs(wire.end_y - next_wire.end_y) < abs(wire.end_x - next_wire.end_x):
+                next_point[1] = end_point[1]
+            elif abs(wire.end_y - next_wire.end_y) > abs(wire.end_x - next_wire.end_x):
+                next_point[0] = end_point[0]
+            degree_end_next = Degree.getdegree(end_point[0], end_point[1], next_point[0], next_point[1])
+        else:
+            if abs(wire.end_y - wire.start_y) < abs(wire.end_x - wire.start_x):
+                end_point[1] = wire.start_y
+            elif abs(wire.end_y - wire.start_y) > abs(wire.end_x - wire.start_x):
+                end_point[0] = wire.start_x
+            degree_end_next = None
+
+        # no wire need to be drow
         if start_point == end_point:
             return None
 
-        tan = 0.41421356237 * width
-        dia_offset = self.dia * width
-
-        # align because hub axisd
-        if abs(wire.end_y - next_wire.end_y) < abs(wire.end_x - next_wire.end_x):
-            next_point[1] = end_point[1]
-        elif abs(wire.end_y - next_wire.end_y) > abs(wire.end_x - next_wire.end_x):
-            next_point[0] = end_point[0]
-
-        degree_previous_start = Degree.getdegree(previous_point[0], previous_point[1], start_point[0], start_point[1])
         degree_start_end = Degree.getdegree(start_point[0], start_point[1], end_point[0], end_point[1])
-        degree_end_next = Degree.getdegree(end_point[0], end_point[1], next_point[0], next_point[1])
 
-        # if degree_start_end == (self.dia, self.dia):
+        tan = self.regular_tan_offset
+        dia_offset = self.regular_dia_offset
 
         wire_start = [start_point[0], start_point[1], start_point[0], start_point[1]]
 
@@ -109,301 +119,10 @@ class Draw():
                 elif end_offset[i] == -3:
                     wire_end[i] -= dia_offset
 
-        # if degree_previous_start == degree_start_end and degree_start_end == degree_end_next:
-            # print('&&', start_offset, end_offset)
-
+        # if start_offset is None:
             # print('**', degree_previous_start, degree_start_end, degree_end_next)
 
-        if start_offset is None:
-
-            print('**', degree_previous_start, degree_start_end, degree_end_next)
-
-            vertex = [[wire_start[0], -wire_start[1]], [wire_start[2], -wire_start[3]], [wire_end[0], -wire_end[1]], [wire_end[2], -wire_end[3]]]
-            vertex_order = self.order_vertex(vertex)
-            dxf.add_solid(vertex_order)
-
-    def draw_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width, dxf):
-        # y value need to be negative
-        self.draw_orthogonal_path(previous_wire, wire, next_wire, width, dxf)
-
-    def draw_start(self, x1, y1, x2, y2, x3, y3, width, dxf):
-        # if x1 == x2 and y1 == y2:
-        #     return 0
-        y1 = -y1
-        y2 = -y2
-        y3 = -y3
-        degree1 = Degree.getdegree(x1, y1, x2, y2)
-        Tan = 0.41421356237 * width
-        # /
-        # |
-        if x1 < x2 and y1 < y2:
-            x1 -= self.line_buffer
-            y1 -= self.line_buffer
-        # |
-        # \
-        elif x1 < x2 and y1 > y2:
-            x1 -= self.line_buffer
-            y1 += self.line_buffer
-        # \
-        # |
-        elif x1 > x2 and y1 < y2:
-            x1 += self.line_buffer
-            y1 -= self.line_buffer
-        # |
-        # /
-        elif x1 > x2 and y1 > y2:
-            x1 += self.line_buffer
-            y1 += self.line_buffer
-        elif x1 == x2 and y1 < y2:
-            y1 -= self.line_buffer
-        elif x1 == x2 and y1 > y2:
-            y1 += self.line_buffer
-        elif y1 == y2 and x1 < x2:
-            x1 -= self.line_buffer
-        elif y1 == y2 and x1 > x2:
-            x1 += self.line_buffer
-        S1 = (x1-width*degree1[1], y1+width*degree1[0])
-        S2 = (x1+width*degree1[1], y1-width*degree1[0])
-        # 有角度
-        if x1 != x2 and y1 != y2:
-            S1 = (x1-width*degree1[1], y1+width*degree1[0])
-            S2 = (x1+width*degree1[1], y1-width*degree1[0])
-            if x2 != x3 and y2 != y3:
-                E1 = (x2-width*degree1[1], y2+width*degree1[0])
-                E2 = (x2+width*degree1[1], y2-width*degree1[0])
-            elif x2 == x3 and y2 == y3:
-                return 0
-            elif x2 == x3:
-                if x1 > x2:
-                    if y2 > y3:
-                        E1 = (x2+width, y2-Tan)
-                        E2 = (x2-width, y2+Tan)
-                    elif y2 < y3:
-                        E1 = (x2+width, y2+Tan)
-                        E2 = (x2-width, y2-Tan)
-                elif x1 < x2:
-                    if y2 > y3:
-                        E1 = (x2-width, y2-Tan)
-                        E2 = (x2+width, y2+Tan)
-                    elif y2 < y3:
-                        E1 = (x2-width, y2+Tan)
-                        E2 = (x2+width, y2-Tan)
-            elif y2 == y3:
-                if y1 > y2:
-                    if x2 > x3:
-                        E1 = (x2-Tan, y2+width)
-                        E2 = (x2+Tan, y2-width)
-                    elif x2 < x3:
-                        E1 = (x2+Tan, y2+width)
-                        E2 = (x2-Tan, y2-width)
-                elif y1 < y2:
-                    if x2 > x3:
-                        E1 = (x2-Tan, y2-width)
-                        E2 = (x2+Tan, y2+width)
-                    elif x2 < x3:
-                        E1 = (x2+Tan, y2-width)
-                        E2 = (x2-Tan, y2+width)
-            vertex = [S1, S2, E1, E2]
-            vertex_order = self.order_vertex(vertex)
-            dxf.add_solid(vertex_order)
-        # 垂直 水平
-        else:
-            # 垂直
-            if x1 == x2:
-                if y3 > y2:
-                    if x2 > x3:
-                        E1 = (x2-width, y2-Tan)
-                        E2 = (x2+width, y2+Tan)
-                    elif x2 < x3:
-                        E1 = (x2-width, y2+Tan)
-                        E2 = (x2+width, y2-Tan)
-                    else:
-                        E1 = (x2-width, y2)
-                        E2 = (x2+width, y2)
-                else:
-                    if x2 > x3:
-                        E1 = (x2-width, y2+Tan)
-                        E2 = (x2+width, y2-Tan)
-                    elif x2 < x3:
-                        E1 = (x2-width, y2-Tan)
-                        E2 = (x2+width, y2+Tan)
-                    else:
-                        E1 = (x2-width, y2)
-                        E2 = (x2+width, y2)
-            # 水平
-            else:
-                if y2 > y3:
-                    E1 = (x2-Tan, y2-width)
-                    E2 = (x2+Tan, y2+width)
-                elif y2 < y3:
-                    E1 = (x2+Tan, y2-width)
-                    E2 = (x2-Tan, y2+width)
-                else:
-                    E1 = (x2, y2-width)
-                    E2 = (x2, y2+width)
-            vertex = [S1, S2, E1, E2]
-            vertex_order = self.order_vertex(vertex)
-            dxf.add_solid(vertex_order)
-
-    def draw_end(self, x1, y1, x2, y2, x3, y3, width, dxf, connect):
-        # y1 = -y1
-        # y2 = -y2
-        # y3 = -y3
-        # align to agr 90 (only 90 or 45)
-        if abs(y2 - y3) != abs(x2 - x3):
-            if abs(y2 - y3) < abs(x2 - x3):
-                y3 = y2
-            else:
-                x3 = x2
-        position1 = []
-        position2 = []
-        degree1 = Degree.getdegree(x1, y1, x2, y2)
-        degree2 = Degree.getdegree(x2, y2, x3, y3)
-        if x2 == x3 and y2 == y3:
-            return 0
-        if x2 == x1 and y2 == y1:
-            return 0
-        if y2 == y3:
-            degree1 = (1, 0)
-            degree2 = (1, 0)
-        elif x2 == x3:
-            degree1 = (0, 1)
-            degree2 = (0, 1)
-
-        position_s1 = [x2-width*degree1[1], y2+width*degree1[0], Degree.inner_degree(
-            x2-width*degree1[1], y2+width*degree1[0], (x2+x3)/2, (y2+y3)/2)]
-        position_s2 = [x2+width*degree1[1], y2-width*degree1[0], Degree.inner_degree(
-            x2-width*degree1[1], y2+width*degree1[0], (x2+x3)/2, (y2+y3)/2)]
-        deg_45 = 0
-        # 4/\1
-        # 3\/2
-        Tan = 0.41421356237 * width
-        if x2 != x3 and y2 != y3:
-            if x2 > x3:
-                if y2 > y3:
-                    deg_45 = 2
-                elif y2 < y3:
-                    deg_45 = 1
-            elif x2 < x3:
-                if y2 > y3:
-                    deg_45 = 3
-                elif y2 < y3:
-                    deg_45 = 4
-        if deg_45 != 0:
-            if deg_45 == 1:
-                if x1 == x2:
-                    position_s1[0] = x2-width
-                    position_s1[1] = y2-Tan
-                    position_s2[0] = x2+width
-                    position_s2[1] = y2+Tan
-                elif y1 == y2:
-                    position_s1[0] = x2+Tan
-                    position_s1[1] = y2+width
-                    position_s2[0] = x2-Tan
-                    position_s2[1] = y2-width
-            elif deg_45 == 2:
-                if x1 == x2:
-                    position_s1[0] = x2-width
-                    position_s1[1] = y2+Tan
-                    position_s2[0] = x2+width
-                    position_s2[1] = y2-Tan
-                elif y1 == y2:
-                    position_s1[0] = x2+Tan
-                    position_s1[1] = y2-width
-                    position_s2[0] = x2-Tan
-                    position_s2[1] = y2+width
-            elif deg_45 == 3:
-                if x1 == x2:
-                    position_s1[0] = x2+width
-                    position_s1[1] = y2+Tan
-                    position_s2[0] = x2-width
-                    position_s2[1] = y2-Tan
-                elif y1 == y2:
-                    position_s1[0] = x2-Tan
-                    position_s1[1] = y2-width
-                    position_s2[0] = x2+Tan
-                    position_s2[1] = y2+width
-            elif deg_45 == 4:
-                if x1 == x2:
-                    position_s1[0] = x2+width
-                    position_s1[1] = y2-Tan
-                    position_s2[0] = x2-width
-                    position_s2[1] = y2+Tan
-                elif y1 == y2:
-                    position_s1[0] = x2-Tan
-                    position_s1[1] = y2+width
-                    position_s2[0] = x2+Tan
-                    position_s2[1] = y2-width
-        elif x1 != x2 and y1 != y2:
-            if x1 > x2:
-                if y1 > y2:
-                    if y2 == y3:
-                        position_s1[0] = x2-Tan
-                        position_s1[1] = y2+width
-                        position_s2[0] = x2+Tan
-                        position_s2[1] = y2-width
-                    elif x2 == x3:
-                        position_s1[0] = x2+width
-                        position_s1[1] = y2-Tan
-                        position_s2[0] = x2-width
-                        position_s2[1] = y2+Tan
-                elif y1 < y2:
-                    if y2 == y3:
-                        position_s1[0] = x2-Tan
-                        position_s1[1] = y2-width
-                        position_s2[0] = x2+Tan
-                        position_s2[1] = y2+Tan
-                    elif x2 == x3:
-                        position_s1[0] = x2+width
-                        position_s1[1] = y2+Tan
-                        position_s2[0] = x2-width
-                        position_s2[1] = y2-Tan
-            elif x1 < x2:
-                if y1 > y2:
-                    if y2 == y3:
-                        position_s1[0] = x2+Tan
-                        position_s1[1] = y2+width
-                        position_s2[0] = x2-Tan
-                        position_s2[1] = y2-width
-                    elif x2 == x3:
-                        position_s1[0] = x2-width
-                        position_s1[1] = y2-Tan
-                        position_s2[0] = x2+width
-                        position_s2[1] = y2+Tan
-                elif y1 < y2:
-                    if y2 == y3:
-                        position_s1[0] = x2+Tan
-                        position_s1[1] = y2-width
-                        position_s2[0] = x2-Tan
-                        position_s2[1] = y2+width
-                    elif x2 == x3:
-                        position_s1[0] = x2-width
-                        position_s1[1] = y2+Tan
-                        position_s2[0] = x2+width
-                        position_s2[1] = y2-Tan
-
-        if abs(position_s1[2]-position_s2[2]) > 90:
-            if min(position_s1[2], position_s2[2]) == position_s1[2]:
-                position_s2[2] -= 360
-            else:
-                position_s1[2] -= 360
-        position1.append(position_s1)
-        position1.append(position_s2)
-        position1.sort(key=lambda k: [k[2]])
-        position_e1 = [x3+width*degree2[1], y3-width*degree2[0], Degree.inner_degree(
-            x3+width*degree2[1], y3-width*degree2[0], (x2+x3)/2, (y2+y3)/2)]
-        position_e2 = [x3-width*degree2[1], y3+width*degree2[0], Degree.inner_degree(
-            x3-width*degree2[1], y3+width*degree2[0], (x2+x3)/2, (y2+y3)/2)]
-        if abs(position_e1[2]-position_e2[2]) > 90:
-            if min(position_e1[2], position_e2[2]) == position_e1[2]:
-                position_e2[2] -= 360
-            else:
-                position_e1[2] -= 360
-        position2.append(position_e1)
-        position2.append(position_e2)
-
-        vertex = [(position1[0][0], -position1[0][1]), (position1[1][0], -position1[1][1]),
-                  (position2[0][0], -position2[0][1]), (position2[1][0], -position2[1][1])]
+        vertex = [[wire_start[0], -wire_start[1]], [wire_start[2], -wire_start[3]], [wire_end[0], -wire_end[1]], [wire_end[2], -wire_end[3]]]
         vertex_order = self.order_vertex(vertex)
         dxf.add_solid(vertex_order)
 
@@ -749,20 +468,13 @@ class Draw():
                 draw_second = 0
                 for j in range(len(routing_wire[i])):
                     if j == 0:
-                        self.draw_start(routing_wire[i][j].start_x, routing_wire[i][j].start_y, routing_wire[i][j].end_x,
-                                        routing_wire[i][j].end_y, routing_wire[i][j+1].end_x, routing_wire[i][j+1].end_y, self.regular_width, dxf)
+                        self.draw_path(None, routing_wire[i][j], routing_wire[i][j+1], self.regular_width, dxf)
                         draw_second += 1
                     elif j == len(routing_wire[i])-1:
-                        self.draw_end(routing_wire[i][j-1].start_x, routing_wire[i][j-1].start_y,
-                                      routing_wire[i][j].start_x, routing_wire[i][j].start_y,
-                                      routing_wire[i][j].end_x, routing_wire[i][j].end_y, self.regular_width, dxf, connect)
+                        self.draw_path(routing_wire[i][j-1], routing_wire[i][j], None, self.regular_width, dxf)
                     elif draw_second <= 3:
-                        self.draw_path(routing_wire[i][j-1],
-                                       routing_wire[i][j],
-                                       routing_wire[i][j+1], self.regular_width, dxf)
+                        self.draw_path(routing_wire[i][j-1], routing_wire[i][j], routing_wire[i][j+1], self.regular_width, dxf)
                         draw_second += 1
                         connect = 1
                     else:
-                        self.draw_path(routing_wire[i][j-1],
-                                       routing_wire[i][j],
-                                       routing_wire[i][j+1], self.regular_width, dxf)
+                        self.draw_path(routing_wire[i][j-1], routing_wire[i][j], routing_wire[i][j+1], self.regular_width, dxf)

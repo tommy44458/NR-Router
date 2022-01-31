@@ -46,25 +46,28 @@ class Degree():
 
 def fill_degree_table():
     dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
-    # from up -> right -> down -> left
-    # (0.0, -1.0)
-    # (-0.71, -0.71)
-    # (-1.0, 0.0)
-    # (-0.71, 0.71)
-    # (0.0, 1.0)
-    # (0.71, 0.71)
-    # (1.0, 0.0)
-    # (0.71, -0.71)
+    """
+        from up -> right -> down -> left
+        (0.0, -1.0) - up
+        (-0.71, -0.71) - right-up
+        (-1.0, 0.0) - right
+        (-0.71, 0.71) - right-down
+        (0.0, 1.0) - down
+        (0.71, 0.71) - left-down
+        (1.0, 0.0) left
+        (0.71, -0.71) left-up
+    """
     table = {
         (0.0, -1.0): {
             (0.0, -1.0): [1, 0, -1, 0],
-            (-dia, -dia): [1, -2, -1, -2],
-            (-1.0, 0.0): None,  # [-width, width, -width, -width],
-            (-dia, dia): None,  # [-width, -tan, width, tan],
-            (0.0, 1.0): None,  # [-width, 0, width, 0],
-            (dia, dia): None,  # [-width, tan, width, -tan],
-            (1.0, 0.0): None,  # [width, width, width, -width],
+            (-dia, -dia): [1, -2, -1, 2],
+            (-1.0, 0.0): None,
+            (-dia, dia): None,
+            (0.0, 1.0): None,
+            (dia, dia): None,
+            (1.0, 0.0): None,
             (dia, -dia): [1, 2, -1, -2],
+            None: [1, 0, -1, 0]
         },
         (-dia, -dia): {
             (0.0, -1.0): [1, -2, -1, 2],
@@ -75,6 +78,7 @@ def fill_degree_table():
             (dia, dia): None,  # [-3_value, 3_value, 3_value, -3_value],
             (1.0, 0.0): None,  # [-1, -2, 1, 2],
             (dia, -dia): None,  # [0, -2*3_value, 2*3_value, 0],
+            None: [3, -3, -3, 3]
         },
         (-1.0, 0.0): {
             (0.0, -1.0): None,  # [-1, -1, 1, -1],
@@ -85,6 +89,7 @@ def fill_degree_table():
             (dia, dia): None,
             (1.0, 0.0): None,
             (dia, -dia): None,
+            None: [0, 1, 0, -1]
         },
         (-dia, dia): {
             (0.0, -1.0): None,
@@ -95,6 +100,7 @@ def fill_degree_table():
             (dia, dia): None,
             (1.0, 0.0): None,
             (dia, -dia): None,
+            None: [3, 3, -3, -3]
         },
         (0.0, 1.0): {
             (0.0, -1.0): None,
@@ -105,6 +111,7 @@ def fill_degree_table():
             (dia, dia): [1, -2, -1, 2],
             (1.0, 0.0): None,
             (dia, -dia): None,
+            None: [1, 0, -1, 0]
         },
         (dia, dia): {
             (0.0, -1.0): None,
@@ -115,6 +122,7 @@ def fill_degree_table():
             (dia, dia): [3, -3, -3, 3],
             (1.0, 0.0): [2, -1, -2, 1],
             (dia, -dia): None,
+            None: [3, -3, -3, 3]
         },
         (1.0, 0.0): {
             (0.0, -1.0): None,
@@ -125,6 +133,7 @@ def fill_degree_table():
             (dia, dia): [2, -1, -2, 1],
             (1.0, 0.0): [0, 1, 0, -1],
             (dia, -dia): [2, 1, -2, -1],
+            None: [0, 1, 0, -1]
         },
         (dia, -dia): {
             (0.0, -1.0): [1, 2, -1, -2],
@@ -134,6 +143,17 @@ def fill_degree_table():
             (0.0, 1.0): None,
             (dia, dia): None,
             (1.0, 0.0): [2, 1, -2, -1],
+            (dia, -dia): [3, 3, -3, -3],
+            None: [3, 3, -3, -3]
+        },
+        None: {
+            (0.0, -1.0): [1, 0, -1, 0],
+            (-dia, -dia): [3, -3, -3, 3],
+            (-1.0, 0.0): [0, 1, 0, -1],
+            (-dia, dia): [3, 3, -3, -3],
+            (0.0, 1.0): [1, 0, -1, 0],
+            (dia, dia): [3, -3, -3, 3],
+            (1.0, 0.0): [0, 1, 0, -1],
             (dia, -dia): [3, 3, -3, -3],
         }
     }
