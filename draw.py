@@ -9,6 +9,8 @@ from math import atan2, degrees
 
 from wire import Wire
 from grid import Grid
+from hub import Hub
+from tile import Tile
 
 from degree import Degree, wire_offset_table
 from electrode import Electrode
@@ -146,15 +148,15 @@ class Draw():
                 vertex_order.append((x + shape_p[0], y - shape_p[1]))
             dxf.add_polyline2d(vertex_order, close=True)
 
-    def draw_grid(self, start_x, start_y, unit_length, grids_x, grids_y, dxf: Modelspace):
-        for i in range(grids_x):
-            dxf.add_line((start_x+unit_length*i, -start_y), (start_x +
-                                                             unit_length*i, -(start_y+unit_length*(grids_y-1))))
-        for i in range(grids_y):
-            dxf.add_line((start_x, -(start_y+unit_length*i)),
-                         (start_x+unit_length*(grids_x-1), -(start_y+unit_length*i)))
+    def draw_grid(self, start_point: list, unit: float, gird_length: list, dxf: Modelspace):
+        # col
+        for i in range(gird_length[0]):
+            dxf.add_line((start_point[0]+unit*i, -start_point[1]), (start_point[0] + unit*i, -(start_point[1]+unit*(gird_length[1]-1))))
+        # row
+        for i in range(gird_length[1]):
+            dxf.add_line((start_point[0], -(start_point[1]+unit*i)), (start_point[0]+unit*(gird_length[0]-1), -(start_point[1]+unit*i)))
 
-    def draw_pseudo_node(self, grids, hatch_path: BoundaryPaths):
+    def draw_pseudo_node(self, grids: List[List[Grid]], hatch_path: BoundaryPaths):
         width = 60
         num = 0
         for i in range(len(grids)):
@@ -166,16 +168,29 @@ class Draw():
                     num += 1
         print('grid num: ', num)
 
-    def draw_pseudo_node_corner(self, grids, hatch_path: BoundaryPaths):
+    def draw_pseudo_node_corner(self, grids: List[List[Grid]], hatch_path: BoundaryPaths):
         width = 60
         for i in range(len(grids)):
             for j in range(len(grids[i])):
                 if grids[i][j].electrode_index >= 0 and grids[i][j].corner:
-                    # print(girds[i][j].to_dict())
                     x = grids[i][j].real_x
                     y = -grids[i][j].real_y
-                    hatch_path.add_polyline_path(
-                        [(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+                    hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+
+    def draw_hub(self, hub: List[Hub], hatch_path: BoundaryPaths):
+        width = 60
+        for i in range(len(hub)):
+            x = hub[i].real_x
+            y = -hub[i].real_y
+            hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+
+    def draw_tile(self, tile: List[List[Tile]], hatch_path: BoundaryPaths):
+        width = 60
+        for i in range(len(tile)):
+            for j in range(len(tile[i])):
+                x = tile[i][j].real_x
+                y = -tile[i][j].real_y
+                hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
 
     def draw_all_path(self, dxf, grids2):
         mim_cost_max_flow_solver = self.mim_cost_max_flow_solver

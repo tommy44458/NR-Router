@@ -4,17 +4,18 @@ import sys
 import os
 from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
-from math import atan2,degrees
+from math import atan2, degrees
+
 
 class Tile():
-    def __init__(self):
-        self.real_x = 0
-        self.real_y = 0
-        self.tile_x = 0
-        self.tile_y = 0
+    def __init__(self, real_x=0, real_y=0, tile_x=0, tile_y=0):
+        self.real_x = real_x
+        self.real_y = real_y
+        self.tile_x = tile_x
+        self.tile_y = tile_y
         self.capacity = 2
-        self.flow = [0,0]
-        self.total_flow=0
+        self.flow = [0, 0]
+        self.total_flow = 0
         self.index = -1
         self.neighbor = []
         self.corner_in = []
@@ -38,5 +39,5 @@ class Tile():
             'vertical_path': self.vertical_path,
             'horizontal_path': self.horizontal_path,
         }
-            
+
         return _dict

@@ -62,11 +62,11 @@ class Mesh():
             if contactpad[1] <= 7620:
                 grid_x = (contactpad[0] - self.block1_shift[0]) // self.control_pad_unit
                 grid_y = (contactpad[1] - self.block1_shift[1]) // self.control_pad_unit
-                self.grids1[grid_x, grid_y] = Grid(contactpad[0], contactpad[1], grid_x, grid_y, -1)
+                self.grids1[grid_x][grid_y] = Grid(contactpad[0], contactpad[1], grid_x, grid_y, -1)
             else:
                 grid_x = (contactpad[0] - self.block3_shift[0]) // self.control_pad_unit
                 grid_y = (contactpad[1] - self.block3_shift[1]) // self.control_pad_unit
-                self.grids3[grid_x, grid_y] = Grid(contactpad[0], contactpad[1], grid_x, grid_y, -1)
+                self.grids3[grid_x][grid_y] = Grid(contactpad[0], contactpad[1], grid_x, grid_y, -1)
 
     def point_distance_line(self, _point, _line_point1, _line_point2):
         point = np.array(_point)
@@ -216,11 +216,7 @@ class Mesh():
                 if grids[i, j] == None:
                     grids[i, j] = Grid(i*UNIT_LENGTH+block_shift[0], j*UNIT_LENGTH+block_shift[1], i, j, 0)
                 if i != x-1 and j != y-1:
-                    tiles[i, j] = Tile()
-                    tiles[i, j].tile_x = i
-                    tiles[i, j].tile_y = j
-                    tiles[i, j].real_x = i*UNIT_LENGTH+block_shift[0]+UNIT_LENGTH/2
-                    tiles[i, j].real_y = j*UNIT_LENGTH+block_shift[1]+UNIT_LENGTH/2
+                    tiles[i, j] = Tile(i*UNIT_LENGTH+block_shift[0]+UNIT_LENGTH/2, j*UNIT_LENGTH+block_shift[1]+UNIT_LENGTH/2, i, j)
 
     def create_grid_electrode(self):
         for i in range(self.grids2_length[0]):
@@ -252,25 +248,15 @@ class Mesh():
                 thub_grid_x1 = (thub_real_x1-self.block2_shift[0])//self.tile_unit
                 thub_grid_x2 = (thub_real_x2-self.block2_shift[0])//self.tile_unit
                 thub_tile_x1 = (thub_real_x1-self.block1_shift[0])//self.control_pad_unit
-                # (thub_x1*self.tile_unit+self.block2_shift[0])//control_pad_unit
                 thub_tile_x2 = (thub_real_x1-self.block1_shift[0])//self.control_pad_unit+1
-                # print(thub_real_x1,thub_grid_x1,thub_tile_x1)
-                # print((thub_grid_x1*self.tile_unit+self.block2_shift[0]),(thub_tile_x1*control_pad_unit+block1_shift[0]),abs((thub_grid_x1*self.tile_unit+self.block2_shift[0])-(thub_tile_x1*control_pad_unit+block1_shift[0])))
                 if thub_grid_x1 != thub_grid_x2:
-                    # and abs(thub_real_x1-(thub_tile_x1*control_pad_unit+block1_shift[0]))<abs(thub_real_x2-(thub_tile_x2*control_pad_unit+block1_shift[0])):
                     if abs((thub_grid_x1*self.tile_unit+self.block2_shift[0])-(thub_tile_x1*self.control_pad_unit+self.block1_shift[0])) < 950:
                         thub_grid_x1 += 1
                         thub_grid_x2 += 1
-                        #dxf.add_circle(center=(thub_grid_x1*self.tile_unit+self.block2_shift[0], -hubs1_y), radius = 350.0)
-                        #dxf.add_circle(center=(thub_grid_x1*self.tile_unit+self.block2_shift[0], -hubs3_y), radius = 350.0)
                     elif abs((thub_grid_x2*self.tile_unit+self.block2_shift[0])-(thub_tile_x2*self.control_pad_unit+self.block1_shift[0])) < 950:
                         thub_grid_x1 -= 1
                         thub_grid_x2 -= 1
-                # print((thub_grid_x1*self.tile_unit+self.block2_shift[0]),(thub_tile_x1*control_pad_unit+block1_shift[0]),((thub_grid_x1+1)*self.tile_unit+self.block2_shift[0]),((thub_tile_x1+1)*control_pad_unit+block1_shift[0]))
                 if abs((thub_grid_x1*self.tile_unit+self.block2_shift[0])-(thub_tile_x1*self.control_pad_unit+self.block1_shift[0])) < 1000 or abs(((thub_grid_x1+1)*self.tile_unit+self.block2_shift[0])-((thub_tile_x1+1)*self.control_pad_unit+self.block1_shift[0])) < 1000:
-                    # print(i)
-                    #dxf.add_circle(center=(block1_shift[0]+(i//3)*2540+1160+(i%3-1)*220, -hubs1_y), radius = 350.0)
-                    #dxf.add_circle(center=(block1_shift[0]+(i//3)*2540+1160+(i%3-1)*220, -hubs3_y), radius = 350.0)
                     self.hubs1[i] = Hub(real_x=self.block1_shift[0]+(i//3)*2540+1160+(i % 3-1)*220, real_y=self.hubs1_y, type=1, hub_index=i)
                     self.hubs3[i] = Hub(real_x=self.block1_shift[0]+(i//3)*2540+1160+(i % 3-1)*220, real_y=self.hubs3_y, type=1, hub_index=i)
                     i += 1
