@@ -5,7 +5,7 @@ import os
 from shapely.geometry import Polygon, Point, LinearRing
 from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
-from math import atan2,degrees
+from math import atan2, degrees
 from ortools.graph import pywrapgraph
 
 from degree import Degree
@@ -15,6 +15,7 @@ from hub import Hub
 from electrode import Electrode
 from wire import Wire
 from draw import Draw
+
 
 class MCMF():
 
@@ -32,12 +33,12 @@ class MCMF():
         self.min_cost_flow = None
 
         self.all_path = []
-        self.electrode_wire=[[] for _ in range(len(mesh.electrodes))]
+        self.electrode_wire = [[] for _ in range(len(mesh.electrodes))]
 
     def init_structure(self):
         for node in self.flow.flownodes:
             if type(node) == Tile and node.index != self.flow.global_t.index:
-                #pseudo two layer
+                # pseudo two layer
                 self.start_nodes.append(node.index+1)
                 self.end_nodes.append(node.index)
                 self.capacities.append(int(node.capacity))
@@ -47,7 +48,7 @@ class MCMF():
                     self.start_nodes.append(node.index)
                     self.end_nodes.append(nb_node[0].index+1)
                     self.capacities.append(int(nb_node[1]))
-                    self.unit_costs.append(int(self.mesh.control_pad_unit))
+                    self.unit_costs.append(int(self.mesh.contactpad_unit))
                 # add contact pads
                 for cp_node in node.contact_pads:
                     self.start_nodes.append(node.index)
@@ -55,7 +56,7 @@ class MCMF():
                     self.capacities.append(1)
                     self.unit_costs.append(1)
                 self.supplies[node.index] = 0
-            elif type(node) == Tile and node.index==self.flow.global_t.index:
+            elif type(node) == Tile and node.index == self.flow.global_t.index:
                 for cp_node in node.contact_pads:
                     self.start_nodes.append(cp_node.index)
                     self.end_nodes.append(node.index)
@@ -63,14 +64,14 @@ class MCMF():
                     self.unit_costs.append(-1)
                 self.supplies[node.index] = 0
             elif type(node) == Grid:
-                if node.type==0:
+                if node.type == 0:
                     self.start_nodes.append(node.index+1)
                     self.end_nodes.append(node.index)
                     self.capacities.append(1)
                     self.unit_costs.append(0)
                     for nb_node in node.neighbor:
                         self.start_nodes.append(node.index)
-                        if type(nb_node[0])==Grid:
+                        if type(nb_node[0]) == Grid:
                             self.end_nodes.append(nb_node[0].index+1)
                         else:
                             self.end_nodes.append(nb_node[0].index)
@@ -86,7 +87,7 @@ class MCMF():
                             #     self.unit_costs.append(node.cost)
                             # else:
                             #     self.unit_costs.append(ne_node[-1])
-                self.supplies[node.index] = 0	
+                self.supplies[node.index] = 0
             elif type(node) == Hub:
                 for nb_node in node.neighbor:
                     self.start_nodes.append(node.index)
@@ -96,8 +97,8 @@ class MCMF():
                 self.supplies[node.index] = 0
             elif type(node) == Electrode:
                 self.supplies[node.index] = 1
-                self.num_supply+=1
-                
+                self.num_supply += 1
+
         self.supplies[self.flow.global_t.index] = -self.num_supply
 
     def solver(self):
@@ -107,7 +108,7 @@ class MCMF():
         # Add each arc.
         for i in range(0, len(self.start_nodes)):
             self.min_cost_flow.AddArcWithCapacityAndUnitCost(self.start_nodes[i], self.end_nodes[i],
-                                                        self.capacities[i], self.unit_costs[i])
+                                                             self.capacities[i], self.unit_costs[i])
         # print("Add each arc")
 
         # Add node supplies.
@@ -130,9 +131,9 @@ class MCMF():
         return closest_point_coords
 
     def get_path(self):
-        #Find the minimum cost flow between node 0 and node 4.
+        # Find the minimum cost flow between node 0 and node 4.
         if self.mim_cost_max_flow_solver == self.min_cost_flow.OPTIMAL and len(self.electrode_wire) > 0:
-            #print('Minimum cost:', self.min_cost_flow.OptimalCost())	
+            #print('Minimum cost:', self.min_cost_flow.OptimalCost())
             for i in range(self.min_cost_flow.NumArcs()):
                 if self.min_cost_flow.Flow(i) != 0:
                     head = self.min_cost_flow.Tail(i)
@@ -143,14 +144,16 @@ class MCMF():
                         tail -= 1
 
                     if type(self.flow.flownodes[head]) == Electrode and type(self.flow.flownodes[tail]) == Grid:
-                        close_point = self.get_close_point_with_poly(self.flow.flownodes[head].poly, [self.flow.flownodes[tail].real_x, self.flow.flownodes[tail].real_y])
+                        close_point = self.get_close_point_with_poly(self.flow.flownodes[head].poly, [
+                                                                     self.flow.flownodes[tail].real_x, self.flow.flownodes[tail].real_y])
                         index_list = []
                         tmp_x = self.flow.flownodes[tail].grid_x
                         tmp_y = self.flow.flownodes[tail].grid_y
                         for en_node in self.flow.flownodes[tail].neighbor_electrode:
                             if en_node[0] == self.flow.flownodes[head].electrode_index:
-                                index_list.append([en_node[1],en_node[2],en_node[3], en_node[4]])
-                        self.all_path.append(Wire(int(close_point[0]), int(close_point[1]),int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y)))
+                                index_list.append([en_node[1], en_node[2], en_node[3], en_node[4]])
+                        self.all_path.append(Wire(int(close_point[0]), int(close_point[1]), int(
+                            self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y)))
                         # R_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
                         # R_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
                         # E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_x
@@ -203,31 +206,36 @@ class MCMF():
                         # self.all_path.append(Wire(int(E_x),int(E_y),int(R_x),int(R_y)))
                         # self.all_path.append(Wire(int(R_x),int(R_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
                     elif type(self.flow.flownodes[head]) == Grid and type(self.flow.flownodes[tail]) == Grid:
-                        self.all_path.append(Wire(int(self.flow.flownodes[head].real_x),int(self.flow.flownodes[head].real_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                        self.flow.flownodes[head].flow=1
-                        self.flow.flownodes[tail].flow=1
+                        self.all_path.append(Wire(int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y), int(
+                            self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y)))
+                        self.flow.flownodes[head].flow = 1
+                        self.flow.flownodes[tail].flow = 1
                     elif type(self.flow.flownodes[head]) == Grid and type(self.flow.flownodes[tail]) == Hub:
-                        self.all_path.append(Wire(int(self.flow.flownodes[head].real_x),int(self.flow.flownodes[head].real_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                        self.all_path.append(Wire(int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y), int(
+                            self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y)))
                     elif type(self.flow.flownodes[head]) == Hub and type(self.flow.flownodes[tail]) == Grid:
-                        self.all_path.append(Wire(int(self.flow.flownodes[head].real_x),int(self.flow.flownodes[head].real_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
+                        self.all_path.append(Wire(int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y), int(
+                            self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y)))
                     elif type(self.flow.flownodes[head]) == Hub and type(self.flow.flownodes[tail]) == Tile:
-                        self.all_path.append(Wire(int(self.flow.flownodes[head].real_x),int(self.flow.flownodes[head].real_y),int(self.flow.flownodes[head].real_x),int(self.flow.flownodes[tail].real_y)))
-                        if self.flow.flownodes[head].hub_index%3 == 1:
-                            self.flow.flownodes[tail].flow[0]=1
-                        elif self.flow.flownodes[head].hub_index%3 == 2:
-                            self.flow.flownodes[tail].flow[1]=1
+                        self.all_path.append(Wire(int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y), int(
+                            self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y)))
+                        if self.flow.flownodes[head].hub_index % 3 == 1:
+                            self.flow.flownodes[tail].flow[0] = 1
+                        elif self.flow.flownodes[head].hub_index % 3 == 2:
+                            self.flow.flownodes[tail].flow[1] = 1
                     elif type(self.flow.flownodes[head]) == Tile and type(self.flow.flownodes[tail]) == Tile:
-                        self.flow.flownodes[head].total_flow+=self.min_cost_flow.Flow(i)
+                        self.flow.flownodes[head].total_flow += self.min_cost_flow.Flow(i)
                         if self.flow.flownodes[head].tile_x == self.flow.flownodes[tail].tile_x:
                             self.flow.flownodes[head].vertical_path.append(self.flow.flownodes[tail])
                         elif self.flow.flownodes[head].tile_y == self.flow.flownodes[tail].tile_y:
                             self.flow.flownodes[head].horizontal_path.append(self.flow.flownodes[tail])
                     elif type(self.flow.flownodes[head]) == Tile and type(self.flow.flownodes[tail]) == Grid:
                         self.flow.flownodes[head].corner_in.append(self.flow.flownodes[tail])
-            
+
             # -------------------
-            self.flow.create_tiles_path(self.mesh.tiles1_length,self.mesh.tiles1,self.mesh.hubs1,self.mesh.tiles1_length[1]-1,-1,-1,self.all_path)
-            self.flow.create_tiles_path(self.mesh.tiles3_length,self.mesh.tiles3,self.mesh.hubs3,0,self.mesh.tiles1_length[1],1,self.all_path)
+            self.flow.create_tiles_path(self.mesh.tiles1_length, self.mesh.tiles1, self.mesh.hubs1,
+                                        self.mesh.tiles1_length[1]-1, -1, -1, self.all_path)
+            self.flow.create_tiles_path(self.mesh.tiles3_length, self.mesh.tiles3, self.mesh.hubs3, 0, self.mesh.tiles1_length[1], 1, self.all_path)
             #print("self.all_path = ",len(self.all_path))
 
             # -------------------
@@ -235,22 +243,22 @@ class MCMF():
                 for j in range(len(self.all_path)):
                     if self.all_path[j].start_x == self.all_path[i].end_x and self.all_path[j].start_y == self.all_path[i].end_y:
                         self.all_path[i].next = self.all_path[j]
-                        self.all_path[j].head = 0 ## 0 or 1 
+                        self.all_path[j].head = 0  # 0 or 1
                         break
-            
+
             # set paths to each electrode
-            j=0
+            j = 0
 
             for i in range(len(self.all_path)):
                 if self.all_path[i].head == 1 and j < len(self.electrode_wire):
-                    #print(self.all_path[i].start_x,self.all_path[i].start_y,self.all_path[i].end_x,self.all_path[i].end_y)
+                    # print(self.all_path[i].start_x,self.all_path[i].start_y,self.all_path[i].end_x,self.all_path[i].end_y)
                     #dxf.add_circle(center=(self.all_path[i].start_x, -self.all_path[i].start_y), radius = 750.0)
                     self.electrode_wire[j].append(self.all_path[i])
                     tmp_next = self.all_path[i].next
                     while tmp_next != None:
-                        #print(tmp_next.start_x,tmp_next.start_y,tmp_next.end_x,tmp_next.end_y)
-                        if tmp_next.start_x==tmp_next.end_x and tmp_next.start_y==tmp_next.end_y:
+                        # print(tmp_next.start_x,tmp_next.start_y,tmp_next.end_x,tmp_next.end_y)
+                        if tmp_next.start_x == tmp_next.end_x and tmp_next.start_y == tmp_next.end_y:
                             break
                         self.electrode_wire[j].append(tmp_next)
                         tmp_next = tmp_next.next
-                    j+=1
+                    j += 1

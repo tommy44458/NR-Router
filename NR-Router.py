@@ -18,6 +18,7 @@ from draw import Draw
 from mesh import Mesh
 from flow import Flow
 from mcmf import MCMF
+from pseudo_node import PseudoNode
 
 from chip_section import ChipSection
 
@@ -38,11 +39,11 @@ except:
 # real ship size
 electrode_size = 2000
 regular_line_width = int(electrode_size / 10)
-control_pad_unit = 2540
-control_pad_radius = 750
+contactpad_unit = 2540
+contactpad_radius = 750
 # (wire width + 5) * 1.414
-tile_unit = int(electrode_size / 5)
-# tile_unit = int((regular_line_width + 5) * 1.414) + 1  # (line width) 200 + (spacing) 115
+# tile_unit = int(electrode_size / 5)
+tile_unit = int((regular_line_width + 5) * 1.414) + 1  # (line width) 200 + (spacing) 115
 if tile_unit < 150:
     tile_unit = 150
 
@@ -51,42 +52,42 @@ if tile_unit < 150:
 # y: 0~(3 * contact_pad_unit), 56896~(56896 + 3 * contact_pad_unit)
 
 top_start_point = [0, 0]
-mid_start_point = [-630, 12258]
+mid_start_point = [-1630, 11258]
 down_start_point = [0, 56896]
 
-top_section = ChipSection(top_start_point, control_pad_unit * 31, control_pad_unit * 3, control_pad_unit, control_pad_radius)
+top_section = ChipSection(top_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit, contactpad_radius)
 top_section.init_grid()
 top_section.init_tile()
 top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.redius) // 2)
 
-mid_section = ChipSection(mid_start_point, 80000, 40000, tile_unit, control_pad_radius)
+mid_section = ChipSection(mid_start_point, 82000, 42000, tile_unit, contactpad_radius)
 mid_section.init_grid()
 
-down_section = ChipSection(down_start_point,  control_pad_unit * 31, control_pad_unit * 3, control_pad_unit, control_pad_radius)
+down_section = ChipSection(down_start_point,  contactpad_unit * 31, contactpad_unit * 3, contactpad_unit, contactpad_radius)
 down_section.init_grid()
 down_section.init_tile()
 down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.width) // 2)
 
 # top down dot field dot
-block1_shift = (0, 0)  # (-3000 + 18000 % control_pad_unit, -17745 + 17745 % control_pad_unit)
-block2_shift = (0, 12258)  # (-3000, 9258)
-block3_shift = (0, 56896)  # (-3000 + 18000 % control_pad_unit, 56896)
+block1_shift = (0, 0)  # (-3000 + 18000 % contactpad_unit, -17745 + 17745 % contactpad_unit)
+block2_shift = (-1630, 11258)  # (-3000, 9258)
+block3_shift = (0, 56896)  # (-3000 + 18000 % contactpad_unit, 56896)
 # Grid_x = 317
 # Grid_y = 127
 top_pad_section_width = 81280  # 100000 - 18000
 top_pad_section_height = 7620  # 7620
 
-elec_section_width = 81280  # 100000 - 18000
-elec_section_height = 40000  # 46000
+elec_section_width = 82000  # 100000 - 18000
+elec_section_height = 42000  # 46000
 
 down_pad_section_width = 81280  # 100000 - 18000
 down_pad_section_height = 82255  # 100000 - 17745 (7620 + 40000 + 7620)
 
-grids1_length = ((top_pad_section_width - block1_shift[0]) // control_pad_unit + 1,
-                 (top_pad_section_height - block1_shift[1]) // control_pad_unit + 1)
+grids1_length = ((top_pad_section_width - block1_shift[0]) // contactpad_unit + 1,
+                 (top_pad_section_height - block1_shift[1]) // contactpad_unit + 1)
 grids2_length = (((elec_section_width - block2_shift[0]) // tile_unit) + 1, (elec_section_height // tile_unit) + 1)
-grids3_length = ((down_pad_section_width - block3_shift[0]) // control_pad_unit + 1,
-                 (down_pad_section_height - block3_shift[1]) // control_pad_unit + 1)
+grids3_length = ((down_pad_section_width - block3_shift[0]) // contactpad_unit + 1,
+                 (down_pad_section_height - block3_shift[1]) // contactpad_unit + 1)
 
 tiles1_length = (grids1_length[0]-1, grids1_length[1]-1)
 tiles2_length = (grids2_length[0]-1, grids2_length[1]-1)
@@ -101,7 +102,7 @@ hubs3_y = (block3_shift[1] - 750 + tiles2_length[1] * tile_unit + block2_shift[1
 # print('grid: ', grids1_length, grids2_length, grids3_length)
 c_time = time.time()
 
-_mesh = Mesh(control_pad_unit, tile_unit,
+_mesh = Mesh(contactpad_unit, tile_unit,
              block1_shift, block2_shift, block3_shift,
              grids1_length, grids2_length, grids3_length,
              tiles1_length, tiles2_length, tiles3_length,
@@ -113,8 +114,11 @@ _mesh.create_grid_pad()
 _mesh.create_hub()
 
 # read ewd file
-_chip = Chip('test_1208_1.ewd', ewd_input)
+_chip = Chip('test_0201.ewd', ewd_input)
 _chip.setup()
+
+_pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
+_pseudo_node.internal_node()
 
 _mesh.set_contactpad_grid(_chip.contactpad_list)
 
@@ -168,7 +172,7 @@ print('mcmf:', time.time() - c_time)
 
 c_time = time.time()
 _draw = Draw(_mcmf.mim_cost_max_flow_solver, _mcmf.min_cost_flow, _mesh.block1_shift, _mesh.block2_shift,
-             _mesh.block2_shift, _mesh.tile_unit, _mesh.control_pad_unit, _mcmf.electrode_wire, regular_line_width, 2.5)
+             _mesh.block2_shift, _mesh.tile_unit, _mesh.contactpad_unit, _mcmf.electrode_wire, regular_line_width, 2.5)
 
 doc = ezdxf.new(dxfversion='R2010')
 doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
@@ -188,16 +192,18 @@ dxf4 = hatch4.paths
 _draw.draw_contact_pad(_mesh.contactpads, msp)
 _draw.draw_all_path(msp, _mesh.grids2)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
-# _draw.draw_grid(block1_shift, control_pad_unit, grids1_length, msp)
+# _draw.draw_grid(block1_shift, contactpad_unit, grids1_length, msp)
 # _draw.draw_grid(block2_shift, tile_unit, grids2_length, msp)
-# _draw.draw_grid(block3_shift, control_pad_unit, grids3_length, msp)
+# _draw.draw_grid(block3_shift, contactpad_unit, grids3_length, msp)
 # _draw.draw_hub(_mesh.hubs1, dxf1)
 # _draw.draw_hub(_mesh.hubs3, dxf1)
 # _draw.draw_tile(_mesh.tiles1, dxf2)
 # _draw.draw_tile(_mesh.tiles3, dxf2)
-_draw.draw_pseudo_node(_mesh.grids2, dxf1)
+# _draw.draw_pseudo_node(_mesh.grids2, dxf1)
 # _draw.draw_pseudo_node_corner(_mesh.grids2, dxf2)
-_draw.draw_pseudo_node(_mesh.grids4, dxf2)
+# _draw.draw_pseudo_node(_mesh.grids4, dxf2)
+
+_draw.draw_pseudo_node(mid_section.grid, dxf2)
 
 _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
 _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)

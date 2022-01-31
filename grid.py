@@ -2,9 +2,17 @@ import numpy as np
 import math
 import sys
 import os
+from enum import IntEnum
 from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
-from math import atan2,degrees
+from math import atan2, degrees
+
+
+class PseudoNodeType(IntEnum):
+    INTERNAL = 0
+    EXTERNAL = 1
+    HUB = 2
+
 
 class Grid():
     def __init__(self, real_x=-1, real_y=-1, grid_x=-1, grid_y=-1, type=0):
@@ -18,26 +26,28 @@ class Grid():
         self.electrode_x2 = 0
         self.electrode_y2 = 0
         self.special = False
-        self.type = type # 0 as grids in block2, 1 as electrodes, >2 as num_electrode in a grid, -1 as contact pads in block1&3, -2 as missing pin in block1&3
+        self.type = type  # 0 as grids in block2, 1 as electrodes, >2 as num_electrode in a grid, -1 as contact pads in block1&3, -2 as missing pin in block1&3
         self.electrode_index = -1
         self.in_x = -1
         self.in_y = -1
         self.out_x = -1
         self.out_y = -1
-        self.safe_distance=0
-        self.safe_distance2=0
+        self.safe_distance = 0
+        self.safe_distance2 = 0
         self.neighbor_electrode = []
         self.neighbor = []
-        self.flow=0
-        self.cost=0
+        self.flow = 0
+        self.cost = 0
         self.conflict = False
         self.inner_grid = None
         self.corner = False
         self.covered = False
-    
+
+        self.pseudo_node_type: PseudoNodeType = None
+
     def to_dict(self):
         _dict = {
-            'index': self.index ,
+            'index': self.index,
             'real_x': self.real_x,
             'real_y': self.real_y,
             'grid_x': self.grid_x,
@@ -62,5 +72,5 @@ class Grid():
             'inner_grid': self.inner_grid,
             'corner': self.corner,
         }
-            
+
         return _dict

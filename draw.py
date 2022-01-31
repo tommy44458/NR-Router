@@ -19,7 +19,7 @@ from electrode import Electrode
 class Draw():
     def __init__(self, mim_cost_max_flow_solver: SimpleMinCostFlow.SolveMaxFlowWithMinCost, min_cost_flow: SimpleMinCostFlow,
                  top_block_shift: list, mid_block_shift: list, down_block_shift: list, tile_unit: int,
-                 control_pad_unit: int, routing_wire: List[List[Wire]], wire_width: float, mini_wire_width: float):
+                 contactpad_unit: int, routing_wire: List[List[Wire]], wire_width: float, mini_wire_width: float):
         # mcmf
         self.mim_cost_max_flow_solver = mim_cost_max_flow_solver
         self.min_cost_flow = min_cost_flow
@@ -32,7 +32,7 @@ class Draw():
         self.mid_block_shift = mid_block_shift
         self.down_block_shift = down_block_shift
         self.tile_unit = tile_unit
-        self.control_pad_unit = control_pad_unit
+        self.contactpad_unit = contactpad_unit
         self.mini_width = mini_wire_width
         self.regular_width = wire_width / 2
         self.line_buffer = self.regular_width * 0.0
@@ -158,13 +158,17 @@ class Draw():
 
     def draw_pseudo_node(self, grids: List[List[Grid]], hatch_path: BoundaryPaths):
         width = 60
+        mini_width = 30
         num = 0
         for i in range(len(grids)):
             for j in range(len(grids[i])):
                 if grids[i][j].electrode_index >= 0:
                     x = grids[i][j].real_x
                     y = -grids[i][j].real_y
-                    hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+                    if grids[i][j].corner:
+                        hatch_path.add_polyline_path([(x, y-mini_width), (x+mini_width, y), (x, y+mini_width), (x-mini_width, y)])
+                    else:
+                        hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
                     num += 1
         print('grid num: ', num)
 

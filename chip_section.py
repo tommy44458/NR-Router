@@ -8,13 +8,6 @@ from hub import Hub
 from electrode import Electrode
 
 
-try:
-    __location__ = os.path.realpath(
-        os.path.join(os.getcwd(), os.path.dirname(__file__)))
-except:
-    __location__ = '/Users/tommy/Documents/tommy/nr-router'
-
-
 class ChipSection():
     def __init__(self, start_point: list, width: int, height: int, unit: float, radius: float):
         self.start_point = start_point

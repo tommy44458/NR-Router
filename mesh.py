@@ -1,8 +1,7 @@
 import numpy as np
+from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import math
-from math import atan2, degrees
 
-from degree import Degree
 from grid import Grid
 from tile import Tile
 from hub import Hub
@@ -10,14 +9,14 @@ from electrode import Electrode
 
 
 class Mesh():
-    def __init__(self, control_pad_unit, tile_unit,
+    def __init__(self, contactpad_unit, tile_unit,
                  block1_shift, block2_shift, block3_shift,
                  grids1_length, grids2_length, grids3_length,
                  tiles1_length, tiles2_length, tiles3_length,
                  hubs1_length, hubs1_y, hubs3_length, hubs3_y
                  ):
 
-        self.control_pad_unit = control_pad_unit
+        self.contactpad_unit = contactpad_unit
         self.tile_unit = tile_unit
         self.block1_shift = block1_shift
         self.block2_shift = block2_shift
@@ -60,12 +59,12 @@ class Mesh():
         self.contactpads = contactpad_list
         for contactpad in contactpad_list:
             if contactpad[1] <= 7620:
-                grid_x = (contactpad[0] - self.block1_shift[0]) // self.control_pad_unit
-                grid_y = (contactpad[1] - self.block1_shift[1]) // self.control_pad_unit
+                grid_x = (contactpad[0] - self.block1_shift[0]) // self.contactpad_unit
+                grid_y = (contactpad[1] - self.block1_shift[1]) // self.contactpad_unit
                 self.grids1[grid_x][grid_y] = Grid(contactpad[0], contactpad[1], grid_x, grid_y, -1)
             else:
-                grid_x = (contactpad[0] - self.block3_shift[0]) // self.control_pad_unit
-                grid_y = (contactpad[1] - self.block3_shift[1]) // self.control_pad_unit
+                grid_x = (contactpad[0] - self.block3_shift[0]) // self.contactpad_unit
+                grid_y = (contactpad[1] - self.block3_shift[1]) // self.contactpad_unit
                 self.grids3[grid_x][grid_y] = Grid(contactpad[0], contactpad[1], grid_x, grid_y, -1)
 
     def point_distance_line(self, _point, _line_point1, _line_point2):
@@ -90,10 +89,10 @@ class Mesh():
             a += s
         return points
 
-    def cal_distance(self, p1, p2):
+    def cal_distance(self, p1: list, p2: list):
         return math.sqrt(math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2))
 
-    def find_short_grid(self, grid, grid_p, elec_p):
+    def find_short_grid(self, grid: List[List[Grid]], grid_p: list, elec_p: list):
         p1 = [grid[grid_p[0]][grid_p[1]].real_x, grid[grid_p[0]][grid_p[1]].real_y]
         p2 = [grid[grid_p[0]+1][grid_p[1]].real_x, grid[grid_p[0]+1][grid_p[1]].real_y]
         p3 = [grid[grid_p[0]+1][grid_p[1]+1].real_x, grid[grid_p[0]+1][grid_p[1]+1].real_y]
@@ -112,7 +111,7 @@ class Mesh():
         else:
             return [grid_p[0], grid_p[1]+1]
 
-    def find_short_grid_external(self, grid, grid_p, elec_p, poly_ps):
+    def find_short_grid_external(self, grid: List[List[Grid]], grid_p: list, elec_p: list, poly_ps: list):
         grid_ps = []
         p1 = [grid[grid_p[0]][grid_p[1]].real_x, grid[grid_p[0]][grid_p[1]].real_y]
         p2 = [grid[grid_p[0]+1][grid_p[1]].real_x, grid[grid_p[0]+1][grid_p[1]].real_y]
@@ -128,29 +127,25 @@ class Mesh():
             grid_ps.append([grid_p[0], grid_p[1]+1])
         return self.find_short_grid_from_points(grid, grid_ps, elec_p)
 
-    def find_short_grid_internal(self, grid, grid_p, elec_p, poly_ps, conflict_p=[-1, -1]):
+    def find_short_grid_internal(self, grid: List[List[Grid]], grid_p: list, elec_p: list, poly_ps: list, conflict_p=[-1, -1]):
         grid_ps = []
         p1 = [grid[grid_p[0]][grid_p[1]].real_x, grid[grid_p[0]][grid_p[1]].real_y]
         p2 = [grid[grid_p[0]+1][grid_p[1]].real_x, grid[grid_p[0]+1][grid_p[1]].real_y]
         p3 = [grid[grid_p[0]+1][grid_p[1]+1].real_x, grid[grid_p[0]+1][grid_p[1]+1].real_y]
         p4 = [grid[grid_p[0]][grid_p[1]+1].real_x, grid[grid_p[0]][grid_p[1]+1].real_y]
         if self.is_poi_with_in_poly(p1, poly_ps):
-            # if conflict_p[0] != grid_p[0] and conflict_p[1] != grid_p[1]:
             grid_ps.append([grid_p[0], grid_p[1]])
         if self.is_poi_with_in_poly(p2, poly_ps):
-            # if conflict_p[0] != grid_p[0]+1 and conflict_p[1] != grid_p[1]:
             grid_ps.append([grid_p[0]+1, grid_p[1]])
         if self.is_poi_with_in_poly(p3, poly_ps):
-            # if conflict_p[0] != grid_p[0]+1 and conflict_p[1] != grid_p[1]+1:
             grid_ps.append([grid_p[0]+1, grid_p[1]+1])
         if self.is_poi_with_in_poly(p4, poly_ps):
-            # if conflict_p[0] != grid_p[0] and conflict_p[1] != grid_p[1]+1:
             grid_ps.append([grid_p[0], grid_p[1]+1])
         return self.find_short_grid_from_points(grid, grid_ps, elec_p)
 
-    def find_short_grid_from_points(self, grid, grid_ps, elec_p):
+    def find_short_grid_from_points(self, grid: List[List[Grid]], grid_point_list: list, elec_p: list):
         ps = []
-        for grid_p in grid_ps:
+        for grid_p in grid_point_list:
             ps.append([grid[grid_p[0]][grid_p[1]].real_x, grid[grid_p[0]][grid_p[1]].real_y])
         dis = []
         for p in ps:
@@ -158,11 +153,11 @@ class Mesh():
         if len(dis) > 0:
             short_p = min(dis)
             index = dis.index(short_p)
-            return grid_ps[index]
+            return grid_point_list[index]
         else:
             return [0, 0]
 
-    def is_ray_intersects_segment(self, poi, s_poi, e_poi):  # [x,y] [lng,lat]
+    def is_ray_intersects_segment(self, poi: list, s_poi: list, e_poi: list):  # [x,y] [lng,lat]
         # 輸入：判斷點，邊起點，邊終點，都是[lng,lat]格式陣列
         if s_poi[1] == e_poi[1]:  # 排除與射線平行、重合，線段首尾端點重合的情況
             return False
@@ -182,7 +177,7 @@ class Mesh():
             return False
         return True  # 排除上述情況之後
 
-    def is_poi_with_in_poly(self, poi, poly):
+    def is_poi_with_in_poly(self, poi: list, poly: list):
         # 輸入：點，多邊形二維陣列
         # poly=[[x1,y1],[x2,y2],……,[xn,yn],[x1,y1]] 二維陣列
         sinsc = 0  # 交點個數
@@ -225,8 +220,8 @@ class Mesh():
                 self.grids4[i][j] = Grid(i * self.tile_unit + self.block2_shift[0], j * self.tile_unit + self.block2_shift[1], i, j, 0)
 
     def create_grid_pad(self):
-        self.create_block(self.grids1_length[0], self.grids1_length[1], self.grids1, self.tiles1, self.block1_shift, self.control_pad_unit)
-        self.create_block(self.grids3_length[0], self.grids3_length[1], self.grids3, self.tiles3, self.block3_shift, self.control_pad_unit)
+        self.create_block(self.grids1_length[0], self.grids1_length[1], self.grids1, self.tiles1, self.block1_shift, self.contactpad_unit)
+        self.create_block(self.grids3_length[0], self.grids3_length[1], self.grids3, self.tiles3, self.block3_shift, self.contactpad_unit)
         # pogo pins
         # self.grids1[7,-1].special=True # need lock
         # self.grids1[15,-1].special=True
@@ -247,16 +242,16 @@ class Mesh():
                 thub_real_x2 = self.block1_shift[0]+(i//3)*2540+1160+((i+1) % 3-1)*220
                 thub_grid_x1 = (thub_real_x1-self.block2_shift[0])//self.tile_unit
                 thub_grid_x2 = (thub_real_x2-self.block2_shift[0])//self.tile_unit
-                thub_tile_x1 = (thub_real_x1-self.block1_shift[0])//self.control_pad_unit
-                thub_tile_x2 = (thub_real_x1-self.block1_shift[0])//self.control_pad_unit+1
+                thub_tile_x1 = (thub_real_x1-self.block1_shift[0])//self.contactpad_unit
+                thub_tile_x2 = (thub_real_x1-self.block1_shift[0])//self.contactpad_unit+1
                 if thub_grid_x1 != thub_grid_x2:
-                    if abs((thub_grid_x1*self.tile_unit+self.block2_shift[0])-(thub_tile_x1*self.control_pad_unit+self.block1_shift[0])) < 950:
+                    if abs((thub_grid_x1*self.tile_unit+self.block2_shift[0])-(thub_tile_x1*self.contactpad_unit+self.block1_shift[0])) < 950:
                         thub_grid_x1 += 1
                         thub_grid_x2 += 1
-                    elif abs((thub_grid_x2*self.tile_unit+self.block2_shift[0])-(thub_tile_x2*self.control_pad_unit+self.block1_shift[0])) < 950:
+                    elif abs((thub_grid_x2*self.tile_unit+self.block2_shift[0])-(thub_tile_x2*self.contactpad_unit+self.block1_shift[0])) < 950:
                         thub_grid_x1 -= 1
                         thub_grid_x2 -= 1
-                if abs((thub_grid_x1*self.tile_unit+self.block2_shift[0])-(thub_tile_x1*self.control_pad_unit+self.block1_shift[0])) < 1000 or abs(((thub_grid_x1+1)*self.tile_unit+self.block2_shift[0])-((thub_tile_x1+1)*self.control_pad_unit+self.block1_shift[0])) < 1000:
+                if abs((thub_grid_x1*self.tile_unit+self.block2_shift[0])-(thub_tile_x1*self.contactpad_unit+self.block1_shift[0])) < 1000 or abs(((thub_grid_x1+1)*self.tile_unit+self.block2_shift[0])-((thub_tile_x1+1)*self.contactpad_unit+self.block1_shift[0])) < 1000:
                     self.hubs1[i] = Hub(real_x=self.block1_shift[0]+(i//3)*2540+1160+(i % 3-1)*220, real_y=self.hubs1_y, type=1, hub_index=i)
                     self.hubs3[i] = Hub(real_x=self.block1_shift[0]+(i//3)*2540+1160+(i % 3-1)*220, real_y=self.hubs3_y, type=1, hub_index=i)
                     i += 1

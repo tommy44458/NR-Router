@@ -159,3 +159,19 @@ def wire_offset_table():
     }
 
     return table, dia
+
+
+def direct_table():
+    dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
+    table = {
+        (0.0, -1.0): 'up',
+        (-dia, -dia): 'right-up',
+        (-1.0, 0.0): 'right',
+        (-dia, dia): 'right-down',
+        (0.0, 1.0): 'down',
+        (dia, dia): 'left-down',
+        (1.0, 0.0): 'left',
+        (dia, -dia): 'left-up',
+        None: None
+    }
+    return table
