@@ -3,7 +3,7 @@ from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import os
 from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
-from math import atan2,degrees
+from math import atan2, degrees
 
 from electrode import Electrode
 
@@ -14,8 +14,9 @@ try:
 except:
     __location__ = '/Users/tommy/Documents/tommy/nr-router'
 
+
 class Chip():
-    def __init__(self, ewd_name: str, ewd_content = None):
+    def __init__(self, ewd_name: str, ewd_content=None):
         self.ewd_name = ewd_name
         self.ewd_content = ewd_content
         self.ewd_config_end = 0
@@ -23,8 +24,10 @@ class Chip():
         self.electrode_shape_library = {}
         self.electrode_shape_count = 0
 
-        self.contactpad_list = []
-        self.electrode_list = []
+        # contactpad_list = [[x, y], etc.]
+        self.contactpad_list: List[list] = []
+        # electrode_list = [[shape, x, y], etc.]
+        self.electrode_list: List[list] = []
 
     def setup(self):
         if self.ewd_content is None:
@@ -52,11 +55,11 @@ class Chip():
             elif len(line.split()) > 1 and line.split()[1] == "path":
                 shape_name = line.split()[0]
                 shape_scope = []
-                for i in range(2,len(line.split())-1,2):
-                    t_x=int(line.split()[i][1:])
-                    t_y=int(line.split()[i+1])
-                    shape_scope.append((t_x,t_y))
-                shape_scope.append((int(line.split()[2][1:]),int(line.split()[3])))
+                for i in range(2, len(line.split())-1, 2):
+                    t_x = int(line.split()[i][1:])
+                    t_y = int(line.split()[i+1])
+                    shape_scope.append((t_x, t_y))
+                shape_scope.append((int(line.split()[2][1:]), int(line.split()[3])))
 
                 self.electrode_shape_library[shape_name] = shape_scope
         self.electrode_shape_count = len(self.electrode_shape_library.keys())
@@ -68,9 +71,9 @@ class Chip():
                 break
             true_x = int(float(line.split()[1]))
             true_y = int(float(line.split()[2]))
-            ## 	contact pad
-            if line.split()[0] == "contactpad":	
+            # contact pad
+            if line.split()[0] == "contactpad":
                 self.contactpad_list.append([true_x, true_y])
-            ## electrodes
+            # electrodes
             elif line.split()[0] in self.electrode_shape_library:
                 self.electrode_list.append([line.split()[0], true_x, true_y])

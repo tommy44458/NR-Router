@@ -1,3 +1,4 @@
+from ezdxf.entities import Hatch
 import sys
 import os
 from ezdxf.addons import r12writer
@@ -40,10 +41,15 @@ control_pad_unit = 2540
 tile_unit = int((regular_line_width + 5) * 1.414) + 1  # (line width) 200 + (spacing) 115
 if tile_unit < 150:
     tile_unit = 150
+
+# contact section
+# x: 0~(32 * contact_pad_unit)
+# y: 0~(3 * contact_pad_unit), 56896~(56896 + 3 * contact_pad_unit)
+
 # top down dot field dot
-block1_shift = (-3000 + 18000 % control_pad_unit, -17745 + 17745 % control_pad_unit)
-block2_shift = (-3000, 9258)
-block3_shift = (-3000 + 18000 % control_pad_unit, 56896)
+block1_shift = (0, 0)  # (-3000 + 18000 % control_pad_unit, -17745 + 17745 % control_pad_unit)
+block2_shift = (0, 9258)  # (-3000, 9258)
+block3_shift = (0, 56896)  # (-3000 + 18000 % control_pad_unit, 56896)
 # Grid_x = 317
 # Grid_y = 127
 grids1_length = ((100000 - 18000 - block1_shift[0]) // control_pad_unit + 1, (7620 - block1_shift[1]) // control_pad_unit + 1)
@@ -126,8 +132,8 @@ _mcmf.get_path()
 print('mcmf:', time.time() - c_time)
 
 c_time = time.time()
-_draw = Draw(_mcmf.mim_cost_max_flow_solver, _mcmf.min_cost_flow, _mesh.block2_shift,
-             _mesh.tile_unit, _mcmf.electrode_wire, regular_line_width, 2.5)
+_draw = Draw(_mcmf.mim_cost_max_flow_solver, _mcmf.min_cost_flow, _mesh.block1_shift, _mesh.block2_shift,
+             _mesh.block2_shift, _mesh.tile_unit, _mesh.control_pad_unit, _mcmf.electrode_wire, regular_line_width, 2.5)
 
 doc = ezdxf.new(dxfversion='R2010')
 doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
@@ -143,7 +149,8 @@ dxf2 = hatch2.paths
 dxf3 = hatch3.paths
 dxf4 = hatch4.paths
 
-_draw.draw_contact_pads(_mesh.contactpads, msp)
+
+_draw.draw_contact_pad(_mesh.contactpads, msp)
 _draw.draw_all_path(msp, _mesh.grids2)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 # _draw.draw_grid(block1_shift[0], block1_shift[1], control_pad_unit, grids1_length[0], grids1_length[1], msp)

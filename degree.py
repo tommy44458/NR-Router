@@ -44,7 +44,7 @@ class Degree():
         return int((deg+405) % 360)
 
 
-def fill_degree_table():
+def wire_offset_table():
     dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
     """
         from up -> right -> down -> left

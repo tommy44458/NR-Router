@@ -2,17 +2,22 @@ import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 from ortools.graph.pywrapgraph import SimpleMinCostFlow
 from ezdxf.addons.r12writer import R12FastStreamWriter
+from ezdxf.document import Modelspace
+from ezdxf.entities import BoundaryPaths
+from ezdxf.path import from_hatch_boundary_path
 from math import atan2, degrees
 
 from wire import Wire
+from grid import Grid
 
-from degree import Degree, fill_degree_table
+from degree import Degree, wire_offset_table
 from electrode import Electrode
 
 
 class Draw():
     def __init__(self, mim_cost_max_flow_solver: SimpleMinCostFlow.SolveMaxFlowWithMinCost, min_cost_flow: SimpleMinCostFlow,
-                 mid_block_shift: list, tile_unit: int, routing_wire: List[List[Wire]], regular_width: float, mini_width: float):
+                 top_block_shift: list, mid_block_shift: list, down_block_shift: list, tile_unit: int,
+                 control_pad_unit: int, routing_wire: List[List[Wire]], wire_width: float, mini_wire_width: float):
         # mcmf
         self.mim_cost_max_flow_solver = mim_cost_max_flow_solver
         self.min_cost_flow = min_cost_flow
@@ -21,14 +26,17 @@ class Draw():
         self.routing_wire = routing_wire
 
         # chip config
+        self.top_block_shift = top_block_shift
         self.mid_block_shift = mid_block_shift
+        self.down_block_shift = down_block_shift
         self.tile_unit = tile_unit
-        self.mini_width = mini_width
-        self.regular_width = regular_width / 2
+        self.control_pad_unit = control_pad_unit
+        self.mini_width = mini_wire_width
+        self.regular_width = wire_width / 2
         self.line_buffer = self.regular_width * 0.0
 
         # wire config
-        self.fill_degree_table, self.dia = fill_degree_table()
+        self.wire_offset_table, self.dia = wire_offset_table()
         self.regular_tan_offset = 0.41421356237 * self.regular_width
         self.mini_tan_offset = 0.41421356237 * self.mini_width
         # ang(45)
@@ -47,7 +55,7 @@ class Draw():
         vertex_left.extend(vertex_right)
         return vertex_left
 
-    def draw_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width: float, dxf: R12FastStreamWriter):
+    def draw_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width: float, dxf: Modelspace):
         # get current wire start and end
         start_point = [wire.start_x, wire.start_y]
         end_point = [wire.end_x, wire.end_y]
@@ -85,7 +93,8 @@ class Draw():
 
         wire_start = [start_point[0], start_point[1], start_point[0], start_point[1]]
 
-        start_offset = self.fill_degree_table.get(degree_previous_start, {}).get(degree_start_end, None)
+        # get offset table
+        start_offset = self.wire_offset_table.get(degree_previous_start, {}).get(degree_start_end, None)
         if start_offset is not None:
             for i in range(4):
                 if start_offset[i] == 1:
@@ -103,7 +112,7 @@ class Draw():
 
         wire_end = [end_point[0], end_point[1], end_point[0], end_point[1]]
 
-        end_offset = self.fill_degree_table.get(degree_start_end, {}).get(degree_end_next, None)
+        end_offset = self.wire_offset_table.get(degree_start_end, {}).get(degree_end_next, None)
         if end_offset is not None:
             for i in range(4):
                 if end_offset[i] == 1:
@@ -119,18 +128,15 @@ class Draw():
                 elif end_offset[i] == -3:
                     wire_end[i] -= dia_offset
 
-        # if start_offset is None:
-            # print('**', degree_previous_start, degree_start_end, degree_end_next)
-
         vertex = [[wire_start[0], -wire_start[1]], [wire_start[2], -wire_start[3]], [wire_end[0], -wire_end[1]], [wire_end[2], -wire_end[3]]]
         vertex_order = self.order_vertex(vertex)
         dxf.add_solid(vertex_order)
 
-    def draw_contact_pads(self, contactpads, dxf):
-        for i in range(len(contactpads)):
-            dxf.add_circle(center=(contactpads[i][0], -contactpads[i][1]), radius=750.0)
+    def draw_contact_pad(self, contactpad_list: List[list], dxf: Modelspace):
+        for pad in contactpad_list:
+            dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)
 
-    def draw_electrodes(self, electrodes: list, shape_lib: dict, dxf):
+    def draw_electrodes(self, electrodes: List[list], shape_lib: dict, dxf: Modelspace):
         for elec in electrodes:
             shape = elec[0]
             x = elec[1]
@@ -140,15 +146,15 @@ class Draw():
                 vertex_order.append((x + shape_p[0], y - shape_p[1]))
             dxf.add_polyline2d(vertex_order, close=True)
 
-    def draw_grid(self, start_x, start_y, unit_length, grids_x, grids_y, dxf):
+    def draw_grid(self, start_x, start_y, unit_length, grids_x, grids_y, dxf: Modelspace):
         for i in range(grids_x):
             dxf.add_line((start_x+unit_length*i, -start_y), (start_x +
-                         unit_length*i, -(start_y+unit_length*(grids_y-1))))
+                                                             unit_length*i, -(start_y+unit_length*(grids_y-1))))
         for i in range(grids_y):
             dxf.add_line((start_x, -(start_y+unit_length*i)),
                          (start_x+unit_length*(grids_x-1), -(start_y+unit_length*i)))
 
-    def draw_pseudo_node(self, grids, hatch_path):
+    def draw_pseudo_node(self, grids, hatch_path: BoundaryPaths):
         width = 60
         num = 0
         for i in range(len(grids)):
@@ -160,7 +166,7 @@ class Draw():
                     num += 1
         print('grid num: ', num)
 
-    def draw_pseudo_node_corner(self, grids, hatch_path):
+    def draw_pseudo_node_corner(self, grids, hatch_path: BoundaryPaths):
         width = 60
         for i in range(len(grids)):
             for j in range(len(grids[i])):
