@@ -1,7 +1,5 @@
-import numpy as np
-import math
-import sys
-import os
+from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
+from grid import Grid
 from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
 from math import atan2, degrees
@@ -18,9 +16,9 @@ class Tile():
         self.total_flow = 0
         self.index = -1
         self.neighbor = []
-        self.corner_in = []
-        self.contact_pads = []
-        self.vertical_path = []
+        self.corner_in: List[Grid] = []
+        self.contact_pads: List[Grid] = []
+        self.vertical_path: List[Grid] = []
         self.horizontal_path = []
 
     def to_dict(self):

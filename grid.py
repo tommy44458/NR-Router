@@ -1,13 +1,6 @@
-import numpy as np
-import math
-import sys
-import os
 from enum import IntEnum
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
-from math import atan2, degrees
-
 from wire import WireDirect
+from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 
 
 class PseudoNodeType(IntEnum):
@@ -45,17 +38,18 @@ class Grid():
         self.safe_distance2 = 0
         self.neighbor_electrode = []
         # neighbor = [[grid, capacity, cost], [], etc.]
-        self.neighbor = []
+        self.neighbor: List[List[Union[Grid, int]]] = []
         self.flow = 0
         self.cost = 0
 
         # pseudo node
         self.corner = False
-        self.corner_direct: WireDirect = 0
+        self.edge_direct: WireDirect = 0
         self.pseudo_node_type: PseudoNodeType = None
         self.conflict = False
         self.inner_grid = None
         self.covered = False
+        self.close_electrode = False
 
     def to_dict(self):
         _dict = {

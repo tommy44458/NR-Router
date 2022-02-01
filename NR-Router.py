@@ -122,6 +122,7 @@ _chip.setup()
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
 _model_mesh = ModelMesh(top_section, mid_section, down_section, _pseudo_node)
 _model_mesh.get_pseudo_node()
+_model_mesh.create_pseudo_node_connection()
 
 _mesh.set_contactpad_grid(_chip.contactpad_list)
 
@@ -206,11 +207,11 @@ _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 # _draw.draw_pseudo_node_corner(_mesh.grids2, dxf2)
 # _draw.draw_pseudo_node(_mesh.grids4, dxf2)
 
-_draw.draw_pseudo_node(mid_section.grid, dxf2)
+_draw.draw_pseudo_node(mid_section.grid, dxf2, msp)
 
-_draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
-_draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
-_draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
+# _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
+# _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
+# _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
 
 doc.saveas('dwg/' + ewd_name + '.dwg')
 

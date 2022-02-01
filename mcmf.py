@@ -15,11 +15,13 @@ from hub import Hub
 from electrode import Electrode
 from wire import Wire
 from draw import Draw
+from mesh import Mesh
+from flow import Flow
 
 
 class MCMF():
 
-    def __init__(self, mesh, flow):
+    def __init__(self, mesh: Mesh, flow: Flow):
         self.mesh = mesh
         self.flow = flow
         self.start_nodes = []

@@ -1,8 +1,4 @@
-import numpy as np
 from enum import IntEnum
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
-from math import atan2, degrees
 
 
 class WireDirect(IntEnum):

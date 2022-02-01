@@ -8,7 +8,7 @@ from ezdxf.path import from_hatch_boundary_path
 from math import atan2, degrees
 
 from wire import Wire
-from grid import Grid
+from grid import Grid, GridType
 from hub import Hub
 from tile import Tile
 
@@ -156,7 +156,7 @@ class Draw():
         for i in range(gird_length[1]):
             dxf.add_line((start_point[0], -(start_point[1]+unit*i)), (start_point[0]+unit*(gird_length[0]-1), -(start_point[1]+unit*i)))
 
-    def draw_pseudo_node(self, grids: List[List[Grid]], hatch_path: BoundaryPaths):
+    def draw_pseudo_node(self, grids: List[List[Grid]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
         width = 60
         mini_width = 30
         num = 0
@@ -170,6 +170,11 @@ class Draw():
                     else:
                         hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
                     num += 1
+                elif grids[i][j].close_electrode and dxf is not None:
+                    for next_grid in grids[i][j].neighbor:
+                        # print([grids[i][j].real_x, grids[i][j].real_y], [next_grid[0].real_x, next_grid[0].real_y])
+                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
+
         print('grid num: ', num)
 
     def draw_pseudo_node_corner(self, grids: List[List[Grid]], hatch_path: BoundaryPaths):

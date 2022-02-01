@@ -8,7 +8,7 @@ from operator import itemgetter, attrgetter
 from math import atan2, degrees
 
 from degree import Degree
-from grid import Grid
+from grid import Grid, GridType
 from tile import Tile
 from hub import Hub
 from electrode import Electrode
@@ -20,7 +20,7 @@ class Flow():
 
     def __init__(self, mesh):
         self.mesh = mesh
-        self.flownodes = []
+        self.flownodes: List[Union[int, Grid, Hub, Tile, Electrode]] = []
         self.special_index = []
         self.node_index = 0
         self.global_t = Tile()
@@ -32,9 +32,9 @@ class Flow():
                 self.node_index += 1
                 self.flownodes.append(grids[i][j])
                 # add connect pad end node
-                if grids[i][j].type == -1:
+                if grids[i][j].type == GridType.CONTACTPAD:
                     self.global_t.contact_pads.append(grids[i][j])
-                elif grids[i][j].type == 0:
+                elif grids[i][j].type == GridType.GRID:
                     self.node_index += 1
                     self.flownodes.append(0)
 
@@ -73,30 +73,30 @@ class Flow():
         self.flownodes.append(self.global_t)
         self.node_index += 1
 
-    def create_tiles_path(self, tile_length, tiles, hubs, start, end, shift, all_path):
+    def create_tiles_path(self, tile_length, tiles: List[List[Tile]], hubs: List[Hub], start, end, shift, all_path: List[Wire]):
         for i in range(tile_length[0]):
             for j in range(start, end, shift):
-                for c_node in tiles[i, j].corner_in:
-                    if c_node.real_x < tiles[i, j].real_x:
-                        if tiles[i, j].flow[0] == 1:
-                            all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i, j].real_y), int(c_node.real_x), int(c_node.real_y)))
-                            tiles[i, j].flow[0] = 0
-                        elif tiles[i, j].flow[1] == 1:
-                            all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i, j].real_y), int(c_node.real_x), int(c_node.real_y)))
-                            tiles[i, j].flow[1] = 0
+                for c_node in tiles[i][j].corner_in:
+                    if c_node.real_x < tiles[i][j].real_x:
+                        if tiles[i][j].flow[0] == 1:
+                            all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i][j].real_y), int(c_node.real_x), int(c_node.real_y)))
+                            tiles[i][j].flow[0] = 0
+                        elif tiles[i][j].flow[1] == 1:
+                            all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i][j].real_y), int(c_node.real_x), int(c_node.real_y)))
+                            tiles[i][j].flow[1] = 0
                     else:
-                        if tiles[i, j].flow[1] == 1:
-                            all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i, j].real_y), int(c_node.real_x), int(c_node.real_y)))
-                            tiles[i, j].flow[1] = 0
-                        elif tiles[i, j].flow[0] == 1:
-                            all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i, j].real_y), int(c_node.real_x), int(c_node.real_y)))
-                            tiles[i, j].flow[0] = 0
-                if len(tiles[i, j].vertical_path) != 0:
-                    if tiles[i, j].flow[0] == 1:
-                        all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i, j].real_y),
-                                        int(hubs[i*3+1].real_x), int(tiles[i, j].vertical_path[0].real_y)))
-                        tiles[i, j].vertical_path[0].flow[0] = 1
-                    if tiles[i, j].flow[1] == 1:
-                        all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i, j].real_y),
-                                        int(hubs[i*3+2].real_x), int(tiles[i, j].vertical_path[0].real_y)))
-                        tiles[i, j].vertical_path[0].flow[1] = 1
+                        if tiles[i][j].flow[1] == 1:
+                            all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i][j].real_y), int(c_node.real_x), int(c_node.real_y)))
+                            tiles[i][j].flow[1] = 0
+                        elif tiles[i][j].flow[0] == 1:
+                            all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i][j].real_y), int(c_node.real_x), int(c_node.real_y)))
+                            tiles[i][j].flow[0] = 0
+                if len(tiles[i][j].vertical_path) != 0:
+                    if tiles[i][j].flow[0] == 1:
+                        all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i][j].real_y),
+                                        int(hubs[i*3+1].real_x), int(tiles[i][j].vertical_path[0].real_y)))
+                        tiles[i][j].vertical_path[0].flow[0] = 1
+                    if tiles[i][j].flow[1] == 1:
+                        all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i][j].real_y),
+                                        int(hubs[i*3+2].real_x), int(tiles[i][j].vertical_path[0].real_y)))
+                        tiles[i][j].vertical_path[0].flow[1] = 1
