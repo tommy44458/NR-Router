@@ -7,6 +7,7 @@ import os
 from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
 from math import atan2, degrees
+from wire import WireDirect
 
 
 class Degree():
@@ -164,14 +165,14 @@ def wire_offset_table():
 def direct_table():
     dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
     table = {
-        (0.0, -1.0): 'up',
-        (-dia, -dia): 'right-up',
-        (-1.0, 0.0): 'right',
-        (-dia, dia): 'right-down',
-        (0.0, 1.0): 'down',
-        (dia, dia): 'left-down',
-        (1.0, 0.0): 'left',
-        (dia, -dia): 'left-up',
+        (0.0, -1.0): WireDirect.UP,
+        (-dia, -dia): WireDirect.RIGHTUP,
+        (-1.0, 0.0): WireDirect.RIGHT,
+        (-dia, dia): WireDirect.RIGHTDOWN,
+        (0.0, 1.0): WireDirect.DOWN,
+        (dia, dia): WireDirect.LEFTDOWN,
+        (1.0, 0.0): WireDirect.LEFT,
+        (dia, -dia): WireDirect.LEFTUP,
         None: None
     }
     return table

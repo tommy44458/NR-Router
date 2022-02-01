@@ -1,10 +1,11 @@
 import numpy as np
+from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import math
 import sys
 import os
 from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
-from math import atan2,degrees
+from math import atan2, degrees
 
 from degree import Degree
 from grid import Grid
@@ -13,6 +14,7 @@ from hub import Hub
 from electrode import Electrode
 from wire import Wire
 from draw import Draw
+
 
 class Flow():
 
@@ -23,35 +25,35 @@ class Flow():
         self.node_index = 0
         self.global_t = Tile()
 
-    def create_grid_flownode(self, grids_length, grids):
+    def create_grid_flownode(self, grids_length, grids: List[List[Grid]]):
         for i in range(grids_length[0]):
             for j in range(grids_length[1]):
-                grids[i, j].index = self.node_index
+                grids[i][j].index = self.node_index
                 self.node_index += 1
-                self.flownodes.append(grids[i, j])
-                #add connect pad end node
-                if grids[i, j].type == -1:
-                    self.global_t.contact_pads.append(grids[i, j])
-                elif grids[i, j].type==0:
+                self.flownodes.append(grids[i][j])
+                # add connect pad end node
+                if grids[i][j].type == -1:
+                    self.global_t.contact_pads.append(grids[i][j])
+                elif grids[i][j].type == 0:
                     self.node_index += 1
                     self.flownodes.append(0)
 
-    def create_tile_flownode(self, tiles_length, tiles):
+    def create_tile_flownode(self, tiles_length, tiles: List[List[Tile]]):
         for i in range(tiles_length[0]):
             for j in range(tiles_length[1]):
-                tiles[i, j].index = self.node_index
+                tiles[i][j].index = self.node_index
                 self.node_index += 1
                 self.flownodes.append(tiles[i, j])
                 self.node_index += 1
                 self.flownodes.append(0)
 
-    def create_hub_flownode(self, hubs, hubs_length):
+    def create_hub_flownode(self, hubs: List[Hub], hubs_length):
         for i in range(hubs_length):
             hubs[i].index = self.node_index
             self.node_index += 1
             self.flownodes.append(hubs[i])
 
-    def create_electrode_flownode(self, electrode_list: list):
+    def create_electrode_flownode(self, electrode_list: List[Electrode]):
         for electrode in electrode_list:
             electrode.index = self.node_index
             self.node_index += 1
@@ -73,27 +75,28 @@ class Flow():
 
     def create_tiles_path(self, tile_length, tiles, hubs, start, end, shift, all_path):
         for i in range(tile_length[0]):
-            for j in range(start,end,shift):
-                for c_node in  tiles[i,j].corner_in:
-                    if c_node.real_x<tiles[i,j].real_x:
-                        if tiles[i,j].flow[0]==1:
-                            all_path.append(Wire(int(hubs[i*3+1].real_x),int(tiles[i,j].real_y),int(c_node.real_x),int(c_node.real_y)))
-                            tiles[i,j].flow[0]=0
-                        elif tiles[i,j].flow[1]==1:
-                            all_path.append(Wire(int(hubs[i*3+2].real_x),int(tiles[i,j].real_y),int(c_node.real_x),int(c_node.real_y)))
-                            tiles[i,j].flow[1]=0
+            for j in range(start, end, shift):
+                for c_node in tiles[i, j].corner_in:
+                    if c_node.real_x < tiles[i, j].real_x:
+                        if tiles[i, j].flow[0] == 1:
+                            all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i, j].real_y), int(c_node.real_x), int(c_node.real_y)))
+                            tiles[i, j].flow[0] = 0
+                        elif tiles[i, j].flow[1] == 1:
+                            all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i, j].real_y), int(c_node.real_x), int(c_node.real_y)))
+                            tiles[i, j].flow[1] = 0
                     else:
-                        if tiles[i,j].flow[1]==1:
-                            all_path.append(Wire(int(hubs[i*3+2].real_x),int(tiles[i,j].real_y),int(c_node.real_x),int(c_node.real_y)))
-                            tiles[i,j].flow[1]=0
-                        elif tiles[i,j].flow[0]==1:
-                            all_path.append(Wire(int(hubs[i*3+1].real_x),int(tiles[i,j].real_y),int(c_node.real_x),int(c_node.real_y)))
-                            tiles[i,j].flow[0]=0
-                if len(tiles[i,j].vertical_path)!=0:		
-                    if tiles[i,j].flow[0]==1:
-                        all_path.append(Wire(int(hubs[i*3+1].real_x),int(tiles[i,j].real_y),int(hubs[i*3+1].real_x),int(tiles[i,j].vertical_path[0].real_y)))
-                        tiles[i,j].vertical_path[0].flow[0]=1
-                    if tiles[i,j].flow[1]==1:
-                        all_path.append(Wire(int(hubs[i*3+2].real_x),int(tiles[i,j].real_y),int(hubs[i*3+2].real_x),int(tiles[i,j].vertical_path[0].real_y)))
-                        tiles[i,j].vertical_path[0].flow[1]=1
-    
+                        if tiles[i, j].flow[1] == 1:
+                            all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i, j].real_y), int(c_node.real_x), int(c_node.real_y)))
+                            tiles[i, j].flow[1] = 0
+                        elif tiles[i, j].flow[0] == 1:
+                            all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i, j].real_y), int(c_node.real_x), int(c_node.real_y)))
+                            tiles[i, j].flow[0] = 0
+                if len(tiles[i, j].vertical_path) != 0:
+                    if tiles[i, j].flow[0] == 1:
+                        all_path.append(Wire(int(hubs[i*3+1].real_x), int(tiles[i, j].real_y),
+                                        int(hubs[i*3+1].real_x), int(tiles[i, j].vertical_path[0].real_y)))
+                        tiles[i, j].vertical_path[0].flow[0] = 1
+                    if tiles[i, j].flow[1] == 1:
+                        all_path.append(Wire(int(hubs[i*3+2].real_x), int(tiles[i, j].real_y),
+                                        int(hubs[i*3+2].real_x), int(tiles[i, j].vertical_path[0].real_y)))
+                        tiles[i, j].vertical_path[0].flow[1] = 1

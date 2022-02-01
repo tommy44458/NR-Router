@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import os
-from grid import Grid
+from grid import Grid, GridType
 from tile import Tile
 from hub import Hub
 
@@ -19,12 +19,12 @@ class ChipSection():
         self.tile: List[List[Tile]] = []
         self.hub: List[Hub] = []
 
-    def init_grid(self):
+    def init_grid(self, grid_type=GridType.GRID):
         self.grid = []
         for i in range(self.width // self.unit + 1):
             self.grid.append([])
             for j in range(self.height // self.unit + 1):
-                self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, 0))
+                self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, grid_type))
 
     def init_tile(self):
         self.tile = []

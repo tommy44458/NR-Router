@@ -1,3 +1,4 @@
+from turtle import down
 from ezdxf.entities import Hatch
 import sys
 import os
@@ -8,7 +9,7 @@ from math import atan2, degrees
 import time
 
 from chip import Chip
-from grid import Grid
+from grid import Grid, GridType
 from tile import Tile
 from hub import Hub
 from electrode import Electrode
@@ -16,6 +17,7 @@ from wire import Wire
 from degree import Degree
 from draw import Draw
 from mesh import Mesh
+from model_mesh import ModelMesh
 from flow import Flow
 from mcmf import MCMF
 from pseudo_node import PseudoNode
@@ -56,7 +58,7 @@ mid_start_point = [-1630, 11258]
 down_start_point = [0, 56896]
 
 top_section = ChipSection(top_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit, contactpad_radius)
-top_section.init_grid()
+top_section.init_grid(GridType.CONTACTPAD)
 top_section.init_tile()
 top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.redius) // 2)
 
@@ -64,7 +66,7 @@ mid_section = ChipSection(mid_start_point, 82000, 42000, tile_unit, contactpad_r
 mid_section.init_grid()
 
 down_section = ChipSection(down_start_point,  contactpad_unit * 31, contactpad_unit * 3, contactpad_unit, contactpad_radius)
-down_section.init_grid()
+down_section.init_grid(GridType.CONTACTPAD)
 down_section.init_tile()
 down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.width) // 2)
 
@@ -118,7 +120,8 @@ _chip = Chip('test_0201.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
-_pseudo_node.internal_node()
+_model_mesh = ModelMesh(top_section, mid_section, down_section, _pseudo_node)
+_model_mesh.get_pseudo_node()
 
 _mesh.set_contactpad_grid(_chip.contactpad_list)
 

@@ -7,11 +7,20 @@ from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
 from math import atan2, degrees
 
+from wire import WireDirect
+
 
 class PseudoNodeType(IntEnum):
     INTERNAL = 0
     EXTERNAL = 1
     HUB = 2
+
+
+class GridType(IntEnum):
+    CONTACTPAD = -1
+    GRID = 0
+    PSEUDONODE = 1
+    PSEUDOHUB = 2
 
 
 class Grid():
@@ -35,15 +44,18 @@ class Grid():
         self.safe_distance = 0
         self.safe_distance2 = 0
         self.neighbor_electrode = []
+        # neighbor = [[grid, capacity, cost], [], etc.]
         self.neighbor = []
         self.flow = 0
         self.cost = 0
+
+        # pseudo node
+        self.corner = False
+        self.corner_direct: WireDirect = 0
+        self.pseudo_node_type: PseudoNodeType = None
         self.conflict = False
         self.inner_grid = None
-        self.corner = False
         self.covered = False
-
-        self.pseudo_node_type: PseudoNodeType = None
 
     def to_dict(self):
         _dict = {

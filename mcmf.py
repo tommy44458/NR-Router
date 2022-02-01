@@ -73,7 +73,7 @@ class MCMF():
                         self.start_nodes.append(node.index)
                         if type(nb_node[0]) == Grid:
                             self.end_nodes.append(nb_node[0].index+1)
-                        else:
+                        elif type(nb_node[0]) == Hub:
                             self.end_nodes.append(nb_node[0].index)
                         self.capacities.append(int(nb_node[1]))
                         self.unit_costs.append(int(nb_node[2]))

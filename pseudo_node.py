@@ -1,16 +1,10 @@
 import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-import sys
-import os
-from operator import itemgetter, attrgetter
 import math
 
-from numpy.lib.twodim_base import triu_indices_from
-
-from degree import Degree
 from grid import Grid, PseudoNodeType
-from tile import Tile
-from hub import Hub
+from wire import WireDirect
+from electrode import Electrode
 from degree import Degree, direct_table
 from electrode import Electrode
 
@@ -26,28 +20,36 @@ class PseudoNode():
 
         self.direct_table = direct_table()
 
-    # elec_p is the top-lsft point in electrode
-    # shape_p is the point by svg path
     def get_point_by_shape(self, elec_point: list, shape_point: list) -> list:
+        """
+            elec_p is the top-lsft point in electrode
+            shape_p is the point by svg path
+        """
         return [elec_point[0] + shape_point[0], elec_point[1] + shape_point[1]]
 
-    # get gird point by real point
     def get_grid_point(self, real_point: list, unit: float) -> list:
+        """
+            get gird point by real point
+        """
         return [(real_point[0] - self.start_point[0]) // unit, (real_point[1] - self.start_point[1]) // unit]
 
     def cal_distance(self, p1: list, p2: list):
         return math.sqrt(math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2))
 
-    # get gird point list by real point
     def get_grid_point_list(self, real_point: list, unit: float) -> list:
+        """
+            get gird point list by real point
+        """
         left_up = [int((real_point[0] - self.start_point[0]) // unit), int((real_point[1] - self.start_point[1]) // unit)]
         right_up = [left_up[0] + 1, left_up[1]]
         right_down = [left_up[0] + 1, left_up[1] + 1]
         left_down = [left_up[0], left_up[1] + 1]
         return [left_up, right_up, right_down, left_down]
 
-    # return angle between 2 points
     def clockwise_angle(self, v1: tuple, v2: tuple) -> float:
+        """
+            :return angle between 2 points
+        """
         x1, y1 = v1
         x2, y2 = v2
         dot = x1 * x2 + y1 * y2
@@ -56,9 +58,12 @@ class PseudoNode():
         theta = theta if theta > 0 else 2 * np.pi + theta
         return (theta * 180 / np.pi)
 
-    # set electrode info to grid
     def set_electrode_to_grid(self, point: list, elec_index: int, elec_point: list,
-                              pseudo_node_type: PseudoNodeType, corner=False):
+                              pseudo_node_type: PseudoNodeType, corner: bool = False,
+                              corner_direct: WireDirect = 0):
+        """
+            set electrode info to grid
+        """
         x = point[0]
         y = point[1]
         if self.grid[x][y].corner is False:
@@ -68,6 +73,7 @@ class PseudoNode():
             self.grid[x][y].electrode_y = elec_point[1]
             self.grid[x][y].corner = corner
             self.grid[x][y].pseudo_node_type = pseudo_node_type
+            self.grid[x][y].corner_direct = corner_direct
 
     def is_poi_with_in_poly(self, poi: list, poly: list):
         """
@@ -110,12 +116,10 @@ class PseudoNode():
             :return grid index [x, y]
         """
         grid_point_list = self.get_grid_point_list(elec_point, self.unit)
-        print(grid_point_list)
         grid_point_list_internal = []
         for g_p in grid_point_list:
             if self.is_poi_with_in_poly([self.grid[g_p[0]][g_p[1]].real_x, self.grid[g_p[0]][g_p[1]].real_y], poly_point_list):
                 grid_point_list_internal.append(g_p)
-        print(grid_point_list_internal)
         return self.find_short_grid_from_points(grid, grid_point_list_internal, elec_point)
 
     def find_short_grid_from_points(self, grid: List[List[Grid]], grid_point_list: list, elec_p: list):
@@ -136,7 +140,11 @@ class PseudoNode():
         else:
             return None
 
-    def internal_node(self):
+    def internal_node(self) -> List[Electrode]:
+        """
+            find all pseudo node for each electrode
+        """
+        ret = []
         for electrode_index, electrode in enumerate(self.electrode_list):
             if electrode[0] in self.shape_lib:
                 electrode_x = electrode[1]
@@ -149,10 +157,26 @@ class PseudoNode():
                     poly_points.append(p)
                 poly_points.append([poly_points[0][0], poly_points[0][1]])
 
+                boundary_U = electrode_y
+                boundary_D = electrode_y
+                boundary_L = electrode_x
+                boundary_R = electrode_x
+
+                new_electrode = Electrode(electrode_x, electrode_y, electrode[0], electrode_index)
+
                 # trace all poly vertex to get pseudo node
                 for j in range(len(electrode_shape_path)-1):
                     p1 = self.get_point_by_shape([electrode_x, electrode_y], electrode_shape_path[j])
                     p2 = self.get_point_by_shape([electrode_x, electrode_y], electrode_shape_path[j+1])
+
+                    if p1[0] > boundary_R:
+                        boundary_R = p1[0]
+                    if p1[0] < boundary_L:
+                        boundary_L = p1[0]
+                    if p1[1] < boundary_U:
+                        boundary_U = p1[1]
+                    if p1[1] > boundary_D:
+                        boundary_D = p1[1]
 
                     # vertex in which grid
                     grid_p1 = self.get_grid_point(p1, self.unit)
@@ -160,151 +184,39 @@ class PseudoNode():
 
                     degree_p1_p2 = Degree.getdegree(p1[0], -p1[1], p2[0], -p2[1])
 
-                    if self.direct_table[degree_p1_p2] == 'up':
+                    if self.direct_table[degree_p1_p2] == WireDirect.UP:
                         for k in range(grid_p1[1] - (grid_p2[1] + 1) + 1):
                             self.set_electrode_to_grid([grid_p1[0]+1, grid_p1[1]-k], electrode_index,
                                                        [p1[0], self.grid[grid_p1[0]+1][grid_p1[1]-k].real_y],
                                                        PseudoNodeType.INTERNAL)
-                    elif self.direct_table[degree_p1_p2] == 'right':
+                    elif self.direct_table[degree_p1_p2] == WireDirect.RIGHT:
                         for k in range(grid_p2[0] - (grid_p1[0] + 1) + 1):
                             self.set_electrode_to_grid([grid_p1[0]+1+k, grid_p1[1]+1], electrode_index,
                                                        [self.grid[grid_p1[0]+1+k][grid_p1[1]+1].real_x, p1[1]],
                                                        PseudoNodeType.INTERNAL)
-                    elif self.direct_table[degree_p1_p2] == 'down':
+                    elif self.direct_table[degree_p1_p2] == WireDirect.DOWN:
                         for k in range(grid_p2[1] - (grid_p1[1] + 1) + 1):
                             self.set_electrode_to_grid([grid_p1[0], grid_p1[1]+1+k], electrode_index,
                                                        [p1[0], self.grid[grid_p1[0]][grid_p1[1]+1+k].real_y],
                                                        PseudoNodeType.INTERNAL)
-                    elif self.direct_table[degree_p1_p2] == 'left':
+                    elif self.direct_table[degree_p1_p2] == WireDirect.LEFT:
                         for k in range(grid_p1[0] - grid_p2[0]):
                             self.set_electrode_to_grid([grid_p1[0]-k, grid_p1[1]], electrode_index,
                                                        [self.grid[grid_p1[0]-k][grid_p1[1]].real_x, p1[1]],
                                                        PseudoNodeType.INTERNAL)
                     else:
                         corner_point = [((p1[0] + p2[0]) / 2), ((p1[1] + p2[1]) / 2)]
+                        corner_direct: WireDirect = self.direct_table[degree_p1_p2]
                         grid_index = self.find_short_grid_internal(self.grid, corner_point, poly_points)
                         if grid_index is not None:
-                            print(grid_index)
                             self.set_electrode_to_grid([grid_index[0], grid_index[1]], electrode_index,
-                                                       corner_point, PseudoNodeType.INTERNAL, corner=True)
+                                                       corner_point, PseudoNodeType.INTERNAL, corner=True,
+                                                       corner_direct=corner_direct)
 
-    def external(self, elec_list, shape_lib):
-        for electrode_index, electrode in enumerate(elec_list):
-            if electrode[0] in shape_lib:
-                true_x = electrode[1]
-                true_y = electrode[2]
-                electrode_shape_path = shape_lib[electrode[0]]
-                new_electrode = Electrode(true_x, true_y, electrode[0], electrode_index)
-
-                boundary_U = true_y
-                boundary_D = true_y
-                boundary_L = true_x
-                boundary_R = true_x
-                poly_points = []
-
-                for j in range(len(electrode_shape_path)-1):
-                    x = true_x+electrode_shape_path[j][0]
-                    y = true_y+electrode_shape_path[j][1]
-                    poly_points.append([x, y])
-                poly_points.append([poly_points[0][0], poly_points[0][1]])
-
-                new_electrode.poly = poly_points
-                for j in range(len(electrode_shape_path)-1):
-                    x1 = true_x+electrode_shape_path[j][0]
-                    y1 = true_y+electrode_shape_path[j][1]
-                    x2 = true_x+electrode_shape_path[j+1][0]
-                    y2 = true_y+electrode_shape_path[j+1][1]
-                    E_grid_x1 = (x1-self.block2_shift[0]) // self.tile_unit
-                    E_grid_x2 = (x2-self.block2_shift[0]) // self.tile_unit
-                    E_grid_y1 = (y1-self.block2_shift[1]) // self.tile_unit
-                    E_grid_y2 = (y2-self.block2_shift[1]) // self.tile_unit
-
-                    ang = self.clockwise_angle([0, -1], [x2-x1, y2-y1])
-
-                    if ang % 90 == 0:
-                        # ->
-                        if ang == 90:
-                            for k in range(E_grid_x2 - (E_grid_x1 + 1) + 1):
-                                ex_dis = abs(y1 - self.grids2[E_grid_x1+1+k][E_grid_y1].real_y)
-                                ex_x = E_grid_x1+1+k
-                                ex_y = E_grid_y1
-                                in_dis = abs(y1 - self.grids4[E_grid_x1+1+k][E_grid_y1+1].real_y)
-                                if ex_dis < in_dis:
-                                    if self.grid_is_available(self.grids2, ex_x, ex_y, electrode_index):
-                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, electrode_index,
-                                                                self.grids2[E_grid_x1+1+k][E_grid_y1].real_x, y1)
-                        # | down
-                        elif ang == 180:
-                            for k in range(E_grid_y2 - (E_grid_y1 + 1) + 1):
-                                ex_dis = abs(x1 - self.grids2[E_grid_x1+1][E_grid_y1+1+k].real_x)
-                                ex_x = E_grid_x1+1
-                                ex_y = E_grid_y1+1+k
-                                in_dis = abs(x1 - self.grids4[E_grid_x1][E_grid_y1+1+k].real_x)
-                                if ex_dis < in_dis:
-                                    if self.grid_is_available(self.grids2, ex_x, ex_y, electrode_index):
-                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, electrode_index, x1,
-                                                                self.grids2[E_grid_x1+1][E_grid_y1+1+k].real_y)
-                        # <-
-                        elif ang == 270:
-                            for k in range(E_grid_x1 - E_grid_x2):
-                                ex_dis = abs(y1 - self.grids2[E_grid_x1-k][E_grid_y1+1].real_y)
-                                ex_x = E_grid_x1-k
-                                ex_y = E_grid_y1+1
-                                in_dis = abs(y1 - self.grids4[E_grid_x1-k][E_grid_y1].real_y)
-                                if ex_dis < in_dis:
-                                    if self.grid_is_available(self.grids2, ex_x, ex_y, electrode_index):
-                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, electrode_index,
-                                                                self.grids2[E_grid_x1-k][E_grid_y1+1].real_x, y1)
-                        # | up
-                        elif ang == 360:
-                            for k in range(E_grid_y1 - (E_grid_y2 + 1) + 1):
-                                ex_dis = abs(x1 - self.grids2[E_grid_x1][E_grid_y1-k].real_x)
-                                ex_x = E_grid_x1
-                                ex_y = E_grid_y1-k
-                                in_dis = abs(x1 - self.grids4[E_grid_x1+1][E_grid_y1-k].real_x)
-                                if ex_dis < in_dis:
-                                    if self.grid_is_available(self.grids2, ex_x, ex_y, electrode_index):
-                                        self.grid_set_electrode(self.grids2, ex_x, ex_y, electrode_index, x1,
-                                                                self.grids2[E_grid_x1][E_grid_y1-k].real_y)
-
-                for j in range(len(electrode_shape_path)-1):
-                    x1 = true_x+electrode_shape_path[j][0]
-                    y1 = true_y+electrode_shape_path[j][1]
-                    x2 = true_x+electrode_shape_path[j+1][0]
-                    y2 = true_y+electrode_shape_path[j+1][1]
-
-                    if x1 > boundary_R:
-                        boundary_R = x1
-                    if x1 < boundary_L:
-                        boundary_L = x1
-                    if y1 < boundary_U:
-                        boundary_U = y1
-                    if y1 > boundary_D:
-                        boundary_D = y1
-
-                    ang = self.clockwise_angle([0, -1], [x2-x1, y2-y1])
-
-                    # 有角度
-                    if ang % 90 != 0:
-                        point = [(x1 + x2) / 2, (y1 + y2) / 2]
-                        E_grid_x = int((point[0] - self.block2_shift[0]) // self.tile_unit)
-                        E_grid_y = int((point[1] - self.block2_shift[1]) // self.tile_unit)
-                        short_p = self.find_short_grid(self.grids2, [E_grid_x, E_grid_y], point)
-                        ex_x = short_p[0]
-                        ex_y = short_p[1]
-                        if self.grid_is_available(self.grids2, ex_x, ex_y, electrode_index):
-                            self.grid_set_electrode(self.grids2, ex_x, ex_y, electrode_index, point[0], point[1], True)
-                            short_p_inner = self.find_short_grid_internal(self.grids4, [E_grid_x, E_grid_y], point, poly_points)
-                            self.grid_set_electrode(self.grids4, short_p_inner[0], short_p_inner[1], electrode_index, point[0], point[1], True)
-                            self.grids2[ex_x][ex_y].inner_grid = self.grids4[short_p_inner[0]][short_p_inner[1]]
-                        else:
-                            self.grid_conflict(self.grids2, ex_x, ex_y)
-                            short_p_inner = self.find_short_grid_internal(self.grids2, [E_grid_x, E_grid_y], point, poly_points, [ex_x, ex_y])
-                            # if short_p_inner[0] != ex_x and short_p_inner[1] != ex_y:
-                            self.grid_set_electrode(self.grids2, short_p_inner[0], short_p_inner[1], electrode_index, point[0], point[1], True)
                 new_electrode.boundary_U = boundary_U
                 new_electrode.boundary_D = boundary_D
                 new_electrode.boundary_L = boundary_L
                 new_electrode.boundary_R = boundary_R
+                ret.append(new_electrode)
 
-                self.electrodes.append(new_electrode)
+        return ret
