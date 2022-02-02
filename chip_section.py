@@ -36,7 +36,7 @@ class ChipSection():
 
     def init_hub(self, y: float):
         self.hub = []
-        for i in range((self.width // self.unit) + 2 * (self.width // self.unit - 1)):
+        for i in range((self.width // self.unit) + 2 * (self.width // self.unit - 1) + 3):
             if i % 3 == 0:
                 # grid
                 self.hub.append(Hub(self.grid[i//3][0].real_x, y, 0, i))

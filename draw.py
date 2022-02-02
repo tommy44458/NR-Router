@@ -172,7 +172,9 @@ class Draw():
                     num += 1
                 elif grids[i][j].close_electrode and dxf is not None:
                     for next_grid in grids[i][j].neighbor:
-                        # print([grids[i][j].real_x, grids[i][j].real_y], [next_grid[0].real_x, next_grid[0].real_y])
+                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
+                elif grids[i][j].close_electrode is False and dxf is not None:
+                    for next_grid in grids[i][j].neighbor:
                         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
 
         print('grid num: ', num)
@@ -186,20 +188,26 @@ class Draw():
                     y = -grids[i][j].real_y
                     hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
 
-    def draw_hub(self, hub: List[Hub], hatch_path: BoundaryPaths):
+    def draw_hub(self, hub: List[Hub], hatch_path: BoundaryPaths, dxf: Modelspace = None):
         width = 60
         for i in range(len(hub)):
             x = hub[i].real_x
             y = -hub[i].real_y
             hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+            if dxf is not None:
+                for next in hub[i].neighbor:
+                    dxf.add_line([hub[i].real_x, -hub[i].real_y], [next[0].real_x, -next[0].real_y])
 
-    def draw_tile(self, tile: List[List[Tile]], hatch_path: BoundaryPaths):
+    def draw_tile(self, tile: List[List[Tile]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
         width = 60
         for i in range(len(tile)):
             for j in range(len(tile[i])):
                 x = tile[i][j].real_x
                 y = -tile[i][j].real_y
                 hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+                if dxf is not None:
+                    for next in tile[i][j].neighbor:
+                        dxf.add_line([tile[i][j].real_x, -tile[i][j].real_y], [next[0].real_x, -next[0].real_y])
 
     def draw_all_path(self, dxf, grids2):
         mim_cost_max_flow_solver = self.mim_cost_max_flow_solver

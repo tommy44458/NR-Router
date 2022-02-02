@@ -68,7 +68,7 @@ mid_section.init_grid()
 down_section = ChipSection(down_start_point,  contactpad_unit * 31, contactpad_unit * 3, contactpad_unit, contactpad_radius)
 down_section.init_grid(GridType.CONTACTPAD)
 down_section.init_tile()
-down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.width) // 2)
+down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.height) // 2)
 
 # top down dot field dot
 block1_shift = (0, 0)  # (-3000 + 18000 % contactpad_unit, -17745 + 17745 % contactpad_unit)
@@ -123,6 +123,11 @@ _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_s
 _model_mesh = ModelMesh(top_section, mid_section, down_section, _pseudo_node)
 _model_mesh.get_pseudo_node()
 _model_mesh.create_pseudo_node_connection()
+_model_mesh.create_grid_connection(mid_section.grid, mid_section.unit)
+_model_mesh.create_tile_connection(top_section.grid, top_section.tile, 'top')
+_model_mesh.create_tile_connection(down_section.grid, down_section.tile, 'down')
+_model_mesh.create_hub_connection(top_section.grid, top_section.hub, 0, -1, top_section.tile)
+_model_mesh.create_hub_connection(down_section.grid, down_section.hub, -1, 0, down_section.tile)
 
 _mesh.set_contactpad_grid(_chip.contactpad_list)
 
@@ -208,6 +213,10 @@ _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 # _draw.draw_pseudo_node(_mesh.grids4, dxf2)
 
 _draw.draw_pseudo_node(mid_section.grid, dxf2, msp)
+_draw.draw_hub(top_section.hub, dxf2, msp)
+_draw.draw_hub(down_section.hub, dxf2, msp)
+_draw.draw_tile(top_section.tile, dxf2, msp)
+_draw.draw_tile(down_section.tile, dxf2, msp)
 
 # _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
 # _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
