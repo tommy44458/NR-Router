@@ -43,7 +43,7 @@ class Flow():
             for j in range(tiles_length[1]):
                 tiles[i][j].index = self.node_index
                 self.node_index += 1
-                self.flownodes.append(tiles[i, j])
+                self.flownodes.append(tiles[i][j])
                 self.node_index += 1
                 self.flownodes.append(0)
 

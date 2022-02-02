@@ -1,10 +1,12 @@
 import numpy as np
+from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import math
 import sys
 import os
 from ezdxf.addons import r12writer
 from operator import itemgetter, attrgetter
 from math import atan2, degrees
+from grid import Grid
 
 
 class Electrode():
@@ -20,7 +22,7 @@ class Electrode():
         self.surround = 0
         self.index = -1
         self.poly: list = []
-        self.pseudo_node_set = []
+        self.pseudo_node_set: List[Grid] = []
 
     def to_dict(self):
         _dict = {

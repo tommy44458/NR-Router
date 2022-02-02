@@ -170,12 +170,12 @@ class Draw():
                     else:
                         hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
                     num += 1
-                elif grids[i][j].close_electrode and dxf is not None:
-                    for next_grid in grids[i][j].neighbor:
-                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
-                elif grids[i][j].close_electrode is False and dxf is not None:
-                    for next_grid in grids[i][j].neighbor:
-                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
+                # elif grids[i][j].close_electrode and dxf is not None:
+                #     for next_grid in grids[i][j].neighbor:
+                #         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
+                # elif grids[i][j].close_electrode is False and dxf is not None:
+                #     for next_grid in grids[i][j].neighbor:
+                #         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
 
         print('grid num: ', num)
 

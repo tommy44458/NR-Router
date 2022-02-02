@@ -19,6 +19,7 @@ from draw import Draw
 from mesh import Mesh
 from model_mesh import ModelMesh
 from flow import Flow
+from model_flow import ModelFlow
 from mcmf import MCMF
 from pseudo_node import PseudoNode
 
@@ -169,6 +170,9 @@ c_time = time.time()
 _flow = Flow(_mesh)
 _flow.create_all_flownode()
 
+_model_flow = ModelFlow(_model_mesh)
+_model_flow.create_all_flownode()
+
 print('create flow:', time.time() - c_time)
 
 c_time = time.time()
@@ -218,9 +222,9 @@ _draw.draw_hub(down_section.hub, dxf2, msp)
 _draw.draw_tile(top_section.tile, dxf2, msp)
 _draw.draw_tile(down_section.tile, dxf2, msp)
 
-# _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
-# _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
-# _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
+_draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
+_draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
+_draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
 
 doc.saveas('dwg/' + ewd_name + '.dwg')
 

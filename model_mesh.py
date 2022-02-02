@@ -31,10 +31,10 @@ class ModelMesh():
 
     def create_pseudo_node_connection(self):
         """
-            create the edge between pseudo node and grid closest electrode
+            create the edge from pseudo node to grid closest electrode
         """
         for electrode in self.electrodes:
-            for pseudo_node in electrode.pseudo_node_set:
+            for pseudo_node_index, pseudo_node in enumerate(electrode.pseudo_node_set):
                 # no closed grid
                 if pseudo_node[0] == len(self.mid_section.grid) or pseudo_node[1] == len(self.mid_section.grid[0]):
                     continue
@@ -42,6 +42,10 @@ class ModelMesh():
                     continue
 
                 pseudo_node_grid = self.mid_section.grid[pseudo_node[0]][pseudo_node[1]]
+
+                pseudo_node_grid.neighbor.append([electrode.pseudo_node_set[(pseudo_node_index + 1) % len(electrode.pseudo_node_set)], 1, 0])
+                pseudo_node_grid.neighbor.append([electrode.pseudo_node_set[pseudo_node_index - 1], 1, 0])
+
                 edge_direct = pseudo_node_grid.edge_direct
                 close_elec_grid_list: List[List[Union[Grid, int]]] = []
                 if edge_direct == WireDirect.UP:
@@ -71,66 +75,89 @@ class ModelMesh():
 
                 for close_grid in close_elec_grid_list:
                     if close_grid[0].type == GridType.GRID:
-                        close_grid[0].neighbor.append([pseudo_node_grid, close_grid[1], close_grid[2]])
+                        pseudo_node_grid.neighbor.append(close_grid)
+                        # close_grid[0].neighbor.append([pseudo_node_grid, close_grid[1], close_grid[2]])
                         close_grid[0].close_electrode = True
 
     def create_grid_connection(self, grid_array: List[List[Grid]], unit):
+        """
+            create all edge between each grid and near grid
+            # electrode-closed grid only connect to normal grid (GridType.GRID and not close_electrode)
+        """
         for grid_x, grid_col in enumerate(grid_array):
             if grid_x == 0:
                 for grid_y, grid in enumerate(grid_col):
-                    if grid_y == 0:
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
-                    elif grid_y == len(grid_col) - 1:
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
-                    else:
-                        grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
+                    if grid.type == GridType.GRID:
+                        if grid.close_electrode:
+                            for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
+                                if grid_array[grid_x+x][grid_y+y].close_electrode is False and grid_array[grid_x+x][grid_y+y].type == GridType.GRID:
+                                    grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                        else:
+                            if grid_y == 0:
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
+                            elif grid_y == len(grid_col) - 1:
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
+                            else:
+                                grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
             elif grid_x == len(grid_array) - 1:
                 for grid_y, grid in enumerate(grid_col):
-                    if grid_y == 0:
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
-                    elif grid_y == len(grid_col) - 1:
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
-                    else:
-                        grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
+                    if grid.type == GridType.GRID:
+                        if grid.close_electrode:
+                            for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
+                                if grid_array[grid_x+x][grid_y+y].close_electrode is False and grid_array[grid_x+x][grid_y+y].type == GridType.GRID:
+                                    grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                        else:
+                            if grid_y == 0:
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
+                            elif grid_y == len(grid_col) - 1:
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
+                            else:
+                                grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
             else:
                 for grid_y, grid in enumerate(grid_col):
-                    if grid_y == 0:
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
-                    elif grid_y == len(grid_col) - 1:
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
-                    else:
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5])
-                        grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
-                        grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
+                    if grid.type == GridType.GRID:
+                        if grid.close_electrode:
+                            for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
+                                if grid_array[grid_x+x][grid_y+y].close_electrode is False and grid_array[grid_x+x][grid_y+y].type == GridType.GRID:
+                                    grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                        else:
+                            if grid_y == 0:
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
+                            elif grid_y == len(grid_col) - 1:
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
+                            else:
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5])
+                                grid.neighbor.append([grid_array[grid_x][grid_y + 1], 1, unit])
+                                grid.neighbor.append([grid_array[grid_x][grid_y - 1], 1, unit])
 
     def create_tile_connection(self, grid_array: List[List[Grid]], tile_array: List[List[Tile]], block: str):
         """
@@ -171,27 +198,25 @@ class ModelMesh():
             mid_grid connect to hub, hub connect to tile
         """
         mid_grid_array: List[List[Grid]] = self.mid_section.grid
-        mid_grid_unit: float = self.mid_section.unit
         for i in range(len(hub_array)):
-            left = int((hub_array[i].real_x-self.top_section.start_point[0]) // mid_grid_unit)
-            right = int((hub_array[i].real_x-self.top_section.start_point[0]) // mid_grid_unit+1)
             if i % 3 == 0:
-                if (hub_array[i].real_x - mid_grid_array[left][mid_n].real_x) > (mid_grid_unit/2):
-                    near = right
-                else:
-                    near = left
                 if grid_array[i//3][tile_n].special == False:
-                    mid_grid_array[near][mid_n].neighbor.append([hub_array[i], 1, 1819])
                     hub_array[i].neighbor.append([grid_array[i//3][tile_n], 1, 1819])
             elif i % 3 == 1:
-                if abs(mid_grid_array[right][mid_n].real_x - hub_array[i].real_x) > abs(mid_grid_array[left][mid_n].real_x - hub_array[i].real_x):
-                    mid_grid_array[left][mid_n].neighbor.append([hub_array[i], 1, 1819])
-                else:
-                    mid_grid_array[right][mid_n].neighbor.append([hub_array[i], 1, 1819])
                 hub_array[i].neighbor.append([tile_array[i//3][tile_n], 1, 3117])
             else:
-                if abs(hub_array[i].real_x - mid_grid_array[left][mid_n].real_x) > abs(hub_array[i].real_x - mid_grid_array[right][mid_n].real_x):
-                    mid_grid_array[right][mid_n].neighbor.append([hub_array[i], 1, 1819])
-                else:
-                    mid_grid_array[left][mid_n].neighbor.append([hub_array[i], 1, 1819])
                 hub_array[i].neighbor.append([tile_array[i//3][tile_n], 1, 3117])
+
+        grid_index = 0
+        for i in range(len(hub_array) - 1):
+            x = (hub_array[i].real_x + hub_array[i+1].real_x) / 2
+            if grid_index < len(mid_grid_array) - 1:
+                while mid_grid_array[grid_index][mid_n].real_x < x:
+                    mid_grid_array[grid_index][mid_n].neighbor.append([hub_array[i], 1, 1819])
+                    grid_index += 1
+                    if grid_index > len(mid_grid_array) - 1:
+                        break
+
+        while grid_index < len(mid_grid_array):
+            mid_grid_array[grid_index][mid_n].neighbor.append([hub_array[-1], 1, 1819])
+            grid_index += 1

@@ -4,9 +4,6 @@ import math
 import sys
 import os
 from shapely.geometry import Polygon, Point, LinearRing
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
-from math import atan2, degrees
 from ortools.graph import pywrapgraph
 
 from degree import Degree
@@ -16,19 +13,19 @@ from hub import Hub
 from electrode import Electrode
 from wire import Wire
 from draw import Draw
-from mesh import Mesh
-from flow import Flow
+from model_mesh import ModelMesh
+from model_flow import ModelFlow
 
 
-class MCMF():
+class ModelMCMF():
 
-    def __init__(self, mesh: Mesh, flow: Flow):
+    def __init__(self, mesh: ModelMesh, flow: ModelFlow):
         self.mesh = mesh
         self.flow = flow
-        self.start_nodes = []
-        self.end_nodes = []
-        self.capacities = []
-        self.unit_costs = []
+        self.start_nodes: List[Union[Grid, Tile, Hub, Electrode]] = []
+        self.end_nodes: List[Union[Grid, Tile, Hub, Electrode]] = []
+        self.capacities: List[Union[Grid, Tile, Hub, Electrode]] = []
+        self.unit_costs: List[Union[Grid, Tile, Hub, Electrode]] = []
         self.supplies = [0 for i in range(len(self.flow.flownodes))]
         self.num_supply = 0
 
@@ -51,7 +48,7 @@ class MCMF():
                     self.start_nodes.append(node.index)
                     self.end_nodes.append(nb_node[0].index+1)
                     self.capacities.append(int(nb_node[1]))
-                    self.unit_costs.append(int(self.mesh.contactpad_unit))
+                    self.unit_costs.append(int(self.mesh.top_section.unit))
                 # add contact pads
                 for cp_node in node.contact_pads:
                     self.start_nodes.append(node.index)
@@ -80,7 +77,7 @@ class MCMF():
                             self.end_nodes.append(nb_node[0].index)
                         self.capacities.append(int(nb_node[1]))
                         self.unit_costs.append(int(nb_node[2]))
-                    if len(node.neighbor_electrode) > 0:
+                    if node.close_electrode:
                         for ne_node in node.neighbor_electrode:
                             self.start_nodes.append(self.mesh.electrodes[ne_node[0]].index)
                             self.end_nodes.append(node.index+1)
@@ -150,64 +147,11 @@ class MCMF():
                         close_point = self.get_close_point_with_poly(self.flow.flownodes[head].poly, [
                                                                      self.flow.flownodes[tail].real_x, self.flow.flownodes[tail].real_y])
                         index_list = []
-                        tmp_x = self.flow.flownodes[tail].grid_x
-                        tmp_y = self.flow.flownodes[tail].grid_y
                         for en_node in self.flow.flownodes[tail].neighbor_electrode:
                             if en_node[0] == self.flow.flownodes[head].electrode_index:
                                 index_list.append([en_node[1], en_node[2], en_node[3], en_node[4]])
                         self.all_path.append(Wire(int(close_point[0]), int(close_point[1]), int(
                             self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y)))
-                        # R_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
-                        # R_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
-                        # E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_x
-                        # E_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_y
-                        # if index_list[0][3] is True: ## only belong to ONE Electrode
-                        # Shift_x = E_x - self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
-                        # Shift_y = E_y - self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
-                        # #self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x),int(self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                        # self.all_path.append(Wire(int(E_x),int(E_y),int(self.flow.flownodes[tail].real_x+Shift_x),int(self.flow.flownodes[tail].real_y+Shift_y)))
-                        # self.all_path.append(Wire(int(self.flow.flownodes[tail].real_x+Shift_x),int(self.flow.flownodes[tail].real_y+Shift_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                        # else:
-                        #     tmp_x = self.flow.flownodes[tail].grid_x
-                        #     tmp_y = self.flow.flownodes[tail].grid_y
-                        #     # if self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid != None:
-                        #     #     R_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid.real_x
-                        #     #     R_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid.real_y
-                        #     #     E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid.electrode_x
-                        #     #     E_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid.electrode_y
-                        #     # else:
-                        #     R_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
-                        #     R_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
-                        #     E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_x
-                        #     E_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_y
-                        #     self.all_path.append(Wire(int(E_x),int(E_y),int(R_x),int(R_y)))
-                        #     self.all_path.append(Wire(int(R_x),int(R_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                        #     for nb_list in index_list:
-                        #         if nb_list[0] == 1 or nb_list[0] == 6: ## dir of electrode left-top & right-top only have ONE E
-                        #             # if self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2!=0:
-                        #             #     self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y=self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y2
-                        #             self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                        #         if nb_list[0] == 3 or nb_list[0] == 4:
-                        #             self.all_path.append(Wire(int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_x),int(self.mesh.grids2[tmp_x+nb_list[1],tmp_y+nb_list[2]].electrode_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
-                    # if type(self.flow.flownodes[head]) == Electrode and type(self.flow.flownodes[tail]) == Grid:
-                    #     index_list = []
-                    #     tmp_x = self.flow.flownodes[tail].grid_x
-                    #     tmp_y = self.flow.flownodes[tail].grid_y
-                    #     for en_node in self.flow.flownodes[tail].neighbor_electrode:
-                    #         if en_node[0] == self.flow.flownodes[head].electrode_index:
-                    #             index_list.append([en_node[1],en_node[2],en_node[3]])
-                    #     if self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid != None:
-                    #         R_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid.real_x
-                    #         R_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid.real_y
-                    #         E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid.electrode_x
-                    #         E_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].inner_grid.electrode_y
-                    #     else:
-                    #         R_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_x
-                    #         R_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].real_y
-                    #         E_x = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_x
-                    #         E_y = self.mesh.grids2[tmp_x+index_list[0][1],tmp_y+index_list[0][2]].electrode_y
-                        # self.all_path.append(Wire(int(E_x),int(E_y),int(R_x),int(R_y)))
-                        # self.all_path.append(Wire(int(R_x),int(R_y),int(self.flow.flownodes[tail].real_x),int(self.flow.flownodes[tail].real_y)))
                     elif type(self.flow.flownodes[head]) == Grid and type(self.flow.flownodes[tail]) == Grid:
                         self.all_path.append(Wire(int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y), int(
                             self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y)))
@@ -233,13 +177,15 @@ class MCMF():
                         elif self.flow.flownodes[head].tile_y == self.flow.flownodes[tail].tile_y:
                             self.flow.flownodes[head].horizontal_path.append(self.flow.flownodes[tail])
                     elif type(self.flow.flownodes[head]) == Tile and type(self.flow.flownodes[tail]) == Grid:
+                        print(self.flow.flownodes[tail].type)
                         # tile connect to contactpad
                         self.flow.flownodes[head].corner_in.append(self.flow.flownodes[tail])
 
             # -------------------
-            self.flow.create_tiles_path(self.mesh.tiles1_length, self.mesh.tiles1, self.mesh.hubs1,
-                                        self.mesh.tiles1_length[1]-1, -1, -1, self.all_path)
-            self.flow.create_tiles_path(self.mesh.tiles3_length, self.mesh.tiles3, self.mesh.hubs3, 0, self.mesh.tiles1_length[1], 1, self.all_path)
+            self.flow.create_tile_path(self.mesh.top_section.tile, self.mesh.top_section.hub,
+                                       len(self.mesh.top_section.tile[0])-1, -1, -1, self.all_path)
+            self.flow.create_tile_path(self.mesh.down_section.tile, self.mesh.down_section.hub,
+                                       0, len(self.mesh.top_section.tile[0]), 1, self.all_path)
             #print("self.all_path = ",len(self.all_path))
 
             # -------------------

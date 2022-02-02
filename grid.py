@@ -36,7 +36,7 @@ class Grid():
         self.out_y = -1
         self.safe_distance = 0
         self.safe_distance2 = 0
-        self.neighbor_electrode = []
+        self.neighbor_electrode: List[List[Union[Grid, int]]] = []
         # neighbor = [[grid, capacity, cost], [], etc.]
         self.neighbor: List[List[Union[Grid, int]]] = []
         self.flow = 0
