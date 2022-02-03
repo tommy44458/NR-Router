@@ -1,12 +1,6 @@
-import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-import math
-import sys
-import os
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
-from math import atan2, degrees
 from grid import Grid
+from wire import Wire
 
 
 class Electrode():
@@ -23,6 +17,7 @@ class Electrode():
         self.index = -1
         self.poly: list = []
         self.pseudo_node_set: List[Grid] = []
+        self.routing_wire: List[Wire] = []
 
     def to_dict(self):
         _dict = {

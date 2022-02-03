@@ -174,8 +174,9 @@ class Draw():
                 #     for next_grid in grids[i][j].neighbor:
                 #         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
                 # elif grids[i][j].close_electrode is False and dxf is not None:
-                #     for next_grid in grids[i][j].neighbor:
-                #         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
+                if dxf is not None:
+                    for next_grid in grids[i][j].neighbor:
+                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
 
         print('grid num: ', num)
 
@@ -208,6 +209,10 @@ class Draw():
                 if dxf is not None:
                     for next in tile[i][j].neighbor:
                         dxf.add_line([tile[i][j].real_x, -tile[i][j].real_y], [next[0].real_x, -next[0].real_y])
+
+    def draw_all_wire(self, wire_list: List[Wire], dxf: Modelspace):
+        for wire in wire_list:
+            dxf.add_line([wire.start_x, -wire.start_y], [wire.end_x, -wire.end_y])
 
     def draw_all_path(self, dxf, grids2):
         mim_cost_max_flow_solver = self.mim_cost_max_flow_solver

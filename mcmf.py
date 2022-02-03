@@ -36,7 +36,7 @@ class MCMF():
         self.min_cost_flow = None
 
         self.all_path: List[Wire] = []
-        self.electrode_wire = [[] for _ in range(len(mesh.electrodes))]
+        self.electrode_wire: List[List[Wire]] = [[] for _ in range(len(mesh.electrodes))]
 
     def init_structure(self):
         for node in self.flow.flownodes:

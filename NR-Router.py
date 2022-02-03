@@ -21,6 +21,7 @@ from model_mesh import ModelMesh
 from flow import Flow
 from model_flow import ModelFlow
 from mcmf import MCMF
+from model_mcmf import ModelMCMF
 from pseudo_node import PseudoNode
 
 from chip_section import ChipSection
@@ -117,7 +118,7 @@ _mesh.create_grid_pad()
 _mesh.create_hub()
 
 # read ewd file
-_chip = Chip('test_0201.ewd', ewd_input)
+_chip = Chip('test_0203.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
@@ -181,7 +182,14 @@ _mcmf = MCMF(_mesh, _flow)
 _mcmf.init_structure()
 _mcmf.solver()
 _mcmf.get_path()
-print('mcmf:', time.time() - c_time)
+print('mcmf1:', time.time() - c_time)
+c_time = time.time()
+
+_model_mcmf = ModelMCMF(_model_mesh, _model_flow)
+_model_mcmf.init_structure()
+_model_mcmf.solver()
+_model_mcmf.get_path()
+print('mcmf2:', time.time() - c_time)
 
 c_time = time.time()
 _draw = Draw(_mcmf.mim_cost_max_flow_solver, _mcmf.min_cost_flow, _mesh.block1_shift, _mesh.block2_shift,
@@ -203,7 +211,7 @@ dxf4 = hatch4.paths
 
 
 _draw.draw_contact_pad(_mesh.contactpads, msp)
-_draw.draw_all_path(msp, _mesh.grids2)
+# _draw.draw_all_path(msp, _mesh.grids2)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 # _draw.draw_grid(block1_shift, contactpad_unit, grids1_length, msp)
 # _draw.draw_grid(block2_shift, tile_unit, grids2_length, msp)
@@ -216,15 +224,17 @@ _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 # _draw.draw_pseudo_node_corner(_mesh.grids2, dxf2)
 # _draw.draw_pseudo_node(_mesh.grids4, dxf2)
 
-_draw.draw_pseudo_node(mid_section.grid, dxf2, msp)
+_draw.draw_pseudo_node(mid_section.grid, dxf2)
 _draw.draw_hub(top_section.hub, dxf2, msp)
 _draw.draw_hub(down_section.hub, dxf2, msp)
 _draw.draw_tile(top_section.tile, dxf2, msp)
 _draw.draw_tile(down_section.tile, dxf2, msp)
 
-_draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
-_draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
-_draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
+_draw.draw_all_wire(_model_mcmf.all_path, msp)
+
+# _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
+# _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
+# _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
 
 doc.saveas('dwg/' + ewd_name + '.dwg')
 

@@ -176,3 +176,22 @@ def direct_table():
         None: None
     }
     return table
+
+
+def reverse_direct(wire_direct: WireDirect):
+    if wire_direct == WireDirect.RIGHTUP:
+        return WireDirect.LEFTDOWN
+    if wire_direct == WireDirect.RIGHTDOWN:
+        return WireDirect.LEFTUP
+    if wire_direct == WireDirect.LEFTUP:
+        return WireDirect.RIGHTDOWN
+    if wire_direct == WireDirect.LEFTDOWN:
+        return WireDirect.RIGHTUP
+    if wire_direct == WireDirect.UP:
+        return WireDirect.DOWN
+    if wire_direct == WireDirect.DOWN:
+        return WireDirect.UP
+    if wire_direct == WireDirect.LEFT:
+        return WireDirect.RIGHT
+    if wire_direct == WireDirect.RIGHT:
+        return WireDirect.LEFT
