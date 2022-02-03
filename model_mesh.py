@@ -31,7 +31,7 @@ class ModelMesh():
         self.electrodes = self.pesudo_node.internal_node()
 
     def add_grid_to_neighbor(self, grid: Grid, neighbor_grid: Grid, capacity: float, cost: float):
-        if neighbor_grid.close_electrode is False:
+        if neighbor_grid.close_electrode is False and neighbor_grid.type == GridType.GRID:
             grid.neighbor.append([neighbor_grid, capacity, cost])
 
     def create_pseudo_node_connection(self):
@@ -66,19 +66,43 @@ class ModelMesh():
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit])
                 elif edge_direct == WireDirect.RIGHTUP:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit])
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]-1], 1, self.mid_section.unit*1.5])
+                    # only all near grid is pseudo node or grid need to add connection
+                    near_grid_type = (self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]].type,
+                                      self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1].type)
+                    if near_grid_type in [(GridType.PSEUDONODE, GridType.PSEUDONODE), (GridType.GRID, GridType.GRID)]:
+                        close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]-1], 1, self.mid_section.hypo_unit])
+                    else:
+                        pass
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
                 elif edge_direct == WireDirect.RIGHTDOWN:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit])
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]-1], 1, self.mid_section.unit*1.5])
+                    # only all near grid is pseudo node or grid need to add connection
+                    near_grid_type = (self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]].type,
+                                      self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1].type)
+                    if near_grid_type in [(GridType.PSEUDONODE, GridType.PSEUDONODE), (GridType.GRID, GridType.GRID)]:
+                        close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]-1], 1, self.mid_section.hypo_unit])
+                    else:
+                        pass
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit])
                 elif edge_direct == WireDirect.LEFTUP:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]+1], 1, self.mid_section.unit*1.5])
+                    # only all near grid is pseudo node or grid need to add connection
+                    near_grid_type = (self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]].type,
+                                      self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1].type)
+                    if near_grid_type in [(GridType.PSEUDONODE, GridType.PSEUDONODE), (GridType.GRID, GridType.GRID)]:
+                        close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]+1], 1, self.mid_section.hypo_unit])
+                    else:
+                        pass
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit])
                 elif edge_direct == WireDirect.LEFTDOWN:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit])
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]+1], 1, self.mid_section.unit*1.5])
+                    # only all near grid is pseudo node or grid need to add connection
+                    near_grid_type = (self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]].type,
+                                      self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1].type)
+                    if near_grid_type in [(GridType.PSEUDONODE, GridType.PSEUDONODE), (GridType.GRID, GridType.GRID)]:
+                        close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]+1], 1, self.mid_section.hypo_unit])
+                    else:
+                        pass
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit])
 
                 for close_grid in close_elec_grid_list:
@@ -90,7 +114,7 @@ class ModelMesh():
                             close_grid[0].corner = True
                             close_grid[0].edge_direct = pseudo_node_grid.edge_direct
 
-    def create_grid_connection(self, grid_array: List[List[Grid]], unit):
+    def create_grid_connection(self, grid_array: List[List[Grid]], unit, hypo_unit):
         """
             create all edge between each grid and near grid
             # electrode-closed grid only connect to normal grid (GridType.GRID and not close_electrode)
@@ -103,28 +127,32 @@ class ModelMesh():
                             # add connnection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
                                 try:
-                                    if grid_array[grid_x+x][grid_y+y].close_electrode is False and grid_array[grid_x+x][grid_y+y].type == GridType.GRID:
-                                        if grid.corner is False:
-                                            grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
-                                        elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
-                                            # keep safe distance in electrode corner => no connection have same direct with electrode corner's direct
-                                            grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                                    if abs(x + y) != 1:
+                                        _unit = hypo_unit
+                                    else:
+                                        _unit = unit
+                                    self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
+                                    # if grid.corner is False:
+                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                                    # elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
+                                    #     # keep safe distance in electrode corner => no connection have same direct with electrode corner's direct
+                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
                                 except:
                                     pass
                         else:
                             if grid_y == 0:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
                             elif grid_y == len(grid_col) - 1:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
                             else:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
             elif grid_x == len(grid_array) - 1:
                 for grid_y, grid in enumerate(grid_col):
@@ -133,28 +161,32 @@ class ModelMesh():
                             # add connnection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
                                 try:
-                                    if grid_array[grid_x+x][grid_y+y].close_electrode is False and grid_array[grid_x+x][grid_y+y].type == GridType.GRID:
-                                        if grid.corner is False:
-                                            grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
-                                        elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
-                                            # keep safe distance in electrode corner
-                                            grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                                    if abs(x + y) != 1:
+                                        _unit = hypo_unit
+                                    else:
+                                        _unit = unit
+                                    self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
+                                    # if grid.corner is False:
+                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                                    # elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
+                                    #     # keep safe distance in electrode corner
+                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
                                 except:
                                     pass
                         else:
                             if grid_y == 0:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
                             elif grid_y == len(grid_col) - 1:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
                             else:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
             else:
                 for grid_y, grid in enumerate(grid_col):
@@ -163,34 +195,38 @@ class ModelMesh():
                             # add connnection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
                                 try:
-                                    if grid_array[grid_x+x][grid_y+y].close_electrode is False and grid_array[grid_x+x][grid_y+y].type == GridType.GRID:
-                                        if grid.corner is False:
-                                            grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
-                                        elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
-                                            # keep safe distance in electrode corner
-                                            grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                                    if abs(x + y) != 1:
+                                        _unit = hypo_unit
+                                    else:
+                                        _unit = unit
+                                    self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
+                                    # if grid.corner is False:
+                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
+                                    # elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
+                                    #     # keep safe distance in electrode corner
+                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
                                 except:
                                     pass
                         else:
                             if grid_y == 0:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
                             elif grid_y == len(grid_col) - 1:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
                             else:
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, unit*1.5)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, unit*1.5)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, unit*1.5)
+                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
 

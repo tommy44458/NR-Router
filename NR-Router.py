@@ -118,14 +118,14 @@ _mesh.create_grid_pad()
 _mesh.create_hub()
 
 # read ewd file
-_chip = Chip('test_0203.ewd', ewd_input)
+_chip = Chip('test_0203_2.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
 _model_mesh = ModelMesh(top_section, mid_section, down_section, _pseudo_node)
 _model_mesh.get_pseudo_node()
 _model_mesh.create_pseudo_node_connection()
-_model_mesh.create_grid_connection(mid_section.grid, mid_section.unit)
+_model_mesh.create_grid_connection(mid_section.grid, mid_section.unit, mid_section.hypo_unit)
 _model_mesh.create_tile_connection(top_section.grid, top_section.tile, 'top')
 _model_mesh.create_tile_connection(down_section.grid, down_section.tile, 'down')
 _model_mesh.create_hub_connection(top_section.grid, top_section.hub, 0, -1, top_section.tile)
