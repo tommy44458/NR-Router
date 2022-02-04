@@ -25,18 +25,9 @@ class Grid():
         self.grid_y = grid_y
         self.electrode_x = 0
         self.electrode_y = 0
-        self.electrode_x2 = 0
-        self.electrode_y2 = 0
         self.special = False
         self.type = type  # 0 as grids in block2, 1 as electrodes, >2 as num_electrode in a grid, -1 as contact pads in block1&3, -2 as missing pin in block1&3
         self.electrode_index = -1
-        self.in_x = -1
-        self.in_y = -1
-        self.out_x = -1
-        self.out_y = -1
-        self.safe_distance = 0
-        self.safe_distance2 = 0
-        self.neighbor_electrode: List[List[Union[Grid, int]]] = []
         # neighbor = [[grid, capacity, cost], [], etc.]
         self.neighbor: List[List[Union[Grid, int]]] = []
         self.flow = 0
@@ -46,8 +37,6 @@ class Grid():
         self.corner = False
         self.edge_direct: WireDirect = 0
         self.pseudo_node_type: PseudoNodeType = None
-        self.conflict = False
-        self.inner_grid = None
         self.covered = False
         self.close_electrode = False
 
@@ -60,22 +49,12 @@ class Grid():
             'grid_y': self.grid_y,
             'electrode_x': self.electrode_x,
             'electrode_y': self.electrode_y,
-            'electrode_x2': self.electrode_x2,
-            'electrode_y2': self.electrode_y2,
             'special': self.special,
             'type': self.type,
             'electrode_index': self.electrode_index,
-            'in_x': self.in_x,
-            'in_y': self.in_y,
-            'out_x': self.out_x,
-            'out_y': self.out_y,
-            'safe_distance': self.safe_distance,
-            'safe_distance2': self.safe_distance2,
-            'neighbor_electrode': self.neighbor_electrode,
             'neighbor': self.neighbor,
             'flow': self.flow,
             'cost': self.cost,
-            'inner_grid': self.inner_grid,
             'corner': self.corner,
         }
 

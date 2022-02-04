@@ -4,6 +4,7 @@ import os
 from grid import Grid, GridType
 from tile import Tile
 from hub import Hub
+import math
 
 from electrode import Electrode
 
@@ -14,11 +15,12 @@ class ChipSection():
         self.width = width
         self.height = height
         self.unit = unit
-        self.hypo_unit = unit * 1.9
+        self.hypo_unit = 2 * unit - 1  # unit * math.sqrt(2)
         self.redius = radius
         self.grid: List[List[Grid]] = []
         self.tile: List[List[Tile]] = []
         self.hub: List[Hub] = []
+        self.hub_gap = 208
 
     def init_grid(self, grid_type=GridType.GRID):
         self.grid = []
@@ -37,11 +39,11 @@ class ChipSection():
 
     def init_hub(self, y: float):
         self.hub = []
-        for i in range((self.width // self.unit) + 2 * (self.width // self.unit - 1) + 3):
-            if i % 3 == 0:
+        for i in range((self.width // self.unit) + 4 * (self.width // self.unit - 1) + 5):
+            if i % 5 == 0:
                 # grid
-                self.hub.append(Hub(self.grid[i//3][0].real_x, y, 0, i))
+                self.hub.append(Hub(self.grid[i//5][0].real_x, y, 0, i))
             else:
                 # tile
-                offset = i % 3
-                self.hub.append(Hub(self.grid[i//3][0].real_x + offset * (self.unit / 3), y, 1, i))
+                offset = self.redius + (i % 5) * self.hub_gap
+                self.hub.append(Hub(self.grid[i//5][0].real_x + offset, y, 1, i))

@@ -25,7 +25,6 @@ class ModelMesh():
         self.num_electrode = 0
 
         self.electrodes: List[Electrode] = []
-        self.contactpads = []
 
     def get_pseudo_node(self):
         self.electrodes = self.pesudo_node.internal_node()
@@ -270,13 +269,11 @@ class ModelMesh():
         """
         mid_grid_array: List[List[Grid]] = self.mid_section.grid
         for i in range(len(hub_array)):
-            if i % 3 == 0:
-                if grid_array[i//3][tile_n].special == False:
-                    hub_array[i].neighbor.append([grid_array[i//3][tile_n], 1, 1819])
-            elif i % 3 == 1:
-                hub_array[i].neighbor.append([tile_array[i//3][tile_n], 1, 3117])
+            if i % 5 == 0:
+                if grid_array[i//5][tile_n].special == False:
+                    hub_array[i].neighbor.append([grid_array[i//5][tile_n], 1, 1819])
             else:
-                hub_array[i].neighbor.append([tile_array[i//3][tile_n], 1, 3117])
+                hub_array[i].neighbor.append([tile_array[i//5][tile_n], 1, 3117])
 
         grid_index = 0
         for i in range(len(hub_array) - 1):

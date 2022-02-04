@@ -1,10 +1,3 @@
-import numpy as np
-import math
-import sys
-import os
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
-from math import atan2,degrees
 
 class Hub():
     def __init__(self, real_x=-1, real_y=-1, type=-1, hub_index=-1):
@@ -13,7 +6,7 @@ class Hub():
         self.flow = 0
         self.index = -1
         self.hub_index = hub_index
-        self.type=type
+        self.type = type
         self.neighbor = []
 
     def to_dict(self):
@@ -26,5 +19,5 @@ class Hub():
             'type': self.type,
             'neighbor': self.neighbor,
         }
-            
+
         return _dict

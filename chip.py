@@ -1,11 +1,5 @@
-import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import os
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
-from math import atan2, degrees
-
-from electrode import Electrode
 
 
 try:
@@ -45,7 +39,7 @@ class Chip():
         return ewd_input
 
     def get_config(self):
-        content = self.ewd_content
+        content: List[str] = self.ewd_content
         for line in content:
             if line.split()[0] == "#ENDOFDEFINITION#":
                 self.ewd_config_end = content.index(line)
@@ -65,7 +59,7 @@ class Chip():
         self.electrode_shape_count = len(self.electrode_shape_library.keys())
 
     def get_position(self):
-        content = self.ewd_content[self.ewd_config_end + 1:]
+        content: List[str] = self.ewd_content[self.ewd_config_end + 1:]
         for line in content:
             if line.split()[0] == "#ENDOFLAYOUT#":
                 break

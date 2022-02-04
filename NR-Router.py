@@ -16,12 +16,9 @@ from electrode import Electrode
 from wire import Wire
 from degree import Degree
 from draw import Draw
-from mesh import Mesh
 from model_mesh import ModelMesh
-from flow import Flow
 from model_flow import ModelFlow
-from mcmf import MCMF
-from model_mcmf import ModelMCMF
+from model_min_cost_flow import ModelMinCostFlow
 from pseudo_node import PseudoNode
 
 from chip_section import ChipSection
@@ -41,15 +38,15 @@ except:
 ###start###
 ###init coordinate###
 # real ship size
-electrode_size = 2000
+electrode_size = 1000
 regular_line_width = int(electrode_size / 10)
 contactpad_unit = 2540
 contactpad_radius = 750
 # (wire width + 5) * 1.414
-# tile_unit = int(electrode_size / 5)
-tile_unit = int((regular_line_width + 5) * 1.414) + 1  # (line width) 200 + (spacing) 115
-if tile_unit < 150:
-    tile_unit = 150
+tile_unit = int(electrode_size / 5)
+# tile_unit = int((regular_line_width + 5) * 1.414) + 1  # (line width) 200 + (spacing) 115
+# if tile_unit < 150:
+#     tile_unit = 150
 
 # contact section
 # x: 0~(32 * contact_pad_unit)
@@ -72,53 +69,12 @@ down_section.init_grid(GridType.CONTACTPAD)
 down_section.init_tile()
 down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.height) // 2)
 
-# top down dot field dot
-block1_shift = (0, 0)  # (-3000 + 18000 % contactpad_unit, -17745 + 17745 % contactpad_unit)
-block2_shift = (-1630, 11258)  # (-3000, 9258)
-block3_shift = (0, 56896)  # (-3000 + 18000 % contactpad_unit, 56896)
-# Grid_x = 317
-# Grid_y = 127
-top_pad_section_width = 81280  # 100000 - 18000
-top_pad_section_height = 7620  # 7620
-
-elec_section_width = 82000  # 100000 - 18000
-elec_section_height = 42000  # 46000
-
-down_pad_section_width = 81280  # 100000 - 18000
-down_pad_section_height = 82255  # 100000 - 17745 (7620 + 40000 + 7620)
-
-grids1_length = ((top_pad_section_width - block1_shift[0]) // contactpad_unit + 1,
-                 (top_pad_section_height - block1_shift[1]) // contactpad_unit + 1)
-grids2_length = (((elec_section_width - block2_shift[0]) // tile_unit) + 1, (elec_section_height // tile_unit) + 1)
-grids3_length = ((down_pad_section_width - block3_shift[0]) // contactpad_unit + 1,
-                 (down_pad_section_height - block3_shift[1]) // contactpad_unit + 1)
-
-tiles1_length = (grids1_length[0]-1, grids1_length[1]-1)
-tiles2_length = (grids2_length[0]-1, grids2_length[1]-1)
-tiles3_length = (grids3_length[0]-1, grids3_length[1]-1)
-
-hubs1_length = 2 * tiles1_length[0] + grids1_length[0]
-hubs1_y = (block2_shift[1] + 7620 + 750) // 2
-
-hubs3_length = 2 * tiles3_length[0] + grids3_length[0]
-hubs3_y = (block3_shift[1] - 750 + tiles2_length[1] * tile_unit + block2_shift[1]) // 2
-
-# print('grid: ', grids1_length, grids2_length, grids3_length)
 c_time = time.time()
 
-_mesh = Mesh(contactpad_unit, tile_unit,
-             block1_shift, block2_shift, block3_shift,
-             grids1_length, grids2_length, grids3_length,
-             tiles1_length, tiles2_length, tiles3_length,
-             hubs1_length, hubs1_y, hubs3_length, hubs3_y)
-
 # mesh structure
-_mesh.create_grid_electrode()
-_mesh.create_grid_pad()
-_mesh.create_hub()
 
 # read ewd file
-_chip = Chip('test_0203_2.ewd', ewd_input)
+_chip = Chip('test_0203_4.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
@@ -131,69 +87,28 @@ _model_mesh.create_tile_connection(down_section.grid, down_section.tile, 'down')
 _model_mesh.create_hub_connection(top_section.grid, top_section.hub, 0, -1, top_section.tile)
 _model_mesh.create_hub_connection(down_section.grid, down_section.hub, -1, 0, down_section.tile)
 
-_mesh.set_contactpad_grid(_chip.contactpad_list)
-
-_mesh.set_grid_by_electrode_edge_internal2(_chip.electrode_list, _chip.electrode_shape_library)
-_mesh.set_grid_by_electrode_edge_opt2(_chip.electrode_list, _chip.electrode_shape_library)
-
-for i in range(len(_mesh.grids4)):
-    for j in range(len(_mesh.grids4[i])):
-        if _mesh.grids4[i, j].electrode_index >= 0 and _mesh.grids2[i, j].electrode_index < 0:
-            _mesh.grids2[i, j] = _mesh.grids4[i, j]
-
-_mesh.create_neighbor_electrodes()
-
-_mesh.set_safe_distance()
-_mesh.create_grids_connection()
-
-_mesh.create_tiles_connection(_mesh.tiles1_length, _mesh.grids1, _mesh.tiles1, block=1)
-_mesh.create_tiles_connection(_mesh.tiles3_length, _mesh.grids3, _mesh.tiles3, block=3)
-
-_mesh.create_hubs_connection(_mesh.hubs1, _mesh.hubs1_length, 0, -1, _mesh.grids1, _mesh.tiles1)
-_mesh.create_hubs_connection(_mesh.hubs3, _mesh.hubs3_length, -1, 0, _mesh.grids3, _mesh.tiles3)
-
 print('create mesh:', time.time() - c_time)
-
-# DEBUG print some grid
-# for i in range(0, len(_mesh.grids2)-1):
-#     for j in range(0, len(_mesh.grids2[i])-1):
-#         if _mesh.grids2[i][j].electrode_index in [3]:
-#             print('***\n', i, j)
-#             # if i == 116 and j == 136:
-#             #     grids2[i][j].electrode_y = 52055
-#             for item in _mesh.grids2[i][j].to_dict():
-#                 if item == 'electrode_x' or item == 'electrode_y':
-#                     print(item, _mesh.grids2[i][j].to_dict()[item])
 
 c_time = time.time()
 
 # flow nodes
-_flow = Flow(_mesh)
-_flow.create_all_flownode()
-
 _model_flow = ModelFlow(_model_mesh)
 _model_flow.create_all_flownode()
 
 print('create flow:', time.time() - c_time)
 
 c_time = time.time()
-# MCMF
-_mcmf = MCMF(_mesh, _flow)
-_mcmf.init_structure()
-_mcmf.solver()
-_mcmf.get_path()
-print('mcmf1:', time.time() - c_time)
-c_time = time.time()
-
-_model_mcmf = ModelMCMF(_model_mesh, _model_flow)
+# MinCostFlow
+_model_mcmf = ModelMinCostFlow(_model_mesh, _model_flow)
 _model_mcmf.init_structure()
+print('mcmf init:', time.time() - c_time)
 _model_mcmf.solver()
+print('mcmf solver:', time.time() - c_time)
 _model_mcmf.get_path()
-print('mcmf2:', time.time() - c_time)
+print('mcmf:', time.time() - c_time)
 
 c_time = time.time()
-_draw = Draw(_mcmf.mim_cost_max_flow_solver, _mcmf.min_cost_flow, _mesh.block1_shift, _mesh.block2_shift,
-             _mesh.block2_shift, _mesh.tile_unit, _mesh.contactpad_unit, _mcmf.electrode_wire, regular_line_width, 2.5)
+_draw = Draw(_model_mcmf.all_path, regular_line_width, 2.5)
 
 doc = ezdxf.new(dxfversion='R2010')
 doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
@@ -210,25 +125,15 @@ dxf3 = hatch3.paths
 dxf4 = hatch4.paths
 
 
-_draw.draw_contact_pad(_mesh.contactpads, msp)
+_draw.draw_contact_pad(_chip.contactpad_list, msp)
 # _draw.draw_all_path(msp, _mesh.grids2)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
-# _draw.draw_grid(block1_shift, contactpad_unit, grids1_length, msp)
-# _draw.draw_grid(block2_shift, tile_unit, grids2_length, msp)
-# _draw.draw_grid(block3_shift, contactpad_unit, grids3_length, msp)
-# _draw.draw_hub(_mesh.hubs1, dxf1)
-# _draw.draw_hub(_mesh.hubs3, dxf1)
-# _draw.draw_tile(_mesh.tiles1, dxf2)
-# _draw.draw_tile(_mesh.tiles3, dxf2)
-# _draw.draw_pseudo_node(_mesh.grids2, dxf1)
-# _draw.draw_pseudo_node_corner(_mesh.grids2, dxf2)
-# _draw.draw_pseudo_node(_mesh.grids4, dxf2)
 
 _draw.draw_pseudo_node(mid_section.grid, dxf2)
-_draw.draw_hub(top_section.hub, dxf2, msp)
-_draw.draw_hub(down_section.hub, dxf2, msp)
-_draw.draw_tile(top_section.tile, dxf2, msp)
-_draw.draw_tile(down_section.tile, dxf2, msp)
+_draw.draw_hub(top_section.hub, dxf2)
+_draw.draw_hub(down_section.hub, dxf2)
+_draw.draw_tile(top_section.tile, dxf2)
+_draw.draw_tile(down_section.tile, dxf2)
 
 _draw.draw_all_wire(_model_mcmf.all_path, msp)
 

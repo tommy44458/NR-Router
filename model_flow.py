@@ -61,43 +61,24 @@ class ModelFlow():
             self.flownodes.append(electrode)
 
     def create_all_flownode(self):
-        self.create_grid_flownode(self.mesh.top_section.grid)
+        # self.create_grid_flownode(self.mesh.top_section.grid)
+        # self.create_grid_flownode(self.mesh.mid_section.grid)
+        # self.create_grid_flownode(self.mesh.down_section.grid)
+        # self.create_tile_flownode(self.mesh.top_section.tile)
+        # self.create_tile_flownode(self.mesh.down_section.tile)
+        # self.create_hub_flownode(self.mesh.top_section.hub)
+        # self.create_hub_flownode(self.mesh.down_section.hub)
+        # self.create_electrode_flownode(self.mesh.electrodes)
+
+        self.create_electrode_flownode(self.mesh.electrodes)
         self.create_grid_flownode(self.mesh.mid_section.grid)
-        self.create_grid_flownode(self.mesh.down_section.grid)
-        self.create_tile_flownode(self.mesh.top_section.tile)
-        self.create_tile_flownode(self.mesh.down_section.tile)
         self.create_hub_flownode(self.mesh.top_section.hub)
         self.create_hub_flownode(self.mesh.down_section.hub)
-        self.create_electrode_flownode(self.mesh.electrodes)
+        self.create_tile_flownode(self.mesh.top_section.tile)
+        self.create_tile_flownode(self.mesh.down_section.tile)
+        self.create_grid_flownode(self.mesh.top_section.grid)
+        self.create_grid_flownode(self.mesh.down_section.grid)
 
         self.global_t.index = self.node_index
         self.flownodes.append(self.global_t)
         self.node_index += 1
-
-    def create_tile_path(self, tile_array: List[List[Tile]], hub_array: List[Hub], start: int, end: int, shift: int, all_path: List[Wire]):
-        for tile_x, tile_col in enumerate(tile_array):
-            for j in range(start, end, shift):
-                for c_node in tile_col[j].corner_in:
-                    if c_node.real_x < tile_col[j].real_x:
-                        if tile_col[j].flow[0] == 1:
-                            all_path.append(Wire(int(hub_array[tile_x*3+1].real_x), int(tile_col[j].real_y), int(c_node.real_x), int(c_node.real_y)))
-                            tile_col[j].flow[0] = 0
-                        elif tile_col[j].flow[1] == 1:
-                            all_path.append(Wire(int(hub_array[tile_x*3+2].real_x), int(tile_col[j].real_y), int(c_node.real_x), int(c_node.real_y)))
-                            tile_col[j].flow[1] = 0
-                    else:
-                        if tile_col[j].flow[1] == 1:
-                            all_path.append(Wire(int(hub_array[tile_x*3+2].real_x), int(tile_col[j].real_y), int(c_node.real_x), int(c_node.real_y)))
-                            tile_col[j].flow[1] = 0
-                        elif tile_col[j].flow[0] == 1:
-                            all_path.append(Wire(int(hub_array[tile_x*3+1].real_x), int(tile_col[j].real_y), int(c_node.real_x), int(c_node.real_y)))
-                            tile_col[j].flow[0] = 0
-                if len(tile_col[j].vertical_path) != 0:
-                    if tile_col[j].flow[0] == 1:
-                        all_path.append(Wire(int(hub_array[tile_x*3+1].real_x), int(tile_col[j].real_y),
-                                        int(hub_array[tile_x*3+1].real_x), int(tile_col[j].vertical_path[0].real_y)))
-                        tile_col[j].vertical_path[0].flow[0] = 1
-                    if tile_col[j].flow[1] == 1:
-                        all_path.append(Wire(int(hub_array[tile_x*3+2].real_x), int(tile_col[j].real_y),
-                                        int(hub_array[tile_x*3+2].real_x), int(tile_col[j].vertical_path[0].real_y)))
-                        tile_col[j].vertical_path[0].flow[1] = 1

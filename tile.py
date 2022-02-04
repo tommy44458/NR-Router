@@ -11,15 +11,15 @@ class Tile():
         self.real_y = real_y
         self.tile_x = tile_x
         self.tile_y = tile_y
-        self.capacity = 2
-        self.flow = [0, 0]
+        self.capacity = 4
+        self.flow: List[Tuple] = []
         self.total_flow = 0
         self.index = -1
         self.neighbor = []
-        self.corner_in: List[Grid] = []
+        self.left_pad: Grid = None
+        self.right_pad: Grid = None
+        self.next_vertical: Tile = None
         self.contact_pads: List[Grid] = []
-        self.vertical_path: List[Grid] = []
-        self.horizontal_path = []
 
     def to_dict(self):
         _dict = {
@@ -32,10 +32,7 @@ class Tile():
             'total_flow': self.total_flow,
             'index': self.index,
             'neighbor': self.neighbor,
-            'corner_in': self.corner_in,
-            'contact_pads': self.contact_pads,
-            'vertical_path': self.vertical_path,
-            'horizontal_path': self.horizontal_path,
+            'contact_pads': self.contact_pads
         }
 
         return _dict
