@@ -1,20 +1,11 @@
 from turtle import down
-from ezdxf.entities import Hatch
 import sys
-import os
-from ezdxf.addons import r12writer
 import ezdxf
-from operator import itemgetter, attrgetter
-from math import atan2, degrees
 import time
+import base64
 
 from chip import Chip
 from grid import Grid, GridType
-from tile import Tile
-from hub import Hub
-from electrode import Electrode
-from wire import Wire
-from degree import Degree
 from draw import Draw
 from model_mesh import ModelMesh
 from model_flow import ModelFlow
@@ -32,13 +23,6 @@ try:
 except:
     ewd_input = None
 
-try:
-    ewd_name = sys.argv[2]
-except:
-    ewd_name = 'mask'
-
-###start###
-###init coordinate###
 # real ship size
 electrode_size = 1000
 regular_line_width = int(electrode_size / 10)
@@ -46,9 +30,6 @@ contactpad_unit = 2540
 contactpad_radius = 750
 # (wire width + 5) * 1.414
 tile_unit = int(electrode_size / 5)
-# tile_unit = int((regular_line_width + 5) * 1.414) + 1  # (line width) 200 + (spacing) 115
-# if tile_unit < 150:
-#     tile_unit = 150
 
 # contact section
 # x: 0~(32 * contact_pad_unit)
@@ -76,7 +57,7 @@ c_time = time.time()
 # mesh structure
 
 # read ewd file
-_chip = Chip('test_0203_4.ewd', ewd_input)
+_chip = Chip('test_0205_1_2000.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
@@ -112,23 +93,22 @@ print('mcmf:', time.time() - c_time)
 c_time = time.time()
 _draw = Draw(_model_mcmf.all_path, regular_line_width, 5)
 
-doc = ezdxf.new(dxfversion='R2010')
-doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
+doc = ezdxf.new(dxfversion='AC1024')
+# doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
 msp = doc.modelspace()
-hatch = msp.add_hatch(color=7)
-hatch1 = msp.add_hatch(color=6)
-hatch2 = msp.add_hatch(color=2)
-hatch3 = msp.add_hatch(color=4)
-hatch4 = msp.add_hatch(color=5)
-dxf = hatch.paths
-dxf1 = hatch1.paths
-dxf2 = hatch2.paths
-dxf3 = hatch3.paths
-dxf4 = hatch4.paths
+# hatch = msp.add_hatch(color=7)
+# hatch1 = msp.add_hatch(color=6)
+# hatch2 = msp.add_hatch(color=2)
+# hatch3 = msp.add_hatch(color=4)
+# hatch4 = msp.add_hatch(color=5)
+# dxf = hatch.paths
+# dxf1 = hatch1.paths
+# dxf2 = hatch2.paths
+# dxf3 = hatch3.paths
+# dxf4 = hatch4.paths
 
 
 _draw.draw_contact_pad(_chip.contactpad_list, msp)
-# _draw.draw_all_path(msp, _mesh.grids2)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 
 # _draw.draw_pseudo_node(mid_section.grid, dxf2)
@@ -150,6 +130,9 @@ for electrode in _model_mesh.electrodes:
 # _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
 # _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
 
-doc.saveas('dwg/' + ewd_name + '.dwg')
+# encode_dxf = doc.encode_base64()
+# print(base64.b64decode(encode_dxf).decode())
+
+doc.saveas('dwg/' + ewd_name + '.dxf')
 
 print('draw:', time.time() - c_time)
