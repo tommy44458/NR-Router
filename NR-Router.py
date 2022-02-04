@@ -21,6 +21,8 @@ from model_flow import ModelFlow
 from model_min_cost_flow import ModelMinCostFlow
 from pseudo_node import PseudoNode
 
+from routing_wire import RoutingWire
+
 from chip_section import ChipSection
 
 ewd_input = None
@@ -135,7 +137,12 @@ _draw.draw_hub(down_section.hub, dxf2)
 _draw.draw_tile(top_section.tile, dxf2)
 _draw.draw_tile(down_section.tile, dxf2)
 
-_draw.draw_all_wire(_model_mcmf.all_path, msp)
+_ruting_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
+for i in range(10):
+    _ruting_wire.reduce_wire_turn()
+
+for electrode in _model_mesh.electrodes:
+    _draw.draw_all_wire(electrode.routing_wire, msp)
 
 # _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
 # _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
