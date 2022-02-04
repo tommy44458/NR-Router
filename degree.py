@@ -37,6 +37,9 @@ class Degree():
         return int((deg+405) % 360)
 
 
+dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
+
+
 def wire_offset_table():
     dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
     """
@@ -154,20 +157,17 @@ def wire_offset_table():
     return table, dia
 
 
-def direct_table():
-    dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
-    table = {
-        (0.0, -1.0): WireDirect.UP,
-        (-dia, -dia): WireDirect.RIGHTUP,
-        (-1.0, 0.0): WireDirect.RIGHT,
-        (-dia, dia): WireDirect.RIGHTDOWN,
-        (0.0, 1.0): WireDirect.DOWN,
-        (dia, dia): WireDirect.LEFTDOWN,
-        (1.0, 0.0): WireDirect.LEFT,
-        (dia, -dia): WireDirect.LEFTUP,
-        None: None
-    }
-    return table
+direct_table = {
+    (0.0, -1.0): WireDirect.UP,
+    (-dia, -dia): WireDirect.RIGHTUP,
+    (-1.0, 0.0): WireDirect.RIGHT,
+    (-dia, dia): WireDirect.RIGHTDOWN,
+    (0.0, 1.0): WireDirect.DOWN,
+    (dia, dia): WireDirect.LEFTDOWN,
+    (1.0, 0.0): WireDirect.LEFT,
+    (dia, -dia): WireDirect.LEFTUP,
+    None: None
+}
 
 
 def reverse_direct(wire_direct: WireDirect):

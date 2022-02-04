@@ -1,5 +1,6 @@
 from enum import IntEnum
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
+import math
 
 
 class WireDirect(IntEnum):
@@ -14,7 +15,7 @@ class WireDirect(IntEnum):
 
 
 class Wire():
-    def __init__(self, start_x=0, start_y=0, end_x=0, end_y=0, grid_list=[]):
+    def __init__(self, start_x=0, start_y=0, end_x=0, end_y=0, direct=None, grid_list=[]):
         self.start_x = start_x
         self.start_y = start_y
         self.end_x = end_x
@@ -22,6 +23,12 @@ class Wire():
         self.next = None
         self.head = 1
         self.grid_list = grid_list
+        self.direct = direct
+
+    def length(self):
+        d_x = self.end_x - self.start_x
+        d_y = self.end_y - self.start_y
+        return math.sqrt(d_x**2 + d_y**2)
 
     def to_dict(self):
         _dict = {

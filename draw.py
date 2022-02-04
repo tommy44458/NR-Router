@@ -23,7 +23,7 @@ class Draw():
         self.routing_wire = routing_wire
 
         # chip config
-        self.mini_width = mini_wire_width
+        self.mini_width = mini_wire_width / 2
         self.regular_width = wire_width / 2
         self.line_buffer = self.regular_width * 0.0
 
@@ -47,7 +47,7 @@ class Draw():
         vertex_left.extend(vertex_right)
         return vertex_left
 
-    def draw_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width: float, dxf: Modelspace):
+    def draw_path(self, previous_wire: Wire, wire: Wire, next_wire: Wire, width: float, tan: float, dia: float, dxf: Modelspace):
         # get current wire start and end
         start_point = [wire.start_x, wire.start_y]
         end_point = [wire.end_x, wire.end_y]
@@ -62,16 +62,16 @@ class Draw():
         if next_wire is not None:
             next_point = [next_wire.end_x, next_wire.end_y]
             # align to hub axis (contact pad section)
-            if abs(wire.end_y - next_wire.end_y) < abs(wire.end_x - next_wire.end_x):
-                next_point[1] = end_point[1]
-            elif abs(wire.end_y - next_wire.end_y) > abs(wire.end_x - next_wire.end_x):
-                next_point[0] = end_point[0]
+            # if abs(wire.end_y - next_wire.end_y) < abs(wire.end_x - next_wire.end_x):
+            #     next_point[1] = end_point[1]
+            # elif abs(wire.end_y - next_wire.end_y) > abs(wire.end_x - next_wire.end_x):
+            #     next_point[0] = end_point[0]
             degree_end_next = Degree.getdegree(end_point[0], end_point[1], next_point[0], next_point[1])
         else:
-            if abs(wire.end_y - wire.start_y) < abs(wire.end_x - wire.start_x):
-                end_point[1] = wire.start_y
-            elif abs(wire.end_y - wire.start_y) > abs(wire.end_x - wire.start_x):
-                end_point[0] = wire.start_x
+            # if abs(wire.end_y - wire.start_y) < abs(wire.end_x - wire.start_x):
+            #     end_point[1] = wire.start_y
+            # elif abs(wire.end_y - wire.start_y) > abs(wire.end_x - wire.start_x):
+            #     end_point[0] = wire.start_x
             degree_end_next = None
 
         # no wire need to be drow
@@ -80,8 +80,8 @@ class Draw():
 
         degree_start_end = Degree.getdegree(start_point[0], start_point[1], end_point[0], end_point[1])
 
-        tan = self.regular_tan_offset
-        dia_offset = self.regular_dia_offset
+        tan = tan
+        dia_offset = dia
 
         wire_start = [start_point[0], start_point[1], start_point[0], start_point[1]]
 
@@ -201,146 +201,17 @@ class Draw():
                         dxf.add_line([tile[i][j].real_x, -tile[i][j].real_y], [next[0].real_x, -next[0].real_y])
 
     def draw_all_wire(self, wire_list: List[Wire], dxf: Modelspace):
-        for wire in wire_list:
-            dxf.add_line([wire.start_x, -wire.start_y], [wire.end_x, -wire.end_y])
-
-    def draw_all_path(self, dxf, grids2):
-        routing_wire = self.routing_wire
-
-        for i in range(len(routing_wire)):
-            # tune path start
-            # reduce change way
-            if len(routing_wire[i]) == 0:
-                return False
-
-            if routing_wire[i][-1].start_x != routing_wire[i][-1].end_x:
-                routing_wire[i][-1].start_y = routing_wire[i][-1].end_y+np.sign(
-                    routing_wire[i][-1].start_y-routing_wire[i][-1].end_y)*abs(routing_wire[i][-1].start_x-routing_wire[i][-1].end_x)
-                routing_wire[i][-2].end_y = routing_wire[i][-1].start_y
-
-            for j in range(len(routing_wire[i])-5, len(routing_wire[i])-1):
-                if (routing_wire[i][j].start_x-routing_wire[i][j].end_x) != 0 and (routing_wire[i][j].start_y-routing_wire[i][j].end_y) != 0 and abs(routing_wire[i][j].start_x-routing_wire[i][j].end_x) != abs(routing_wire[i][j].start_y-routing_wire[i][j].end_y):
-                    #dxf.add_circle(center=(routing_wire[i][j].start_x, -routing_wire[i][j].start_y), radius = 250.0)
-                    routing_wire[i][j].end_y = routing_wire[i][j].start_y+np.sign(
-                        routing_wire[i][j].end_y-routing_wire[i][j].start_y)*abs(routing_wire[i][j+1].start_x-routing_wire[i][j].start_x)
-                if j == 1:
-                    routing_wire[i][j -
-                                    1].end_y = routing_wire[i][j].start_y
-                    routing_wire[i][j -
-                                    1].end_x = routing_wire[i][j].start_x
-                if j == len(routing_wire[i]) - 2:
-                    routing_wire[i][j +
-                                    1].start_y = routing_wire[i][j].end_y
-                    routing_wire[i][j +
-                                    1].start_x = routing_wire[i][j].end_x
-
-            for j in range(len(routing_wire[i])-7, len(routing_wire[i])-2):
-                routing_wire[i][j].end_x = routing_wire[i][j+1].start_x
-                routing_wire[i][j].end_y = routing_wire[i][j+1].start_y
-
-            # contact pad wire fix
-
-            # 讓每條線連接一起
-            # for j in range(len(routing_wire[i])-2):
-            #     routing_wire[i][j+1].start_x = routing_wire[i][j].end_x
-            #     routing_wire[i][j+1].start_y = routing_wire[i][j].end_y
-
-            # for j in range(len(routing_wire[i])-2):
-            #     if j <= len(routing_wire[i])-2:
-            #         deg1 = Degree.getdegree(routing_wire[i][j].start_x, routing_wire[i][j].start_y, routing_wire[i][j].end_x, routing_wire[i][j].end_y)
-            #         deg2 = Degree.getdegree(routing_wire[i][j+1].start_x, routing_wire[i][j+1].start_y, routing_wire[i][j+1].end_x, routing_wire[i][j+1].end_y)
-            #         if abs(deg1[0] - deg2[0]) == 1 and abs(deg1[1] - deg2[1]):
-            #             routing_wire[i][j+1].start_y = routing_wire[i][j+1].start_y - (routing_wire[i][j+1].end_x - routing_wire[i][j+1].start_x)
-            #             routing_wire[i][j].end_y = routing_wire[i][j+1].start_y
-            #             routing_wire[i][j].end_x = routing_wire[i][j+1].start_x
-
-            for j in range(1, len(routing_wire[i])-2):
-                deg = Degree.getdegree(routing_wire[i][j].start_x, routing_wire[i]
-                                       [j].start_y, routing_wire[i][j].end_x, routing_wire[i][j].end_y)
-                if abs(deg[0] - deg[1]) != 1:
-                    if abs(deg[0]) > 0.7072 or abs(deg[1]) > 0.7072:
-                        if routing_wire[i][j].end_x < routing_wire[i][j].start_x:
-                            c = 1
-                            if routing_wire[i][j].end_y > routing_wire[i][j].start_y:
-                                c = -1
-                            if j < len(routing_wire[i]) - 2 and j > 1:
-                                dis_x = routing_wire[i][j].end_x - \
-                                    routing_wire[i][j].start_x
-                                dis_y = routing_wire[i][j].end_y - \
-                                    routing_wire[i][j].start_y
-                                if routing_wire[i][j+1].start_x == routing_wire[i][j+1].end_x:
-                                    routing_wire[i][j].end_y = routing_wire[i][j].start_y + (
-                                        dis_x * c)
-                                    routing_wire[i][j +
-                                                    1].start_y = routing_wire[i][j].end_y
-                                else:
-                                    routing_wire[i][j].end_x = routing_wire[i][j].start_x + (
-                                        dis_y * c)
-                                    routing_wire[i][j +
-                                                    1].start_x = routing_wire[i][j].end_x
-
-                            if j < len(routing_wire[i]) - 2:
-                                dis_x = routing_wire[i][j].end_x - \
-                                    routing_wire[i][j].start_x
-                                dis_y = routing_wire[i][j].end_y - \
-                                    routing_wire[i][j].start_y
-                                if abs(dis_x) < abs(dis_y):
-                                    routing_wire[i][j].end_y = routing_wire[i][j].start_y + (
-                                        dis_x * c)
-                                    routing_wire[i][j +
-                                                    1].start_y = routing_wire[i][j].end_y
-                                else:
-                                    routing_wire[i][j].end_x = routing_wire[i][j].start_x + (
-                                        dis_y * c)
-                                    routing_wire[i][j +
-                                                    1].start_x = routing_wire[i][j].end_x
-                        else:
-                            c = -1
-                            if routing_wire[i][j].end_y > routing_wire[i][j].start_y:
-                                c = 1
-                            if j < len(routing_wire[i]) - 2 and j > 1:
-                                dis_x = routing_wire[i][j].end_x - \
-                                    routing_wire[i][j].start_x
-                                dis_y = routing_wire[i][j].end_y - \
-                                    routing_wire[i][j].start_y
-                                if routing_wire[i][j+1].start_x == routing_wire[i][j+1].end_x:
-                                    routing_wire[i][j].end_y = routing_wire[i][j].start_y + (
-                                        dis_x * c)
-                                    routing_wire[i][j +
-                                                    1].start_y = routing_wire[i][j].end_y
-                                else:
-                                    routing_wire[i][j].end_x = routing_wire[i][j].start_x + (
-                                        dis_y * c)
-                                    routing_wire[i][j +
-                                                    1].start_x = routing_wire[i][j].end_x
-
-                            if j < len(routing_wire[i]) - 2:
-                                dis_x = routing_wire[i][j].end_x - \
-                                    routing_wire[i][j].start_x
-                                dis_y = routing_wire[i][j].end_y - \
-                                    routing_wire[i][j].start_y
-                                if abs(dis_x) < abs(dis_y):
-                                    routing_wire[i][j].end_y = routing_wire[i][j].start_y + (
-                                        dis_x * c)
-                                    routing_wire[i][j +
-                                                    1].start_y = routing_wire[i][j].end_y
-                                else:
-                                    routing_wire[i][j].end_x = routing_wire[i][j].start_x + (
-                                        dis_y * c)
-                                    routing_wire[i][j +
-                                                    1].start_x = routing_wire[i][j].end_x
-
-            # draw path
-            draw_second = 0
-            for j in range(len(routing_wire[i])):
-                if j == 0:
-                    self.draw_path(None, routing_wire[i][j], routing_wire[i][j+1], self.regular_width, dxf)
-                    draw_second += 1
-                elif j == len(routing_wire[i])-1:
-                    self.draw_path(routing_wire[i][j-1], routing_wire[i][j], None, self.regular_width, dxf)
-                elif draw_second <= 3:
-                    self.draw_path(routing_wire[i][j-1], routing_wire[i][j], routing_wire[i][j+1], self.regular_width, dxf)
-                    draw_second += 1
-                    connect = 1
-                else:
-                    self.draw_path(routing_wire[i][j-1], routing_wire[i][j], routing_wire[i][j+1], self.regular_width, dxf)
+        # draw wire
+        for i in range(len(wire_list)):
+            if i == 0:
+                self.draw_path(None, wire_list[i], wire_list[i+1], self.mini_width, self.mini_tan_offset, self.mini_dia_offset, dxf)
+            elif i == len(wire_list) - 1:
+                self.draw_path(wire_list[i-1], wire_list[i], None, self.regular_width, self.regular_tan_offset, self.regular_dia_offset, dxf)
+            elif i < 3:
+                self.draw_path(wire_list[i-1], wire_list[i], wire_list[i+1], self.mini_width, self.mini_tan_offset, self.mini_dia_offset, dxf)
+            else:
+                self.draw_path(wire_list[i-1], wire_list[i], wire_list[i+1], self.regular_width,
+                               self.regular_tan_offset, self.regular_dia_offset, dxf)
+        # draw line
+        # for wire in wire_list:
+        #     dxf.add_line([wire.start_x, -wire.start_y], [wire.end_x, -wire.end_y])

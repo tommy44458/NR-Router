@@ -110,7 +110,7 @@ _model_mcmf.get_path()
 print('mcmf:', time.time() - c_time)
 
 c_time = time.time()
-_draw = Draw(_model_mcmf.all_path, regular_line_width, 2.5)
+_draw = Draw(_model_mcmf.all_path, regular_line_width, 5)
 
 doc = ezdxf.new(dxfversion='R2010')
 doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
@@ -131,15 +131,17 @@ _draw.draw_contact_pad(_chip.contactpad_list, msp)
 # _draw.draw_all_path(msp, _mesh.grids2)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 
-_draw.draw_pseudo_node(mid_section.grid, dxf2)
-_draw.draw_hub(top_section.hub, dxf2)
-_draw.draw_hub(down_section.hub, dxf2)
-_draw.draw_tile(top_section.tile, dxf2)
-_draw.draw_tile(down_section.tile, dxf2)
+# _draw.draw_pseudo_node(mid_section.grid, dxf2)
+# _draw.draw_hub(top_section.hub, dxf2)
+# _draw.draw_hub(down_section.hub, dxf2)
+# _draw.draw_tile(top_section.tile, dxf2)
+# _draw.draw_tile(down_section.tile, dxf2)
 
 _ruting_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
 for i in range(10):
     _ruting_wire.reduce_wire_turn()
+
+_ruting_wire.divide_start_wire()
 
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)

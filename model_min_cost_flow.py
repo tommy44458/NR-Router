@@ -1,7 +1,7 @@
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 from shapely.geometry import Polygon, Point, LinearRing
 from ortools.graph import pywrapgraph
-from degree import Degree
+from degree import Degree, direct_table
 
 from grid import Grid, GridType
 from tile import Tile
@@ -131,11 +131,11 @@ class ModelMinCostFlow():
     def register_wire_into_electrode_roting(self, start_point, end_point, grid_list: List[Grid] = []):
         electrode_index = self.electrode_routing_table.get(start_point, None)
         if electrode_index is not None:
-            wire = Wire(start_point[0], start_point[1], end_point[0], end_point[1], grid_list)
+            wire_degree = Degree.getdegree(start_point[0], -start_point[1], end_point[0], -end_point[1])
+            wire = Wire(start_point[0], start_point[1], end_point[0], end_point[1], direct_table[wire_degree], grid_list)
             if len(self.mesh.electrodes[electrode_index].routing_wire) > 0:
                 last_wire = self.mesh.electrodes[electrode_index].routing_wire[-1]
-                wire_degree = Degree.getdegree(wire.start_x, wire.start_y, wire.end_x, wire.end_y)
-                last_wire_degree = Degree.getdegree(last_wire.start_x, last_wire.start_y, last_wire.end_x, last_wire.end_y)
+                last_wire_degree = Degree.getdegree(last_wire.start_x, -last_wire.start_y, last_wire.end_x, -last_wire.end_y)
                 if wire_degree == last_wire_degree:
                     last_wire.end_x, last_wire.end_y = (wire.end_x, wire.end_y)
                     last_wire.grid_list.extend(wire.grid_list)
@@ -204,7 +204,31 @@ class ModelMinCostFlow():
                         self.flow.flownodes[head].flow = 1
                         self.flow.flownodes[tail].flow = 1
                     elif type(self.flow.flownodes[tail]) == Hub:
+                        # from grid to hub: divide to 3 wire
+                        # first: grid x, some y
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
+                        end_x, end_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y))
+                        offset = abs(start_x - int(self.flow.flownodes[tail].real_x))
+                        if offset < self.mesh.mid_section.unit:
+                            offset += self.mesh.mid_section.unit
+                        if start_y > end_y:
+                            end_y = start_y - offset
+                        else:
+                            end_y = start_y + offset
+                        register_success = self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+
+                        # second: to hub x
+                        start_x, start_y = (end_x, end_y)
+                        end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
+                        offset = abs(start_x - end_x)
+                        if start_y > end_y:
+                            end_y = start_y - offset
+                        else:
+                            end_y = start_y + offset
+                        register_success = self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+
+                        # final: to hub point
+                        start_x, start_y = (end_x, end_y)
                         end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
                         register_success = self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
                 elif type(self.flow.flownodes[head]) == Hub:
@@ -261,11 +285,21 @@ class ModelMinCostFlow():
                     _flow = tile.flow.pop(0)
                     start_x, start_y = (int(_flow[1]), int(tile.real_y))
                     end_x, end_y = (int(tile.left_pad.real_x), int(tile.left_pad.real_y))
+                    offset = abs(start_x - end_x)
+                    if start_y > end_y:
+                        end_y = start_y - offset
+                    else:
+                        end_y = start_y + offset
                     self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
                 if tile.right_pad is not None:
                     _flow = tile.flow.pop()
                     start_x, start_y = (int(_flow[1]), int(tile.real_y))
                     end_x, end_y = (int(tile.right_pad.real_x), int(tile.right_pad.real_y))
+                    offset = abs(start_x - end_x)
+                    if start_y > end_y:
+                        end_y = start_y - offset
+                    else:
+                        end_y = start_y + offset
                     self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
 
                 while tile.next_vertical is not None:
@@ -278,11 +312,21 @@ class ModelMinCostFlow():
                         _flow = tile.flow.pop(0)
                         start_x, start_y = (int(_flow[1]), int(tile.next_vertical.real_y))
                         end_x, end_y = (int(tile.next_vertical.left_pad.real_x), int(tile.next_vertical.left_pad.real_y))
+                        offset = abs(start_x - end_x)
+                        if start_y > end_y:
+                            end_y = start_y - offset
+                        else:
+                            end_y = start_y + offset
                         self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
                     if tile.next_vertical.right_pad is not None:
                         _flow = tile.flow.pop()
                         start_x, start_y = (int(_flow[1]), int(tile.next_vertical.real_y))
                         end_x, end_y = (int(tile.next_vertical.right_pad.real_x), int(tile.next_vertical.right_pad.real_y))
+                        offset = abs(start_x - end_x)
+                        if start_y > end_y:
+                            end_y = start_y - offset
+                        else:
+                            end_y = start_y + offset
                         self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
                     tile.next_vertical.flow = tile.flow
                     tile = tile.next_vertical
