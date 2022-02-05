@@ -152,9 +152,9 @@ class Draw():
                 #     for next_grid in grids[i][j].neighbor:
                 #         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
                 # elif grids[i][j].close_electrode is False and dxf is not None:
-                # if dxf is not None:
-                #     for next_grid in grids[i][j].neighbor:
-                #         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
+                if dxf is not None:
+                    for next_grid in grids[i][j].neighbor:
+                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
 
         print('grid num: ', num)
 

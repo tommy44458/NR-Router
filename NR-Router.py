@@ -77,7 +77,7 @@ c_time = time.time()
 
 # read ewd file
 # if ewd_input is None, then open local file
-_chip = Chip('test_0205_3_500.ewd', ewd_input)
+_chip = Chip('error_case2.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)

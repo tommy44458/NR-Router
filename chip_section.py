@@ -15,7 +15,7 @@ class ChipSection():
         self.width = width
         self.height = height
         self.unit = unit
-        self.hypo_unit = 2 * unit - 1  # unit * math.sqrt(2)
+        self.hypo_unit = int(unit * 2) - 1   # int(unit*2) - 1  # 2 * unit - 1  # unit * math.sqrt(2)
         self.redius = radius
         self.grid: List[List[Grid]] = []
         self.tile: List[List[Tile]] = []

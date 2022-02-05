@@ -258,6 +258,11 @@ class ModelMesh():
 
         grid_index = 0
         for i in range(len(hub_array) - 1):
+            if i == 0:
+                x = hub_array[i].real_x - self.pesudo_node.unit
+                if grid_index < len(mid_grid_array) - 1:
+                    while mid_grid_array[grid_index][mid_n].real_x < x:
+                        grid_index += 1
             x = (hub_array[i].real_x + hub_array[i+1].real_x) / 2
             if grid_index < len(mid_grid_array) - 1:
                 while mid_grid_array[grid_index][mid_n].real_x < x:
@@ -266,6 +271,8 @@ class ModelMesh():
                     if grid_index > len(mid_grid_array) - 1:
                         break
 
-        while grid_index < len(mid_grid_array):
+        last_connect_number = 0
+        while last_connect_number < 3 and grid_index < len(mid_grid_array):
             mid_grid_array[grid_index][mid_n].neighbor.append([hub_array[-1], 1, 1819])
             grid_index += 1
+            last_connect_number += 1
