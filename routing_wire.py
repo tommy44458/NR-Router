@@ -199,14 +199,16 @@ class RoutingWire():
                         i += 1
         return reduce_times
 
-    def divide_start_wire(self):
+    def divide_start_wire(self, unit_length):
         for electrode in self.electrode_list:
             wire_list = electrode.routing_wire
             divide_num = 0
             wire_index = 0
+            if self.pseudo_node.unit < unit_length:
+                unit_length = self.pseudo_node.unit
             while divide_num < 3 and wire_index < len(electrode.routing_wire):
                 wire = wire_list[wire_index]
-                unit_length = self.pseudo_node.unit / dia
+                unit_length = unit_length / dia
                 if wire.length() > unit_length * 1.5:
                     if wire.direct == WireDirect.UP:
                         new_point = [wire.start_x, wire.start_y - unit_length]
@@ -217,13 +219,13 @@ class RoutingWire():
                     elif wire.direct == WireDirect.LEFT:
                         new_point = [wire.start_x - unit_length, wire.start_y]
                     elif wire.direct == WireDirect.RIGHTUP:
-                        new_point = [wire.start_x + self.pseudo_node.unit, wire.start_y - self.pseudo_node.unit]
+                        new_point = [wire.start_x + unit_length, wire.start_y - unit_length]
                     elif wire.direct == WireDirect.RIGHTDOWN:
-                        new_point = [wire.start_x + self.pseudo_node.unit, wire.start_y + self.pseudo_node.unit]
+                        new_point = [wire.start_x + unit_length, wire.start_y + unit_length]
                     elif wire.direct == WireDirect.LEFTUP:
-                        new_point = [wire.start_x - self.pseudo_node.unit, wire.start_y - self.pseudo_node.unit]
+                        new_point = [wire.start_x - unit_length, wire.start_y - unit_length]
                     elif wire.direct == WireDirect.LEFTDOWN:
-                        new_point = [wire.start_x - self.pseudo_node.unit, wire.start_y + self.pseudo_node.unit]
+                        new_point = [wire.start_x - unit_length, wire.start_y + unit_length]
                     new_wire_1 = Wire(wire.start_x, wire.start_y, new_point[0], new_point[1], wire.direct, wire.grid_list)
                     new_wire_2 = Wire(new_point[0], new_point[1], wire.end_x, wire.end_y, wire.direct, wire.grid_list)
                     wire_list.remove(wire)

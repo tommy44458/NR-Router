@@ -19,6 +19,8 @@ ewd_input = None
 ewd_name = 'mask'
 electrode_size = 1000
 unit_scale = 4
+MAX_WIRE_WIDTH = 200
+MAX_START_MINI_WIRE_LENGTH = 600
 
 try:
     electrode_size = int(sys.argv[1])
@@ -38,8 +40,8 @@ except:
 
 # real ship size
 regular_line_width = int(electrode_size / 10)
-if regular_line_width > 200:
-    regular_line_width = 200
+if regular_line_width > MAX_WIRE_WIDTH:
+    regular_line_width = MAX_WIRE_WIDTH
 mini_line_width = 5
 contactpad_unit = 2540
 contactpad_radius = 750
@@ -142,7 +144,7 @@ reduce_times = 1
 while reduce_times != 0:
     reduce_times = _ruting_wire.reduce_wire_turn()
 
-_ruting_wire.divide_start_wire()
+_ruting_wire.divide_start_wire(MAX_START_MINI_WIRE_LENGTH / 3)
 
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
