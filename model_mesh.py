@@ -104,6 +104,7 @@ class ModelMesh():
                         pseudo_node_grid.neighbor.append(close_grid)
                         # close_grid[0].neighbor.append([pseudo_node_grid, close_grid[1], close_grid[2]])
                         close_grid[0].close_electrode = True
+                        close_grid[0].flow = 1
                         if close_grid[2] > self.mid_section.unit:
                             close_grid[0].corner = True
                             close_grid[0].edge_direct = pseudo_node_grid.edge_direct
