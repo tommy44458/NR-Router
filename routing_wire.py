@@ -208,8 +208,8 @@ class RoutingWire():
                 unit_length = self.pseudo_node.unit
             while divide_num < 3 and wire_index < len(electrode.routing_wire):
                 wire = wire_list[wire_index]
-                unit_length = unit_length / dia
-                if wire.length() > unit_length * 1.5:
+                _unit_length = unit_length / dia
+                if wire.length() > _unit_length * 1.5:
                     if wire.direct == WireDirect.UP:
                         new_point = [wire.start_x, wire.start_y - unit_length]
                     elif wire.direct == WireDirect.RIGHT:

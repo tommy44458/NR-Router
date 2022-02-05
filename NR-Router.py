@@ -144,7 +144,7 @@ reduce_times = 1
 while reduce_times != 0:
     reduce_times = _ruting_wire.reduce_wire_turn()
 
-_ruting_wire.divide_start_wire(MAX_START_MINI_WIRE_LENGTH / 3)
+_ruting_wire.divide_start_wire(int(MAX_START_MINI_WIRE_LENGTH / 3))
 
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
