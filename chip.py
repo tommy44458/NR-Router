@@ -26,6 +26,8 @@ class Chip():
     def setup(self):
         if self.ewd_content is None:
             self.ewd_content = self.read_ewd()
+        else:
+            self.ewd_content: str = self.ewd_content.split('\n')
         self.get_config()
         self.get_position()
         pass
