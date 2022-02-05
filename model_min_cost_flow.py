@@ -209,8 +209,8 @@ class ModelMinCostFlow():
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y))
                         offset = abs(start_x - int(self.flow.flownodes[tail].real_x))
-                        if offset < self.mesh.mid_section.unit:
-                            offset += self.mesh.mid_section.unit
+                        if offset < 200:
+                            offset += 200
                         if start_y > end_y:
                             end_y = start_y - offset
                         else:

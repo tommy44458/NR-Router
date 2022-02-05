@@ -188,18 +188,20 @@ class Draw():
                     for next in tile[i][j].neighbor:
                         dxf.add_line([tile[i][j].real_x, -tile[i][j].real_y], [next[0].real_x, -next[0].real_y])
 
-    def draw_all_wire(self, wire_list: List[Wire], dxf: Modelspace):
-        # draw wire
-        for i in range(len(wire_list)):
-            if i == 0:
-                self.draw_path(None, wire_list[i], wire_list[i+1], self.mini_width, self.mini_tan_offset, self.mini_dia_offset, dxf)
-            elif i == len(wire_list) - 1:
-                self.draw_path(wire_list[i-1], wire_list[i], None, self.regular_width, self.regular_tan_offset, self.regular_dia_offset, dxf)
-            elif i < 3:
-                self.draw_path(wire_list[i-1], wire_list[i], wire_list[i+1], self.mini_width, self.mini_tan_offset, self.mini_dia_offset, dxf)
-            else:
-                self.draw_path(wire_list[i-1], wire_list[i], wire_list[i+1], self.regular_width,
-                               self.regular_tan_offset, self.regular_dia_offset, dxf)
-        # draw line
-        # for wire in wire_list:
-        #     dxf.add_line([wire.start_x, -wire.start_y], [wire.end_x, -wire.end_y])
+    def draw_all_wire(self, wire_list: List[Wire], dxf: Modelspace, line=False):
+        if line is False:
+            # draw wire
+            for i in range(len(wire_list)):
+                if i == 0:
+                    self.draw_path(None, wire_list[i], wire_list[i+1], self.mini_width, self.mini_tan_offset, self.mini_dia_offset, dxf)
+                elif i == len(wire_list) - 1:
+                    self.draw_path(wire_list[i-1], wire_list[i], None, self.regular_width, self.regular_tan_offset, self.regular_dia_offset, dxf)
+                elif i < 3:
+                    self.draw_path(wire_list[i-1], wire_list[i], wire_list[i+1], self.mini_width, self.mini_tan_offset, self.mini_dia_offset, dxf)
+                else:
+                    self.draw_path(wire_list[i-1], wire_list[i], wire_list[i+1], self.regular_width,
+                                   self.regular_tan_offset, self.regular_dia_offset, dxf)
+        else:
+            # draw line
+            for wire in wire_list:
+                dxf.add_line([wire.start_x, -wire.start_y], [wire.end_x, -wire.end_y])
