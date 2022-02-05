@@ -90,24 +90,24 @@ _model_mesh.create_tile_connection(down_section.grid, down_section.tile, 'down')
 _model_mesh.create_hub_connection(top_section.grid, top_section.hub, 0, -1, top_section.tile)
 _model_mesh.create_hub_connection(down_section.grid, down_section.hub, -1, 0, down_section.tile)
 
-print('create mesh:', time.time() - c_time)
+# print('create mesh:', time.time() - c_time)
 
 c_time = time.time()
 
 # flow nodes
 _model_flow = ModelFlow(_model_mesh)
 _model_flow.create_all_flownode()
-print('create flow:', time.time() - c_time)
+# print('create flow:', time.time() - c_time)
 
 c_time = time.time()
 # Min Cost Flow
 _model_mcmf = ModelMinCostFlow(_model_mesh, _model_flow)
 _model_mcmf.init_structure()
-print('mcmf init:', time.time() - c_time)
+# print('mcmf init:', time.time() - c_time)
 _model_mcmf.solver()
-print('mcmf solver:', time.time() - c_time)
+# print('mcmf solver:', time.time() - c_time)
 _model_mcmf.get_path()
-print('mcmf path:', time.time() - c_time)
+# print('mcmf path:', time.time() - c_time)
 
 c_time = time.time()
 _draw = Draw(_model_mcmf.all_path, regular_line_width, mini_line_width)
@@ -151,9 +151,9 @@ for electrode in _model_mesh.electrodes:
 # _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
 # _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
 
-# encode_dxf = doc.encode_base64()
-# print(base64.b64decode(encode_dxf).decode())
+encode_dxf = doc.encode_base64()
+print(base64.b64decode(encode_dxf).decode())
 
-doc.saveas('dwg/' + ewd_name + '.dxf')
+# doc.saveas('dwg/' + ewd_name + '.dxf')
 
-print('draw:', time.time() - c_time)
+# print('draw:', time.time() - c_time)
