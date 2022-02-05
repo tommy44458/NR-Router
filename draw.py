@@ -1,11 +1,6 @@
-import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-from ortools.graph.pywrapgraph import SimpleMinCostFlow
-from ezdxf.addons.r12writer import R12FastStreamWriter
 from ezdxf.document import Modelspace
 from ezdxf.entities import BoundaryPaths
-from ezdxf.path import from_hatch_boundary_path
-from math import atan2, degrees
 
 from wire import Wire
 from grid import Grid, GridType
@@ -61,17 +56,8 @@ class Draw():
 
         if next_wire is not None:
             next_point = [next_wire.end_x, next_wire.end_y]
-            # align to hub axis (contact pad section)
-            # if abs(wire.end_y - next_wire.end_y) < abs(wire.end_x - next_wire.end_x):
-            #     next_point[1] = end_point[1]
-            # elif abs(wire.end_y - next_wire.end_y) > abs(wire.end_x - next_wire.end_x):
-            #     next_point[0] = end_point[0]
             degree_end_next = Degree.getdegree(end_point[0], end_point[1], next_point[0], next_point[1])
         else:
-            # if abs(wire.end_y - wire.start_y) < abs(wire.end_x - wire.start_x):
-            #     end_point[1] = wire.start_y
-            # elif abs(wire.end_y - wire.start_y) > abs(wire.end_x - wire.start_x):
-            #     end_point[0] = wire.start_x
             degree_end_next = None
 
         # no wire need to be drow
@@ -164,9 +150,9 @@ class Draw():
                 #     for next_grid in grids[i][j].neighbor:
                 #         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
                 # elif grids[i][j].close_electrode is False and dxf is not None:
-                if dxf is not None:
-                    for next_grid in grids[i][j].neighbor:
-                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
+                # if dxf is not None:
+                #     for next_grid in grids[i][j].neighbor:
+                #         dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
 
         print('grid num: ', num)
 

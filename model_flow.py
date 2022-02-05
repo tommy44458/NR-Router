@@ -1,19 +1,8 @@
-import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-import math
-import sys
-import os
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
-from math import atan2, degrees
-
-from degree import Degree
 from grid import Grid, GridType
 from tile import Tile
 from hub import Hub
 from electrode import Electrode
-from wire import Wire
-from draw import Draw
 from model_mesh import ModelMesh
 
 
@@ -61,15 +50,6 @@ class ModelFlow():
             self.flownodes.append(electrode)
 
     def create_all_flownode(self):
-        # self.create_grid_flownode(self.mesh.top_section.grid)
-        # self.create_grid_flownode(self.mesh.mid_section.grid)
-        # self.create_grid_flownode(self.mesh.down_section.grid)
-        # self.create_tile_flownode(self.mesh.top_section.tile)
-        # self.create_tile_flownode(self.mesh.down_section.tile)
-        # self.create_hub_flownode(self.mesh.top_section.hub)
-        # self.create_hub_flownode(self.mesh.down_section.hub)
-        # self.create_electrode_flownode(self.mesh.electrodes)
-
         self.create_electrode_flownode(self.mesh.electrodes)
         self.create_grid_flownode(self.mesh.mid_section.grid)
         self.create_hub_flownode(self.mesh.top_section.hub)

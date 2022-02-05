@@ -1,4 +1,3 @@
-from turtle import down
 import sys
 import ezdxf
 import time
@@ -18,10 +17,18 @@ from chip_section import ChipSection
 
 ewd_input = None
 ewd_name = 'mask'
+electrode_size = 1000
+
 try:
-    ewd_input = sys.argv[1]
+    electrode_size = sys.argv[1]
+except:
+    electrode_size = 1000
+
+try:
+    ewd_input = sys.argv[2]
 except:
     ewd_input = None
+
 
 # real ship size
 electrode_size = 1000
@@ -31,10 +38,16 @@ contactpad_radius = 750
 # (wire width + 5) * 1.414
 tile_unit = int(electrode_size / 5)
 
-# contact section
-# x: 0~(32 * contact_pad_unit)
-# y: 0~(3 * contact_pad_unit), 56896~(56896 + 3 * contact_pad_unit)
+"""
+    contact section
+    - x: 0 ~ (32 * contact_pad_unit)
+    - y: 0 ~ (3 * contact_pad_unit), 56896 ~ (56896 + 3 * contact_pad_unit)
 
+    electrode section
+    - 82000 * 42000
+"""
+
+# create chip construction: top section (pad), mid section (electrode), down section (pad)
 top_start_point = [0, 0]
 mid_start_point = [-1630, 11258]
 down_start_point = [0, 56896]
@@ -54,9 +67,8 @@ down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_poi
 
 c_time = time.time()
 
-# mesh structure
-
 # read ewd file
+# if ewd_input is None, then open local file
 _chip = Chip('test_0205_1_2000.ewd', ewd_input)
 _chip.setup()
 
@@ -77,16 +89,13 @@ c_time = time.time()
 # flow nodes
 _model_flow = ModelFlow(_model_mesh)
 _model_flow.create_all_flownode()
-
 print('create flow:', time.time() - c_time)
 
 c_time = time.time()
-# MinCostFlow
+# Min Cost Flow
 _model_mcmf = ModelMinCostFlow(_model_mesh, _model_flow)
 _model_mcmf.init_structure()
-print('mcmf init:', time.time() - c_time)
 _model_mcmf.solver()
-print('mcmf solver:', time.time() - c_time)
 _model_mcmf.get_path()
 print('mcmf:', time.time() - c_time)
 
@@ -118,6 +127,7 @@ _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 # _draw.draw_tile(down_section.tile, dxf2)
 
 _ruting_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
+# reduce wire turn times
 for i in range(10):
     _ruting_wire.reduce_wire_turn()
 

@@ -1,8 +1,5 @@
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 from grid import Grid
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
-from math import atan2, degrees
 
 
 class Tile():

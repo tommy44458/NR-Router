@@ -1,10 +1,5 @@
-import numpy as np
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-import math
-from time import time
-
 from grid import Grid, GridType
-from degree import Degree, reverse_direct
 from wire import WireDirect
 from tile import Tile
 from hub import Hub
@@ -131,11 +126,6 @@ class ModelMesh():
                                     else:
                                         _unit = unit
                                     self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
-                                    # if grid.corner is False:
-                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
-                                    # elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
-                                    #     # keep safe distance in electrode corner => no connection have same direct with electrode corner's direct
-                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
                                 except:
                                     pass
                         else:
@@ -165,11 +155,6 @@ class ModelMesh():
                                     else:
                                         _unit = unit
                                     self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
-                                    # if grid.corner is False:
-                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
-                                    # elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
-                                    #     # keep safe distance in electrode corner
-                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
                                 except:
                                     pass
                         else:
@@ -199,11 +184,6 @@ class ModelMesh():
                                     else:
                                         _unit = unit
                                     self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
-                                    # if grid.corner is False:
-                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
-                                    # elif self.pesudo_node.direct_table[Degree.getdegree(0, 0, x, -y)] not in (grid.edge_direct, reverse_direct(grid.edge_direct)):
-                                    #     # keep safe distance in electrode corner
-                                    #     grid.neighbor.append([grid_array[grid_x+x][grid_y+y], 1, unit])
                                 except:
                                     pass
                         else:
