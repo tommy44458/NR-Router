@@ -20,7 +20,7 @@ ewd_name = 'mask'
 electrode_size = 1000
 unit_scale = 4
 MAX_WIRE_WIDTH = 200
-MAX_START_MINI_WIRE_LENGTH = 600
+MAX_TILE_UNIT = 500
 
 try:
     electrode_size = int(sys.argv[1])
@@ -47,6 +47,8 @@ contactpad_unit = 2540
 contactpad_radius = 750
 # (wire width + 5) * 1.414
 tile_unit = int(electrode_size / unit_scale)
+if tile_unit > MAX_TILE_UNIT:
+    tile_unit = MAX_TILE_UNIT
 
 """
     contact section
@@ -144,7 +146,7 @@ reduce_times = 1
 while reduce_times != 0:
     reduce_times = _ruting_wire.reduce_wire_turn()
 
-_ruting_wire.divide_start_wire(int(MAX_START_MINI_WIRE_LENGTH / 3))
+_ruting_wire.divide_start_wire()
 
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)

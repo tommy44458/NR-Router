@@ -199,13 +199,12 @@ class RoutingWire():
                         i += 1
         return reduce_times
 
-    def divide_start_wire(self, unit_length):
+    def divide_start_wire(self):
         for electrode in self.electrode_list:
             wire_list = electrode.routing_wire
             divide_num = 0
             wire_index = 0
-            if self.pseudo_node.unit < unit_length:
-                unit_length = self.pseudo_node.unit
+            unit_length = self.pseudo_node.unit
             while divide_num < 3 and wire_index < len(electrode.routing_wire):
                 wire = wire_list[wire_index]
                 _unit_length = unit_length / dia
