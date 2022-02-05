@@ -35,38 +35,38 @@ class RoutingWire():
         point = [start_point[0], start_point[1]]
         ret = []
         if direct_table[degree_wire] == WireDirect.UP:
-            while point[1] > end_point[1]:
+            while point[1] >= end_point[1]:
                 ret.append(self.get_grid_by_point(point))
                 point[1] -= self.pseudo_node.unit
         elif direct_table[degree_wire] == WireDirect.RIGHT:
-            while point[0] < end_point[0]:
+            while point[0] <= end_point[0]:
                 ret.append(self.get_grid_by_point(point))
                 point[0] += self.pseudo_node.unit
         elif direct_table[degree_wire] == WireDirect.DOWN:
-            while point[1] < end_point[1]:
+            while point[1] <= end_point[1]:
                 ret.append(self.get_grid_by_point(point))
                 point[1] += self.pseudo_node.unit
         elif direct_table[degree_wire] == WireDirect.LEFT:
-            while point[0] > end_point[0]:
+            while point[0] >= end_point[0]:
                 ret.append(self.get_grid_by_point(point))
                 point[0] -= self.pseudo_node.unit
         elif direct_table[degree_wire] == WireDirect.RIGHTUP:
-            while point[0] < end_point[0]:
+            while point[0] <= end_point[0]:
                 ret.append(self.get_grid_by_point(point))
                 point[0] += self.pseudo_node.unit
                 point[1] -= self.pseudo_node.unit
         elif direct_table[degree_wire] == WireDirect.RIGHTDOWN:
-            while point[0] < end_point[0]:
+            while point[0] <= end_point[0]:
                 ret.append(self.get_grid_by_point(point))
                 point[0] += self.pseudo_node.unit
                 point[1] += self.pseudo_node.unit
         elif direct_table[degree_wire] == WireDirect.LEFTUP:
-            while point[0] > end_point[0]:
+            while point[0] >= end_point[0]:
                 ret.append(self.get_grid_by_point(point))
                 point[0] -= self.pseudo_node.unit
                 point[1] -= self.pseudo_node.unit
         elif direct_table[degree_wire] == WireDirect.LEFTDOWN:
-            while point[0] > end_point[0]:
+            while point[0] >= end_point[0]:
                 ret.append(self.get_grid_by_point(point))
                 point[0] -= self.pseudo_node.unit
                 point[1] += self.pseudo_node.unit
@@ -112,6 +112,7 @@ class RoutingWire():
         """
             reduce the turn for each wire
         """
+        reduce_times = 0
         for electrode in self.electrode_list:
             wire_list = electrode.routing_wire
             if len(wire_list) > 5:
@@ -139,6 +140,7 @@ class RoutingWire():
                                     self.remove_wire(wire_list, wire_2)
                                     self.remove_wire(wire_list, wire_3)
                                     self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
+                                    reduce_times += 1
                                     continue
 
                         if wire_1.direct == WireDirect.RIGHTDOWN:
@@ -155,6 +157,7 @@ class RoutingWire():
                                     self.remove_wire(wire_list, wire_2)
                                     self.remove_wire(wire_list, wire_3)
                                     self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
+                                    reduce_times += 1
                                     continue
 
                         if wire_1.direct == WireDirect.LEFTUP:
@@ -171,6 +174,7 @@ class RoutingWire():
                                     self.remove_wire(wire_list, wire_2)
                                     self.remove_wire(wire_list, wire_3)
                                     self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
+                                    reduce_times += 1
                                     continue
 
                         if wire_1.direct == WireDirect.RIGHTUP:
@@ -187,12 +191,13 @@ class RoutingWire():
                                     self.remove_wire(wire_list, wire_2)
                                     self.remove_wire(wire_list, wire_3)
                                     self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
+                                    reduce_times += 1
                                     continue
 
                         i += 1
                     else:
                         i += 1
-            pass
+        return reduce_times
 
     def divide_start_wire(self):
         for electrode in self.electrode_list:

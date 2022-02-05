@@ -116,7 +116,7 @@ class ModelMinCostFlow():
 
         # print("Add node supplies")
 
-        self.mim_cost_solver = self.min_cost_flow.Solve()  # SolveMaxFlowWithMinCost()
+        self.mim_cost_solver = self.min_cost_flow.SolveMaxFlowWithMinCost()
 
     def get_close_point_with_poly(self, _poly, _point) -> list:
         poly = Polygon(_poly)

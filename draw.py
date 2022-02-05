@@ -114,8 +114,8 @@ class Draw():
         for pad in contactpad_list:
             dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)
 
-    def draw_electrodes(self, electrodes: List[list], shape_lib: dict, dxf: Modelspace):
-        for elec in electrodes:
+    def draw_electrodes(self, electrodes: List[list], shape_lib: dict, mesh_electrode_list: List[Electrode], dxf: Modelspace, hatch_path: BoundaryPaths):
+        for elec_index, elec in enumerate(electrodes):
             shape = elec[0]
             x = elec[1]
             y = -elec[2]
@@ -123,6 +123,8 @@ class Draw():
             for shape_p in shape_lib[shape]:
                 vertex_order.append((x + shape_p[0], y - shape_p[1]))
             dxf.add_polyline2d(vertex_order, close=True)
+            if len(mesh_electrode_list[elec_index].routing_wire) == 0:
+                hatch_path.add_polyline_path(vertex_order)
 
     def draw_grid(self, start_point: list, unit: float, gird_length: list, dxf: Modelspace):
         # col

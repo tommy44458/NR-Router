@@ -67,6 +67,7 @@ class PseudoNode():
         if self.grid[x][y].corner is False:
             self.grid[x][y].electrode_index = elec_index
             self.grid[x][y].type = GridType.PSEUDONODE
+            self.grid[x][y].flow = 1
             self.grid[x][y].electrode_x = elec_point[0]
             self.grid[x][y].electrode_y = elec_point[1]
             self.grid[x][y].corner = corner

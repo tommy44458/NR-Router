@@ -18,25 +18,33 @@ from chip_section import ChipSection
 ewd_input = None
 ewd_name = 'mask'
 electrode_size = 1000
+unit_scale = 4
 
 try:
-    electrode_size = sys.argv[1]
+    electrode_size = int(sys.argv[1])
 except:
     electrode_size = 1000
 
 try:
-    ewd_input = sys.argv[2]
+    unit_scale = int(sys.argv[2])
+except:
+    unit_scale = 4
+
+try:
+    ewd_input = sys.argv[3]
 except:
     ewd_input = None
 
 
 # real ship size
-electrode_size = 1000
 regular_line_width = int(electrode_size / 10)
+if regular_line_width > 200:
+    regular_line_width = 200
+mini_line_width = 5
 contactpad_unit = 2540
 contactpad_radius = 750
 # (wire width + 5) * 1.414
-tile_unit = int(electrode_size / 5)
+tile_unit = int(electrode_size / unit_scale)
 
 """
     contact section
@@ -69,7 +77,7 @@ c_time = time.time()
 
 # read ewd file
 # if ewd_input is None, then open local file
-_chip = Chip('test_0205_1_2000.ewd', ewd_input)
+_chip = Chip('test_0205_3_500.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
@@ -95,30 +103,32 @@ c_time = time.time()
 # Min Cost Flow
 _model_mcmf = ModelMinCostFlow(_model_mesh, _model_flow)
 _model_mcmf.init_structure()
+print('mcmf init:', time.time() - c_time)
 _model_mcmf.solver()
+print('mcmf solver:', time.time() - c_time)
 _model_mcmf.get_path()
-print('mcmf:', time.time() - c_time)
+print('mcmf path:', time.time() - c_time)
 
 c_time = time.time()
-_draw = Draw(_model_mcmf.all_path, regular_line_width, 5)
+_draw = Draw(_model_mcmf.all_path, regular_line_width, mini_line_width)
 
 doc = ezdxf.new(dxfversion='AC1024')
 # doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
 msp = doc.modelspace()
 # hatch = msp.add_hatch(color=7)
 # hatch1 = msp.add_hatch(color=6)
-# hatch2 = msp.add_hatch(color=2)
+hatch2 = msp.add_hatch(color=1)
 # hatch3 = msp.add_hatch(color=4)
 # hatch4 = msp.add_hatch(color=5)
 # dxf = hatch.paths
 # dxf1 = hatch1.paths
-# dxf2 = hatch2.paths
+dxf2 = hatch2.paths
 # dxf3 = hatch3.paths
 # dxf4 = hatch4.paths
 
 
 _draw.draw_contact_pad(_chip.contactpad_list, msp)
-_draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
+_draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _model_mesh.electrodes, msp, dxf2)
 
 # _draw.draw_pseudo_node(mid_section.grid, dxf2)
 # _draw.draw_hub(top_section.hub, dxf2)
@@ -128,8 +138,9 @@ _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, msp)
 
 _ruting_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
 # reduce wire turn times
-for i in range(10):
-    _ruting_wire.reduce_wire_turn()
+reduce_times = 1
+while reduce_times != 0:
+    reduce_times = _ruting_wire.reduce_wire_turn()
 
 _ruting_wire.divide_start_wire()
 
