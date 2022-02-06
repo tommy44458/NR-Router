@@ -51,6 +51,7 @@ tile_unit = min(UNIT_LIST, key=lambda x: abs(x - int(electrode_size / unit_scale
 for unit in UNIT_LIST:
     if unit <= int(electrode_size / unit_scale) and electrode_size % unit == 0:
         tile_unit = unit
+        break
 
 """
     contact section
