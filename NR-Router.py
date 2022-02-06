@@ -53,6 +53,9 @@ for unit in UNIT_LIST:
         tile_unit = unit
         break
 
+if (regular_line_width + 5) * 1.414 > unit:
+    regular_line_width = int((unit / 1.414) - 5)
+
 """
     contact section
     - x: 0 ~ (32 * contact_pad_unit)
