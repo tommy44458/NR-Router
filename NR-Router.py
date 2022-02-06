@@ -54,7 +54,7 @@ for unit in UNIT_LIST:
         break
 
 if (regular_line_width + 5) * 1.414 > unit:
-    regular_line_width = int((unit / 1.414) - 5)
+    regular_line_width = (int((unit / 1.414) - 5) // 50) * 50
 
 """
     contact section
