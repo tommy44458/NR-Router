@@ -232,3 +232,40 @@ class RoutingWire():
                     wire_list.insert(wire_index, new_wire_1)
                     divide_num += 1
                 wire_index += 1
+
+            # remove right angle
+            for i in range(len(electrode.routing_wire) - 1):
+                wire_1 = electrode.routing_wire[i]
+                wire_2 = electrode.routing_wire[i+1]
+                if wire_1.direct == WireDirect.LEFT and wire_2.direct == WireDirect.UP:
+                    new_point_1 = [(wire_1.end_x + self.pseudo_node.unit / 2), wire_1.end_y]
+                    new_point_2 = [wire_2.start_x, wire_2.start_y - self.pseudo_node.unit / 2]
+
+                    wire_1.end_x = new_point_1[0]
+                    wire_2.start_y = new_point_2[1]
+                    new_wire = Wire(wire_1.end_x, wire_1.end_y, wire_2.start_x, wire_2.start_y, WireDirect.LEFTUP, wire_1.grid_list)
+                    electrode.routing_wire.insert(i + 1, new_wire)
+                elif wire_1.direct == WireDirect.LEFT and wire_2.direct == WireDirect.DOWN:
+                    new_point_1 = [(wire_1.end_x + self.pseudo_node.unit / 2), wire_1.end_y]
+                    new_point_2 = [(wire_2.start_x), wire_2.start_y + self.pseudo_node.unit / 2]
+
+                    wire_1.end_x = new_point_1[0]
+                    wire_2.start_y = new_point_2[1]
+                    new_wire = Wire(wire_1.end_x, wire_1.end_y, wire_2.start_x, wire_2.start_y, WireDirect.LEFTDOWN, wire_1.grid_list)
+                    electrode.routing_wire.insert(i + 1, new_wire)
+                elif wire_1.direct == WireDirect.RIGHT and wire_2.direct == WireDirect.DOWN:
+                    new_point_1 = [(wire_1.end_x - self.pseudo_node.unit / 2), wire_1.end_y]
+                    new_point_2 = [(wire_2.start_x), wire_2.start_y + self.pseudo_node.unit / 2]
+
+                    wire_1.end_x = new_point_1[0]
+                    wire_2.start_y = new_point_2[1]
+                    new_wire = Wire(wire_1.end_x, wire_1.end_y, wire_2.start_x, wire_2.start_y, WireDirect.RIGHTDOWN, wire_1.grid_list)
+                    electrode.routing_wire.insert(i + 1, new_wire)
+                elif wire_1.direct == WireDirect.RIGHT and wire_2.direct == WireDirect.UP:
+                    new_point_1 = [(wire_1.end_x - self.pseudo_node.unit / 2), wire_1.end_y]
+                    new_point_2 = [(wire_2.start_x), wire_2.start_y - self.pseudo_node.unit / 2]
+
+                    wire_1.end_x = new_point_1[0]
+                    wire_2.start_y = new_point_2[1]
+                    new_wire = Wire(wire_1.end_x, wire_1.end_y, wire_2.start_x, wire_2.start_y, WireDirect.RIGHTUP, wire_1.grid_list)
+                    electrode.routing_wire.insert(i + 1, new_wire)
