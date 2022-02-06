@@ -20,7 +20,7 @@ ewd_name = 'mask'
 electrode_size = 1000
 unit_scale = 4
 MAX_WIRE_WIDTH = 200
-MAX_TILE_UNIT = 500
+UNIT_LIST = [1000, 500, 250, 200, 125, 100]
 
 try:
     electrode_size = int(sys.argv[1])
@@ -46,9 +46,11 @@ mini_line_width = 5
 contactpad_unit = 2540
 contactpad_radius = 750
 # (wire width + 5) * 1.414
-tile_unit = int(electrode_size / unit_scale)
-if tile_unit > MAX_TILE_UNIT:
-    tile_unit = MAX_TILE_UNIT
+tile_unit = min(UNIT_LIST, key=lambda x: abs(x - int(electrode_size / unit_scale)))
+
+for unit in UNIT_LIST:
+    if unit <= int(electrode_size / unit_scale) and electrode_size % unit == 0:
+        tile_unit = unit
 
 """
     contact section
