@@ -18,15 +18,16 @@ class ModelFlow():
     def create_grid_flownode(self, grid_array: List[List[Grid]]):
         for grid_col in grid_array:
             for grid in grid_col:
-                grid.index = self.node_index
-                self.node_index += 1
-                self.flownodes.append(grid)
-                # add connect pad end node
-                if grid.type == GridType.CONTACTPAD:
-                    self.global_t.contact_pads.append(grid)
-                elif grid.type == GridType.GRID:
+                if grid.covered == False:
+                    grid.index = self.node_index
                     self.node_index += 1
-                    self.flownodes.append(0)
+                    self.flownodes.append(grid)
+                    # add connect pad end node
+                    if grid.type == GridType.CONTACTPAD:
+                        self.global_t.contact_pads.append(grid)
+                    elif grid.type == GridType.GRID or grid.type == GridType.PSEUDONODE:
+                        self.node_index += 1
+                        self.flownodes.append(0)
 
     def create_tile_flownode(self, tile_array: List[List[Tile]]):
         for tile_col in tile_array:

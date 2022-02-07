@@ -1,5 +1,5 @@
 from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-from grid import Grid, GridType
+from grid import Grid, GridType, PseudoNodeType
 from wire import WireDirect
 from tile import Tile
 from hub import Hub
@@ -19,10 +19,12 @@ class ModelMesh():
 
         self.num_electrode = 0
 
+        self.covered_grid_head_list: List[Grid] = []
+
         self.electrodes: List[Electrode] = []
 
     def get_pseudo_node(self):
-        self.electrodes = self.pesudo_node.internal_node()
+        self.covered_grid_head_list, self.electrodes = self.pesudo_node.internal_node()
 
     def add_grid_to_neighbor(self, grid: Grid, neighbor_grid: Grid, capacity: float, cost: float):
         if neighbor_grid.close_electrode is False and neighbor_grid.type == GridType.GRID:
@@ -117,7 +119,7 @@ class ModelMesh():
         for grid_x, grid_col in enumerate(grid_array):
             if grid_x == 0:
                 for grid_y, grid in enumerate(grid_col):
-                    if grid.type == GridType.GRID and grid.covered is False:
+                    if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
                         if grid.close_electrode:
                             # add connnection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
@@ -146,7 +148,7 @@ class ModelMesh():
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
             elif grid_x == len(grid_array) - 1:
                 for grid_y, grid in enumerate(grid_col):
-                    if grid.type == GridType.GRID and grid.covered is False:
+                    if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
                         if grid.close_electrode:
                             # add connnection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
@@ -175,7 +177,7 @@ class ModelMesh():
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
             else:
                 for grid_y, grid in enumerate(grid_col):
-                    if grid.type == GridType.GRID and grid.covered is False:
+                    if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
                         if grid.close_electrode:
                             # add connnection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
@@ -209,6 +211,19 @@ class ModelMesh():
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
                                 self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
+
+        # for covered_grid in self.covered_grid_head_list:
+        #     for grid_neighbor in covered_grid.neighbor:
+        #         grid_neighbor[0].covered = True
+
+        # for electrode in self.electrodes:
+        #     for point in electrode.pseudo_node_set:
+        #         pseudo_node = self.mid_section.grid[point[0]][point[1]]
+        #         edge = 0
+        #         for near in pseudo_node.neighbor:
+        #             edge += len(near[0].neighbor)
+        #         if edge == 0:
+        #             pseudo_node.covered = True
 
     def create_tile_connection(self, grid_array: List[List[Grid]], tile_array: List[List[Tile]], block: str):
         """
