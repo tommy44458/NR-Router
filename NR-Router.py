@@ -15,6 +15,8 @@ from routing_wire import RoutingWire
 
 from chip_section import ChipSection
 
+start_time = time.time()
+
 ewd_input = None
 ewd_name = 'mask'
 electrode_size = 1000
@@ -87,7 +89,7 @@ c_time = time.time()
 
 # read ewd file
 # if ewd_input is None, then open local file
-_chip = Chip('error_case2.ewd', ewd_input)
+_chip = Chip('test0307_2_real_chip.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
@@ -114,7 +116,9 @@ c_time = time.time()
 _model_mcmf = ModelMinCostFlow(_model_mesh, _model_flow)
 _model_mcmf.init_structure()
 # print('mcmf init:', time.time() - c_time)
+# t1 = time.time()
 _model_mcmf.solver()
+# print('mcmf solver:', time.time() - t1)
 # print('mcmf solver:', time.time() - c_time)
 _model_mcmf.get_path()
 # print('mcmf path:', time.time() - c_time)
@@ -160,6 +164,8 @@ for electrode in _model_mesh.electrodes:
 # _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
 # _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
 # _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
+
+# print(f'electrode_number: {len(_model_mesh.electrodes)}, total runtime: {str(time.time() - start_time)}')
 
 encode_dxf = doc.encode_base64()
 print(base64.b64decode(encode_dxf).decode())

@@ -3,4 +3,5 @@
 *.cpython-37.opt-2.pyc
 */__pycache__
 /.vscode
+*.dxf
 *.dwg

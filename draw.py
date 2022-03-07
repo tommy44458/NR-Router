@@ -137,16 +137,20 @@ class Draw():
     def draw_pseudo_node(self, grids: List[List[Grid]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
         width = 60
         mini_width = 30
+        cover_width = 120
         num = 0
         for i in range(len(grids)):
             for j in range(len(grids[i])):
                 if grids[i][j].electrode_index >= 0:
                     x = grids[i][j].real_x
                     y = -grids[i][j].real_y
-                    if grids[i][j].corner:
-                        hatch_path.add_polyline_path([(x, y-mini_width), (x+mini_width, y), (x, y+mini_width), (x-mini_width, y)])
+                    if grids[i][j].covered is False:
+                        if grids[i][j].corner:
+                            hatch_path.add_polyline_path([(x, y-mini_width), (x+mini_width, y), (x, y+mini_width), (x-mini_width, y)])
+                        else:
+                            hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
                     else:
-                        hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+                        hatch_path.add_polyline_path([(x, y-cover_width), (x+cover_width, y), (x, y+cover_width), (x-cover_width, y)])
                     num += 1
                 # elif grids[i][j].close_electrode and dxf is not None:
                 #     for next_grid in grids[i][j].neighbor:
