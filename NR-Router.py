@@ -42,14 +42,14 @@ except:
     unit_scale = 4
 
 try:
-    ewd_input = sys.argv[3]
-except:
-    ewd_input = None
-
-try:
-    OUTPUT_FORMAT = sys.argv[4]
+    OUTPUT_FORMAT = sys.argv[3]
 except:
     OUTPUT_FORMAT = 'dxf'
+
+try:
+    ewd_input = sys.argv[4]
+except:
+    ewd_input = None
 
 # real ship size
 regular_line_width = int(electrode_size / 10)
