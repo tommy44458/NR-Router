@@ -182,9 +182,10 @@ ax = fig.add_axes([0, 0, 1, 1])
 ctx = RenderContext(doc)
 out = MatplotlibBackend(ax)
 Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
-svg = StringIO()
-fig.savefig(svg, format='svg')
-print(svg.getvalue())
+str = StringIO()
+fig.savefig(str, format='svg')
+svg = str.getvalue()
+print(svg)
 
 # doc.saveas('dwg/' + ewd_name + '.dxf')
 
