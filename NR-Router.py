@@ -29,6 +29,7 @@ electrode_size = 1000
 unit_scale = 4
 MAX_WIRE_WIDTH = 200
 UNIT_LIST = [1000, 500, 250, 200, 125, 100]
+OUTPUT_FORMAT = 'dxf'
 
 try:
     electrode_size = int(sys.argv[1])
@@ -44,6 +45,11 @@ try:
     ewd_input = sys.argv[3]
 except:
     ewd_input = None
+
+try:
+    OUTPUT_FORMAT = sys.argv[4]
+except:
+    OUTPUT_FORMAT = 'dxf'
 
 # real ship size
 regular_line_width = int(electrode_size / 10)
@@ -156,8 +162,14 @@ _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _mode
 # _draw.draw_tile(top_section.tile, dxf2)
 # _draw.draw_tile(down_section.tile, dxf2)
 
-_ruting_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
+# _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
+# _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
+# _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
+
+# print(f'electrode_number: {len(_model_mesh.electrodes)}, total runtime: {str(time.time() - start_time)}')
+
 # reduce wire turn times
+_ruting_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
 reduce_times = 1
 while reduce_times != 0:
     reduce_times = _ruting_wire.reduce_wire_turn()
@@ -167,26 +179,23 @@ _ruting_wire.divide_start_wire()
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
 
-# _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
-# _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
-# _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
 
-# print(f'electrode_number: {len(_model_mesh.electrodes)}, total runtime: {str(time.time() - start_time)}')
-
-encode_dxf = doc.encode_base64()
-print(base64.b64decode(encode_dxf).decode())
-
-# dxf string to svg string
-fig = plt.figure()
-ax = fig.add_axes([0, 0, 1, 1])
-ctx = RenderContext(doc)
-out = MatplotlibBackend(ax)
-Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
-str = StringIO()
-fig.savefig(str, format='svg')
-svg = str.getvalue()
-print(svg)
-
-# doc.saveas('dwg/' + ewd_name + '.dxf')
-
-# print('draw:', time.time() - c_time)
+if OUTPUT_FORMAT == 'dxf':
+    encode_dxf = doc.encode_base64()
+    print(base64.b64decode(encode_dxf).decode())
+elif OUTPUT_FORMAT == 'dxf-based64':
+    encode_dxf = doc.encode_base64()
+    print(encode_dxf.decode())
+elif OUTPUT_FORMAT == 'svg':
+    # dxf string to svg string
+    fig = plt.figure()
+    ax = fig.add_axes([0, 0, 1, 1])
+    ctx = RenderContext(doc)
+    out = MatplotlibBackend(ax)
+    Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
+    str = StringIO()
+    fig.savefig(str, format='svg')
+    svg = str.getvalue()
+    print(svg)
+elif OUTPUT_FORMAT == 'file':
+    doc.saveas('dwg/' + ewd_name + '.dxf')
