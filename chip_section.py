@@ -22,13 +22,15 @@ class ChipSection():
         self.hub: List[Hub] = []
         self.hub_gap = 208
 
-    def init_grid(self, grid_type=GridType.GRID):
+    def init_grid(self, grid_type=GridType.GRID, ref_pin=None):
         self.grid = []
         for i in range(self.width // self.unit + 1):
             self.grid.append([])
             for j in range(self.height // self.unit + 1):
-                self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, grid_type))
-
+                if ref_pin and [i, j] in ref_pin:
+                    self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, GridType.REF))
+                else:
+                    self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, grid_type))
     def init_tile(self):
         self.tile = []
         for i in range(self.width // self.unit):

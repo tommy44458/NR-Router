@@ -82,9 +82,12 @@ top_start_point = [0, 0]
 mid_start_point = [-1630, 11258]
 down_start_point = [0, 56896]
 
+top_section_ref_pin = [[0, 3], [8, 3], [16, 3], [24, 3]]
+down_section_ref_pin = [[7, 0], [15, 0], [23, 0], [31, 0]]
+
 top_section = ChipSection(top_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit,
                           contactpad_radius)
-top_section.init_grid(GridType.CONTACTPAD)
+top_section.init_grid(GridType.CONTACTPAD, top_section_ref_pin)
 top_section.init_tile()
 top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.redius) // 2)
 
@@ -93,7 +96,7 @@ mid_section.init_grid()
 
 down_section = ChipSection(down_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit,
                            contactpad_radius)
-down_section.init_grid(GridType.CONTACTPAD)
+down_section.init_grid(GridType.CONTACTPAD, down_section_ref_pin)
 down_section.init_tile()
 down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.height) // 2)
 
@@ -101,7 +104,7 @@ c_time = time.time()
 
 # read ewd file
 # if ewd_input is None, then open local file
-_chip = Chip('ewod-chip-project.ewd', ewd_input)
+_chip = Chip('test.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point,
@@ -176,9 +179,63 @@ while reduce_times != 0:
 
 _ruting_wire.divide_start_wire()
 
+gui_routing_result = []
+
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
+    x = int((electrode.real_x + 615) / electrode_size)
+    y = int((electrode.real_y - 12273) / electrode_size)
+    pin_x = round(electrode.routing_wire[len(electrode.routing_wire) - 1].end_x / contactpad_unit)
+    pin_y = electrode.routing_wire[len(electrode.routing_wire) - 1].end_y
+    
+    if pin_y >= 56896:
+        pin_y -= 56896
+        pin_y /= contactpad_unit
+        pin_y = round(pin_y)
+        pin_y += 4
+    else:
+        pin_y /= contactpad_unit
+        pin_y = round(pin_y)
+        
+    # match gui design pattern
+    pin_number = 0
+    if pin_y == 0:
+        pin_number = 97 + pin_x
+    elif pin_y == 1:
+        pin_number = 96 - pin_x
+    elif pin_y == 2:
+        pin_number = 225 + pin_x
+    elif pin_y == 3:
+        pin_number = 224 - pin_x
+        if pin_x < 8:
+            pin_number += 1
+        elif pin_x < 16:
+            pin_number += 2
+        elif pin_x < 24:
+            pin_number += 3
+        else:
+            pin_number += 4
+    elif pin_y == 4:
+        pin_number = 169 + pin_x
+        if pin_x > 23:
+            pin_number -= 3
+        elif pin_x > 15:
+            pin_number -= 2
+        elif pin_x > 7:
+            pin_number -= 1
+    elif pin_y == 5:
+        pin_number = 168 - pin_x
+    elif pin_y == 6:
+        if pin_x > 23:
+            pin_number = 129 + pin_x
+        else:
+            pin_number = 41 + pin_x
+    elif pin_y == 7:
+        pin_number = 40 - pin_x
+         
+    gui_routing_result.append([x, y, pin_number])
 
+print(gui_routing_result)
 
 if OUTPUT_FORMAT == 'dxf':
     encode_dxf = doc.encode_base64()

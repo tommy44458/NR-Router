@@ -121,7 +121,7 @@ class ModelMesh():
                 for grid_y, grid in enumerate(grid_col):
                     if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
                         if grid.close_electrode:
-                            # add connnection from electrode-closed grid to normal grid
+                            # add connection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
                                 try:
                                     if abs(x + y) != 1:
