@@ -1,6 +1,5 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import os
-
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
 try:
     __location__ = os.path.realpath(

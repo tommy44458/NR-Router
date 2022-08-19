@@ -1,27 +1,25 @@
-import sys
-import ezdxf
-import time
 import base64
-
+import sys
+import time
 # for converting dxf string to svg sting
 from io import StringIO
+
+import ezdxf
 import matplotlib.pyplot as plt
-from ezdxf.addons.drawing import RenderContext, Frontend
+from ezdxf.addons.drawing import Frontend, RenderContext
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 
 from chip import Chip
-from grid import Grid, GridType
+from chip_section import ChipSection
 from draw import Draw
-from model_mesh import ModelMesh
+from grid import Grid, GridType
 from model_flow import ModelFlow
+from model_mesh import ModelMesh
 from model_min_cost_flow import ModelMinCostFlow
 from pseudo_node import PseudoNode
-
 from routing_wire import RoutingWire
 
-from chip_section import ChipSection
-
-start_time = time.time()
+# start_time = time.time()
 
 ewd_input = None
 ewd_name = 'mask'
@@ -29,6 +27,7 @@ electrode_size = 1000
 unit_scale = 4
 MAX_WIRE_WIDTH = 200
 UNIT_LIST = [1000, 500, 250, 200, 125, 100]
+# OUTPUT_FORMAT = dxf, dxf-based64, svg, file, ecc_pattern
 OUTPUT_FORMAT = 'dxf'
 
 try:
@@ -100,11 +99,11 @@ down_section.init_grid(GridType.CONTACTPAD, down_section_ref_pin)
 down_section.init_tile()
 down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.height) // 2)
 
-c_time = time.time()
+# c_time = time.time()
 
 # read ewd file
 # if ewd_input is None, then open local file
-_chip = Chip('test.ewd', ewd_input)
+_chip = Chip('test0307.ewd', ewd_input)
 _chip.setup()
 
 _pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point,
@@ -120,14 +119,14 @@ _model_mesh.create_hub_connection(down_section.grid, down_section.hub, -1, 0, do
 
 # print('create mesh:', time.time() - c_time)
 
-c_time = time.time()
+# c_time = time.time()
 
 # flow nodes
 _model_flow = ModelFlow(_model_mesh)
 _model_flow.create_all_flownode()
 # print('create flow:', time.time() - c_time)
 
-c_time = time.time()
+# c_time = time.time()
 # Min Cost Flow
 _model_mcmf = ModelMinCostFlow(_model_mesh, _model_flow)
 _model_mcmf.init_structure()
@@ -139,7 +138,7 @@ _model_mcmf.solver()
 _model_mcmf.get_path()
 # print('mcmf path:', time.time() - c_time)
 
-c_time = time.time()
+# c_time = time.time()
 _draw = Draw(_model_mcmf.all_path, regular_line_width, mini_line_width)
 
 doc = ezdxf.new(dxfversion='AC1024')
@@ -172,70 +171,74 @@ _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _mode
 # print(f'electrode_number: {len(_model_mesh.electrodes)}, total runtime: {str(time.time() - start_time)}')
 
 # reduce wire turn times
-_ruting_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
+
+# c_time = time.time()
+_routing_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
 reduce_times = 1
 while reduce_times != 0:
-    reduce_times = _ruting_wire.reduce_wire_turn()
+    reduce_times = _routing_wire.reduce_wire_turn()
 
-_ruting_wire.divide_start_wire()
+_routing_wire.divide_start_wire()
 
 gui_routing_result = []
 
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
-    x = int((electrode.real_x + 615) / electrode_size)
-    y = int((electrode.real_y - 12273) / electrode_size)
-    pin_x = round(electrode.routing_wire[len(electrode.routing_wire) - 1].end_x / contactpad_unit)
-    pin_y = electrode.routing_wire[len(electrode.routing_wire) - 1].end_y
-    
-    if pin_y >= 56896:
-        pin_y -= 56896
-        pin_y /= contactpad_unit
-        pin_y = round(pin_y)
-        pin_y += 4
-    else:
-        pin_y /= contactpad_unit
-        pin_y = round(pin_y)
-        
-    # match gui design pattern
-    pin_number = 0
-    if pin_y == 0:
-        pin_number = 97 + pin_x
-    elif pin_y == 1:
-        pin_number = 96 - pin_x
-    elif pin_y == 2:
-        pin_number = 225 + pin_x
-    elif pin_y == 3:
-        pin_number = 224 - pin_x
-        if pin_x < 8:
-            pin_number += 1
-        elif pin_x < 16:
-            pin_number += 2
-        elif pin_x < 24:
-            pin_number += 3
-        else:
-            pin_number += 4
-    elif pin_y == 4:
-        pin_number = 169 + pin_x
-        if pin_x > 23:
-            pin_number -= 3
-        elif pin_x > 15:
-            pin_number -= 2
-        elif pin_x > 7:
-            pin_number -= 1
-    elif pin_y == 5:
-        pin_number = 168 - pin_x
-    elif pin_y == 6:
-        if pin_x > 23:
-            pin_number = 129 + pin_x
-        else:
-            pin_number = 41 + pin_x
-    elif pin_y == 7:
-        pin_number = 40 - pin_x
-         
-    gui_routing_result.append([x, y, pin_number])
 
-print(gui_routing_result)
+    if OUTPUT_FORMAT == 'ecc_pattern':
+        x = int((electrode.real_x + 615) / electrode_size)
+        y = int((electrode.real_y - 12273) / electrode_size)
+        pin_x = round(electrode.routing_wire[len(electrode.routing_wire) - 1].end_x / contactpad_unit)
+        pin_y = electrode.routing_wire[len(electrode.routing_wire) - 1].end_y
+
+        if pin_y >= 56896:
+            pin_y -= 56896
+            pin_y /= contactpad_unit
+            pin_y = round(pin_y)
+            pin_y += 4
+        else:
+            pin_y /= contactpad_unit
+            pin_y = round(pin_y)
+
+        # match gui design pattern
+        pin_number = 0
+        if pin_y == 0:
+            pin_number = 97 + pin_x
+        elif pin_y == 1:
+            pin_number = 96 - pin_x
+        elif pin_y == 2:
+            pin_number = 225 + pin_x
+        elif pin_y == 3:
+            pin_number = 224 - pin_x
+            if pin_x < 8:
+                pin_number += 1
+            elif pin_x < 16:
+                pin_number += 2
+            elif pin_x < 24:
+                pin_number += 3
+            else:
+                pin_number += 4
+        elif pin_y == 4:
+            pin_number = 169 + pin_x
+            if pin_x > 23:
+                pin_number -= 3
+            elif pin_x > 15:
+                pin_number -= 2
+            elif pin_x > 7:
+                pin_number -= 1
+        elif pin_y == 5:
+            pin_number = 168 - pin_x
+        elif pin_y == 6:
+            if pin_x > 23:
+                pin_number = 129 + pin_x
+            else:
+                pin_number = 41 + pin_x
+        elif pin_y == 7:
+            pin_number = 40 - pin_x
+
+        gui_routing_result.append([x, y, pin_number])
+
+# print(f'reduce runtime: {str(time.time() - c_time)}')
 
 if OUTPUT_FORMAT == 'dxf':
     encode_dxf = doc.encode_base64()
@@ -256,3 +259,7 @@ elif OUTPUT_FORMAT == 'svg':
     print(svg)
 elif OUTPUT_FORMAT == 'file':
     doc.saveas('dwg/' + ewd_name + '.dxf')
+elif OUTPUT_FORMAT == 'ecc_pattern':
+    print(gui_routing_result)
+
+# print(f'total time: {str(time.time() - start_time)}')

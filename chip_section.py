@@ -1,12 +1,13 @@
-import numpy as np
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-import os
-from grid import Grid, GridType
-from tile import Tile
-from hub import Hub
 import math
+import os
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
+import numpy as np
 
 from electrode import Electrode
+from grid import Grid, GridType
+from hub import Hub
+from tile import Tile
 
 
 class ChipSection():

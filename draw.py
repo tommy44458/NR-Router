@@ -1,14 +1,14 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
 from ezdxf.document import Modelspace
 from ezdxf.entities import BoundaryPaths
 
-from wire import Wire
+from degree import Degree, wire_offset_table
+from electrode import Electrode
 from grid import Grid, GridType
 from hub import Hub
 from tile import Tile
-
-from degree import Degree, wire_offset_table
-from electrode import Electrode
+from wire import Wire
 
 
 class Draw():

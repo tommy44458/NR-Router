@@ -1,12 +1,12 @@
-import numpy as np
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import math
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
-from grid import Grid, GridType, PseudoNodeType
-from wire import WireDirect
-from electrode import Electrode
+import numpy as np
+
 from degree import Degree, direct_table
 from electrode import Electrode
+from grid import Grid, GridType, PseudoNodeType
+from wire import WireDirect
 
 
 class PseudoNode():

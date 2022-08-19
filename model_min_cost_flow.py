@@ -1,15 +1,17 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-from shapely.geometry import Polygon, Point, LinearRing
-from ortools.graph import pywrapgraph
-from degree import Degree, direct_table
+import time
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
-from grid import Grid, GridType
-from tile import Tile
-from hub import Hub
+from ortools.graph import pywrapgraph
+from shapely.geometry import LinearRing, Point, Polygon
+
+from degree import Degree, direct_table
 from electrode import Electrode
-from wire import Wire
-from model_mesh import ModelMesh
+from grid import Grid, GridType
+from hub import Hub
 from model_flow import ModelFlow
+from model_mesh import ModelMesh
+from tile import Tile
+from wire import Wire
 
 
 class ModelMinCostFlow():
@@ -128,7 +130,7 @@ class ModelMinCostFlow():
         closest_point_coords = list(p.coords)[0]
         return closest_point_coords
 
-    def register_wire_into_electrode_roting(self, start_point, end_point, grid_list: List[Grid] = []):
+    def register_wire_into_electrode_routing(self, start_point, end_point, grid_list: List[Grid] = []):
         electrode_index = self.electrode_routing_table.get(start_point, None)
         if electrode_index is not None:
             wire_degree = Degree.getdegree(start_point[0], -start_point[1], end_point[0], -end_point[1])
@@ -177,7 +179,7 @@ class ModelMinCostFlow():
                                                  ] = self.flow.flownodes[head].index
                     remove_list.append(i)
 
-        # iterate to register all path to electeode routing wire
+        # iterate to register all path to electrode routing wire
         while len(remove_list) > 0:
             non_zero_flow_list[:] = [x for x in non_zero_flow_list if x not in remove_list]
 
@@ -199,7 +201,7 @@ class ModelMinCostFlow():
                         #     close_point = self.get_close_point_with_poly(
                         #         electrode.poly, [self.flow.flownodes[tail].real_x, self.flow.flownodes[tail].real_y])
                         #     start_x, start_y = (close_point[0], close_point[1])
-                        register_success = self.register_wire_into_electrode_roting(
+                        register_success = self.register_wire_into_electrode_routing(
                             (start_x, start_y), (end_x, end_y), [self.flow.flownodes[head], self.flow.flownodes[tail]])
                         self.flow.flownodes[head].flow = 1
                         self.flow.flownodes[tail].flow = 1
@@ -215,7 +217,7 @@ class ModelMinCostFlow():
                             end_y = start_y - offset
                         else:
                             end_y = start_y + offset
-                        register_success = self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                        register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
 
                         # second: to hub x
                         start_x, start_y = (end_x, end_y)
@@ -225,21 +227,21 @@ class ModelMinCostFlow():
                             end_y = start_y - offset
                         else:
                             end_y = start_y + offset
-                        register_success = self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                        register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
 
                         # final: to hub point
                         start_x, start_y = (end_x, end_y)
                         end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
-                        register_success = self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                        register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
                 elif type(self.flow.flownodes[head]) == Hub:
                     if type(self.flow.flownodes[tail]) == Grid:
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
-                        register_success = self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                        register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
                     elif type(self.flow.flownodes[tail]) == Tile:
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y))
-                        register_success = self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                        register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
                         if register_success and self.flow.flownodes[head].hub_index % 5 > 0:
                             self.flow.flownodes[tail].flow.append((self.flow.flownodes[head].hub_index %
                                                                   5 - 1, int(self.flow.flownodes[head].real_x)))
@@ -290,7 +292,7 @@ class ModelMinCostFlow():
                         end_y = start_y - offset
                     else:
                         end_y = start_y + offset
-                    self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                    self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
                 if tile.right_pad is not None:
                     _flow = tile.flow.pop()
                     start_x, start_y = (int(_flow[1]), int(tile.real_y))
@@ -300,13 +302,13 @@ class ModelMinCostFlow():
                         end_y = start_y - offset
                     else:
                         end_y = start_y + offset
-                    self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                    self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
 
                 while tile.next_vertical is not None:
                     for _flow in tile.flow:
                         start_x, start_y = (int(_flow[1]), int(tile.real_y))
                         end_x, end_y = (int(_flow[1]), int(tile.next_vertical.real_y))
-                        self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                        self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
 
                     if tile.next_vertical.left_pad is not None:
                         _flow = tile.flow.pop(0)
@@ -317,7 +319,7 @@ class ModelMinCostFlow():
                             end_y = start_y - offset
                         else:
                             end_y = start_y + offset
-                        self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                        self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
                     if tile.next_vertical.right_pad is not None:
                         _flow = tile.flow.pop()
                         start_x, start_y = (int(_flow[1]), int(tile.next_vertical.real_y))
@@ -327,6 +329,6 @@ class ModelMinCostFlow():
                             end_y = start_y - offset
                         else:
                             end_y = start_y + offset
-                        self.register_wire_into_electrode_roting((start_x, start_y), (end_x, end_y))
+                        self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
                     tile.next_vertical.flow = tile.flow
                     tile = tile.next_vertical

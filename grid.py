@@ -1,6 +1,7 @@
 from enum import IntEnum
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
 from wire import WireDirect
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 
 
 class PseudoNodeType(IntEnum):

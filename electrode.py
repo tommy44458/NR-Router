@@ -1,4 +1,5 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
 from grid import Grid
 from wire import Wire
 

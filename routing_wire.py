@@ -1,17 +1,19 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-from ezdxf.addons import r12writer
-from operator import itemgetter, attrgetter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from math import atan2, degrees
+from operator import attrgetter, itemgetter
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
-from degree import Degree, direct_table, dia
-from grid import Grid, GridType
-from tile import Tile
-from hub import Hub
-from electrode import Electrode
-from wire import Wire, WireDirect
+from ezdxf.addons import r12writer
+
+from degree import Degree, dia, direct_table
 from draw import Draw
+from electrode import Electrode
+from grid import Grid, GridType
+from hub import Hub
 from model_mesh import ModelMesh
 from pseudo_node import PseudoNode
+from tile import Tile
+from wire import Wire, WireDirect
 
 
 class RoutingWire():
@@ -19,6 +21,7 @@ class RoutingWire():
         self.pseudo_node = pseudo_node
         self.grid_array = grid_array
         self.electrode_list = electrode_list
+        self._reduce_times = 0
 
     def get_grid_by_point(self, point):
         """
@@ -108,96 +111,106 @@ class RoutingWire():
             grid.flow = 0
         wire_list.remove(wire)
 
-    def reduce_wire_turn(self):
+    def reduce_single_wire_turn(self, electrode: Electrode):
+        """
+            reduce the turn for single wire
+        """
+        wire_list = electrode.routing_wire
+        if len(wire_list) > 5:
+            i = 0
+            while i < len(wire_list) - 5:
+                # get 4 wire
+                wire_1 = wire_list[i]
+                wire_2 = wire_list[i+1]
+                wire_3 = wire_list[i+2]
+                wire_4 = wire_list[i+3]
+
+                # this is turn can be removed
+                if wire_1.direct == wire_3.direct and wire_2.direct == wire_4.direct:
+                    if wire_1.direct == WireDirect.LEFTDOWN:
+                        offset = None
+                        if wire_2.direct == WireDirect.LEFT:
+                            offset = abs(wire_4.start_y - wire_1.end_y)
+                        elif wire_2.direct == WireDirect.DOWN:
+                            offset = abs(wire_4.start_x - wire_1.end_x)
+                        if offset is not None:
+                            new_point = [wire_1.end_x - offset, wire_1.end_y + offset]
+                            new_wire_grid_list_1 = self.get_grid_list_by_wire([wire_1.end_x, wire_1.end_y], [new_point[0], new_point[1]], 0)
+                            new_wire_grid_list_2 = self.get_grid_list_by_wire([new_point[0],  new_point[1]], [wire_4.start_x, wire_4.start_y], -1)
+                            if self.check_overlap(new_wire_grid_list_1) is False and self.check_overlap(new_wire_grid_list_2) is False:
+                                self.remove_wire(wire_list, wire_2)
+                                self.remove_wire(wire_list, wire_3)
+                                self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
+                                self._reduce_times += 1
+                                continue
+
+                    if wire_1.direct == WireDirect.RIGHTDOWN:
+                        offset = None
+                        if wire_2.direct == WireDirect.RIGHT:
+                            offset = abs(wire_4.start_y - wire_1.end_y)
+                        elif wire_2.direct == WireDirect.DOWN:
+                            offset = abs(wire_4.start_x - wire_1.end_x)
+                        if offset is not None:
+                            new_point = [wire_1.end_x + offset, wire_1.end_y + offset]
+                            new_wire_grid_list_1 = self.get_grid_list_by_wire([wire_1.end_x, wire_1.end_y], [new_point[0], new_point[1]], 0)
+                            new_wire_grid_list_2 = self.get_grid_list_by_wire([new_point[0],  new_point[1]], [wire_4.start_x, wire_4.start_y], -1)
+                            if self.check_overlap(new_wire_grid_list_1) is False and self.check_overlap(new_wire_grid_list_2) is False:
+                                self.remove_wire(wire_list, wire_2)
+                                self.remove_wire(wire_list, wire_3)
+                                self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
+                                self._reduce_times += 1
+                                continue
+
+                    if wire_1.direct == WireDirect.LEFTUP:
+                        offset = None
+                        if wire_2.direct == WireDirect.LEFT:
+                            offset = abs(wire_4.start_y - wire_1.end_y)
+                        elif wire_2.direct == WireDirect.UP:
+                            offset = abs(wire_4.start_x - wire_1.end_x)
+                        if offset is not None:
+                            new_point = [wire_1.end_x - offset, wire_1.end_y - offset]
+                            new_wire_grid_list_1 = self.get_grid_list_by_wire([wire_1.end_x, wire_1.end_y], [new_point[0], new_point[1]], 0)
+                            new_wire_grid_list_2 = self.get_grid_list_by_wire([new_point[0],  new_point[1]], [wire_4.start_x, wire_4.start_y], -1)
+                            if self.check_overlap(new_wire_grid_list_1) is False and self.check_overlap(new_wire_grid_list_2) is False:
+                                self.remove_wire(wire_list, wire_2)
+                                self.remove_wire(wire_list, wire_3)
+                                self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
+                                self._reduce_times += 1
+                                continue
+
+                    if wire_1.direct == WireDirect.RIGHTUP:
+                        offset = None
+                        if wire_2.direct == WireDirect.RIGHT:
+                            offset = abs(wire_4.start_y - wire_1.end_y)
+                        elif wire_2.direct == WireDirect.UP:
+                            offset = abs(wire_4.start_x - wire_1.end_x)
+                        if offset is not None:
+                            new_point = [wire_1.end_x + offset, wire_1.end_y - offset]
+                            new_wire_grid_list_1 = self.get_grid_list_by_wire([wire_1.end_x, wire_1.end_y], [new_point[0], new_point[1]], 0)
+                            new_wire_grid_list_2 = self.get_grid_list_by_wire([new_point[0],  new_point[1]], [wire_4.start_x, wire_4.start_y], -1)
+                            if self.check_overlap(new_wire_grid_list_1) is False and self.check_overlap(new_wire_grid_list_2) is False:
+                                self.remove_wire(wire_list, wire_2)
+                                self.remove_wire(wire_list, wire_3)
+                                self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
+                                self._reduce_times += 1
+                                continue
+
+                    i += 1
+                else:
+                    i += 1
+
+    def reduce_wire_turn(self) -> int:
         """
             reduce the turn for each wire
         """
-        reduce_times = 0
+        self._reduce_times = 0
+        # executor = ThreadPoolExecutor(max_workers=8)
         for electrode in self.electrode_list:
-            wire_list = electrode.routing_wire
-            if len(wire_list) > 5:
-                i = 0
-                while i < len(wire_list) - 5:
-                    # get 4 wire
-                    wire_1 = wire_list[i]
-                    wire_2 = wire_list[i+1]
-                    wire_3 = wire_list[i+2]
-                    wire_4 = wire_list[i+3]
+            self.reduce_single_wire_turn(electrode)
+            # executor.submit(self.reduce_single_wire_turn, electrode)
 
-                    # this is turn can be removed
-                    if wire_1.direct == wire_3.direct and wire_2.direct == wire_4.direct:
-                        if wire_1.direct == WireDirect.LEFTDOWN:
-                            offset = None
-                            if wire_2.direct == WireDirect.LEFT:
-                                offset = abs(wire_4.start_y - wire_1.end_y)
-                            elif wire_2.direct == WireDirect.DOWN:
-                                offset = abs(wire_4.start_x - wire_1.end_x)
-                            if offset is not None:
-                                new_point = [wire_1.end_x - offset, wire_1.end_y + offset]
-                                new_wire_grid_list_1 = self.get_grid_list_by_wire([wire_1.end_x, wire_1.end_y], [new_point[0], new_point[1]], 0)
-                                new_wire_grid_list_2 = self.get_grid_list_by_wire([new_point[0],  new_point[1]], [wire_4.start_x, wire_4.start_y], -1)
-                                if self.check_overlap(new_wire_grid_list_1) is False and self.check_overlap(new_wire_grid_list_2) is False:
-                                    self.remove_wire(wire_list, wire_2)
-                                    self.remove_wire(wire_list, wire_3)
-                                    self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
-                                    reduce_times += 1
-                                    continue
-
-                        if wire_1.direct == WireDirect.RIGHTDOWN:
-                            offset = None
-                            if wire_2.direct == WireDirect.RIGHT:
-                                offset = abs(wire_4.start_y - wire_1.end_y)
-                            elif wire_2.direct == WireDirect.DOWN:
-                                offset = abs(wire_4.start_x - wire_1.end_x)
-                            if offset is not None:
-                                new_point = [wire_1.end_x + offset, wire_1.end_y + offset]
-                                new_wire_grid_list_1 = self.get_grid_list_by_wire([wire_1.end_x, wire_1.end_y], [new_point[0], new_point[1]], 0)
-                                new_wire_grid_list_2 = self.get_grid_list_by_wire([new_point[0],  new_point[1]], [wire_4.start_x, wire_4.start_y], -1)
-                                if self.check_overlap(new_wire_grid_list_1) is False and self.check_overlap(new_wire_grid_list_2) is False:
-                                    self.remove_wire(wire_list, wire_2)
-                                    self.remove_wire(wire_list, wire_3)
-                                    self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
-                                    reduce_times += 1
-                                    continue
-
-                        if wire_1.direct == WireDirect.LEFTUP:
-                            offset = None
-                            if wire_2.direct == WireDirect.LEFT:
-                                offset = abs(wire_4.start_y - wire_1.end_y)
-                            elif wire_2.direct == WireDirect.UP:
-                                offset = abs(wire_4.start_x - wire_1.end_x)
-                            if offset is not None:
-                                new_point = [wire_1.end_x - offset, wire_1.end_y - offset]
-                                new_wire_grid_list_1 = self.get_grid_list_by_wire([wire_1.end_x, wire_1.end_y], [new_point[0], new_point[1]], 0)
-                                new_wire_grid_list_2 = self.get_grid_list_by_wire([new_point[0],  new_point[1]], [wire_4.start_x, wire_4.start_y], -1)
-                                if self.check_overlap(new_wire_grid_list_1) is False and self.check_overlap(new_wire_grid_list_2) is False:
-                                    self.remove_wire(wire_list, wire_2)
-                                    self.remove_wire(wire_list, wire_3)
-                                    self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
-                                    reduce_times += 1
-                                    continue
-
-                        if wire_1.direct == WireDirect.RIGHTUP:
-                            offset = None
-                            if wire_2.direct == WireDirect.RIGHT:
-                                offset = abs(wire_4.start_y - wire_1.end_y)
-                            elif wire_2.direct == WireDirect.UP:
-                                offset = abs(wire_4.start_x - wire_1.end_x)
-                            if offset is not None:
-                                new_point = [wire_1.end_x + offset, wire_1.end_y - offset]
-                                new_wire_grid_list_1 = self.get_grid_list_by_wire([wire_1.end_x, wire_1.end_y], [new_point[0], new_point[1]], 0)
-                                new_wire_grid_list_2 = self.get_grid_list_by_wire([new_point[0],  new_point[1]], [wire_4.start_x, wire_4.start_y], -1)
-                                if self.check_overlap(new_wire_grid_list_1) is False and self.check_overlap(new_wire_grid_list_2) is False:
-                                    self.remove_wire(wire_list, wire_2)
-                                    self.remove_wire(wire_list, wire_3)
-                                    self.add_new_point_between_two_wire(new_point, wire_1, wire_4, new_wire_grid_list_1, new_wire_grid_list_2)
-                                    reduce_times += 1
-                                    continue
-
-                        i += 1
-                    else:
-                        i += 1
-        return reduce_times
+        # executor.shutdown(wait=True)
+        return self._reduce_times
 
     def divide_start_wire(self):
         for electrode in self.electrode_list:

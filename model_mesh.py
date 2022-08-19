@@ -1,11 +1,12 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-from grid import Grid, GridType, PseudoNodeType
-from wire import WireDirect
-from tile import Tile
-from hub import Hub
-from electrode import Electrode
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
 from chip_section import ChipSection
+from electrode import Electrode
+from grid import Grid, GridType, PseudoNodeType
+from hub import Hub
 from pseudo_node import PseudoNode
+from tile import Tile
+from wire import WireDirect
 
 
 class ModelMesh():

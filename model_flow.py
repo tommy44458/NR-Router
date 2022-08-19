@@ -1,9 +1,10 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-from grid import Grid, GridType
-from tile import Tile
-from hub import Hub
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
 from electrode import Electrode
+from grid import Grid, GridType
+from hub import Hub
 from model_mesh import ModelMesh
+from tile import Tile
 
 
 class ModelFlow():
