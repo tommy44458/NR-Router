@@ -1,4 +1,5 @@
 import base64
+import math
 import sys
 import time
 # for converting dxf string to svg sting
@@ -180,7 +181,7 @@ while reduce_times != 0:
 
 _routing_wire.divide_start_wire()
 
-gui_routing_result = []
+gui_routing_result = ""
 
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
@@ -236,8 +237,14 @@ for electrode in _model_mesh.electrodes:
         elif pin_y == 7:
             pin_number = 40 - pin_x
 
-        gui_routing_result.append([x, y, pin_number])
-
+        gui_routing_result += str(x) + " " + str(y) + " " + str(pin_number) + " M 0 0" 
+        path = _chip.electrode_shape_library[electrode.shape]
+        for i in range(3, len(path), 2):
+            point = " L " + str(math.floor((int(path[i][0]) + 60) / electrode_size))
+            point += " " + str(math.floor((int(path[i][1]) + 60) / electrode_size))
+            gui_routing_result += point
+        gui_routing_result += " Z\n"
+        
 # print(f'reduce runtime: {str(time.time() - c_time)}')
 
 if OUTPUT_FORMAT == 'dxf':
