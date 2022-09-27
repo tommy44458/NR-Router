@@ -237,10 +237,12 @@ for electrode in _model_mesh.electrodes:
         elif pin_y == 7:
             pin_number = 40 - pin_x
 
-        gui_routing_result += str(x) + " " + str(y) + " " + str(pin_number) + " M 0 0" 
+        gui_routing_result += str(x) + " " + str(y) + " " + str(pin_number) + " " 
         path = _chip.electrode_shape_library[electrode.shape]
-        for i in range(3, len(path), 2):
+        for i in range(1, len(path), 2):
             point = " L " + str(math.floor((int(path[i][0]) + 60) / electrode_size))
+            if i == 1:
+                point = point.replace("L", "M")
             point += " " + str(math.floor((int(path[i][1]) + 60) / electrode_size))
             gui_routing_result += point
         gui_routing_result += " Z\n"
