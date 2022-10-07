@@ -55,7 +55,7 @@ except:
 regular_line_width = int(electrode_size / 10)
 if regular_line_width > MAX_WIRE_WIDTH:
     regular_line_width = MAX_WIRE_WIDTH
-mini_line_width = 5
+mini_line_width = int(electrode_size / 20)
 contactpad_unit = 2540
 contactpad_radius = 750
 # (wire width + 5) * 1.414
@@ -66,8 +66,8 @@ for unit in UNIT_LIST:
         tile_unit = unit
         break
 
-if (regular_line_width + 5) * 1.414 > unit:
-    regular_line_width = (int((unit / 1.414) - 5) // 50) * 50
+if (regular_line_width + mini_line_width) * 1.414 > unit:
+    regular_line_width = (int((unit / 1.414) - mini_line_width) // 50) * 50
 """
     contact section
     - x: 0 ~ (32 * contact_pad_unit)
