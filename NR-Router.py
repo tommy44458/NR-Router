@@ -29,7 +29,7 @@ unit_scale = 4
 MAX_WIRE_WIDTH = 200
 UNIT_LIST = [1000, 500, 250, 200, 125, 100]
 # OUTPUT_FORMAT = dxf, dxf-based64, svg, file, ecc_pattern
-OUTPUT_FORMAT = 'dxf'
+OUTPUT_FORMAT = 'file'
 
 try:
     electrode_size = int(sys.argv[1])
@@ -44,7 +44,7 @@ except:
 try:
     OUTPUT_FORMAT = sys.argv[3]
 except:
-    OUTPUT_FORMAT = 'dxf'
+    OUTPUT_FORMAT = 'file'
 
 try:
     ewd_input = sys.argv[4]
@@ -89,7 +89,7 @@ top_section = ChipSection(top_start_point, contactpad_unit * 31, contactpad_unit
                           contactpad_radius)
 top_section.init_grid(GridType.CONTACTPAD, top_section_ref_pin)
 top_section.init_tile()
-top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.redius) // 2)
+top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.radius) // 2)
 
 mid_section = ChipSection(mid_start_point, 82000, 42000, tile_unit, contactpad_radius)
 mid_section.init_grid()
@@ -98,7 +98,7 @@ down_section = ChipSection(down_start_point, contactpad_unit * 31, contactpad_un
                            contactpad_radius)
 down_section.init_grid(GridType.CONTACTPAD, down_section_ref_pin)
 down_section.init_tile()
-down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.height) // 2)
+down_section.init_hub((down_start_point[1] - down_section.radius + mid_start_point[1] + mid_section.height) // 2)
 
 # c_time = time.time()
 
@@ -159,15 +159,15 @@ dxf2 = hatch2.paths
 _draw.draw_contact_pad(_chip.contactpad_list, msp)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _model_mesh.electrodes, msp, dxf2)
 
-# _draw.draw_pseudo_node(mid_section.grid, dxf2)
-# _draw.draw_hub(top_section.hub, dxf2)
-# _draw.draw_hub(down_section.hub, dxf2)
-# _draw.draw_tile(top_section.tile, dxf2)
-# _draw.draw_tile(down_section.tile, dxf2)
+_draw.draw_pseudo_node(mid_section.grid, dxf2)
+_draw.draw_hub(top_section.hub, dxf2)
+_draw.draw_hub(down_section.hub, dxf2)
+_draw.draw_tile(top_section.tile, dxf2)
+_draw.draw_tile(down_section.tile, dxf2)
 
-# _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
-# _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
-# _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
+_draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
+_draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
+_draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
 
 # print(f'electrode_number: {len(_model_mesh.electrodes)}, total runtime: {str(time.time() - start_time)}')
 

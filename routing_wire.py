@@ -34,7 +34,7 @@ class RoutingWire():
         """
             get grid list by real point: start to end
         """
-        degree_wire = Degree.getdegree(start_point[0], -start_point[1], end_point[0], -end_point[1])
+        degree_wire = Degree.get_degree(start_point[0], -start_point[1], end_point[0], -end_point[1])
         point = [start_point[0], start_point[1]]
         ret = []
         if direct_table[degree_wire] == WireDirect.UP:

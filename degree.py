@@ -5,7 +5,7 @@ from wire import WireDirect
 
 class Degree():
 
-    def getdegree(x1, y1, x2, y2):
+    def get_degree(x1, y1, x2, y2):
         x = x1-x2
         y = y1-y2
         hypotenuse = math.sqrt(x**2+y**2)
@@ -38,11 +38,11 @@ class Degree():
         return int((deg+405) % 360)
 
 
-dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
+dia = abs(Degree.get_degree(0, 0, -1, -1)[0])
 
 
 def wire_offset_table():
-    dia = abs(Degree.getdegree(0, 0, -1, -1)[0])
+    dia = abs(Degree.get_degree(0, 0, -1, -1)[0])
     """
         from up -> right -> down -> left
         (0.0, -1.0) - up

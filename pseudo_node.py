@@ -184,7 +184,7 @@ class PseudoNode():
                     grid_p1 = self.get_grid_point(p1, self.unit)
                     grid_p2 = self.get_grid_point(p2, self.unit)
 
-                    degree_p1_p2 = Degree.getdegree(p1[0], -p1[1], p2[0], -p2[1])
+                    degree_p1_p2 = Degree.get_degree(p1[0], -p1[1], p2[0], -p2[1])
 
                     if direct_table[degree_p1_p2] == WireDirect.UP:
                         for k in range(grid_p1[1] - (grid_p2[1] + 1) + 1):

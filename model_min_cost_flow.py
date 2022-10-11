@@ -133,11 +133,11 @@ class ModelMinCostFlow():
     def register_wire_into_electrode_routing(self, start_point, end_point, grid_list: List[Grid] = []):
         electrode_index = self.electrode_routing_table.get(start_point, None)
         if electrode_index is not None:
-            wire_degree = Degree.getdegree(start_point[0], -start_point[1], end_point[0], -end_point[1])
+            wire_degree = Degree.get_degree(start_point[0], -start_point[1], end_point[0], -end_point[1])
             wire = Wire(start_point[0], start_point[1], end_point[0], end_point[1], direct_table[wire_degree], grid_list)
             if len(self.mesh.electrodes[electrode_index].routing_wire) > 0:
                 last_wire = self.mesh.electrodes[electrode_index].routing_wire[-1]
-                last_wire_degree = Degree.getdegree(last_wire.start_x, -last_wire.start_y, last_wire.end_x, -last_wire.end_y)
+                last_wire_degree = Degree.get_degree(last_wire.start_x, -last_wire.start_y, last_wire.end_x, -last_wire.end_y)
                 if wire_degree == last_wire_degree:
                     last_wire.end_x, last_wire.end_y = (wire.end_x, wire.end_y)
                     last_wire.grid_list.extend(wire.grid_list)
@@ -272,7 +272,7 @@ class ModelMinCostFlow():
 
     def create_contact_pad_path(self, tile_array: List[List[Tile]], section: str = 'top'):
         """
-            add wire from tile to contactpad, and consider flow collocation
+            add wire from tile to contact pad, and consider flow collocation
         """
         for tile_col in tile_array:
             if section == 'top':

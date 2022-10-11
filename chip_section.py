@@ -17,7 +17,7 @@ class ChipSection():
         self.height = height
         self.unit = unit
         self.hypo_unit = int(unit * 2) - 1   # int(unit*2) - 1  # 2 * unit - 1  # unit * math.sqrt(2)
-        self.redius = radius
+        self.radius = radius
         self.grid: List[List[Grid]] = []
         self.tile: List[List[Tile]] = []
         self.hub: List[Hub] = []
@@ -48,5 +48,5 @@ class ChipSection():
                 self.hub.append(Hub(self.grid[i//5][0].real_x, y, 0, i))
             else:
                 # tile
-                offset = self.redius + (i % 5) * self.hub_gap
+                offset = self.radius + (i % 5) * self.hub_gap
                 self.hub.append(Hub(self.grid[i//5][0].real_x + offset, y, 1, i))

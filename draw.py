@@ -49,14 +49,14 @@ class Draw():
 
         if previous_wire is not None:
             previous_point = [previous_wire.start_x, previous_wire.start_y]
-            degree_previous_start = Degree.getdegree(previous_point[0], previous_point[1], start_point[0], start_point[1])
+            degree_previous_start = Degree.get_degree(previous_point[0], previous_point[1], start_point[0], start_point[1])
         else:
             # no previous wire
             degree_previous_start = None
 
         if next_wire is not None:
             next_point = [next_wire.end_x, next_wire.end_y]
-            degree_end_next = Degree.getdegree(end_point[0], end_point[1], next_point[0], next_point[1])
+            degree_end_next = Degree.get_degree(end_point[0], end_point[1], next_point[0], next_point[1])
         else:
             degree_end_next = None
 
@@ -64,7 +64,7 @@ class Draw():
         if start_point == end_point:
             return None
 
-        degree_start_end = Degree.getdegree(start_point[0], start_point[1], end_point[0], end_point[1])
+        degree_start_end = Degree.get_degree(start_point[0], start_point[1], end_point[0], end_point[1])
 
         tan = tan
         dia_offset = dia
