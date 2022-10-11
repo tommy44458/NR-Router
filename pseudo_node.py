@@ -23,13 +23,13 @@ class PseudoNode():
             elec_p is the top-lsft point in electrode
             shape_p is the point by svg path
         """
-        return [int(elec_point[0]) + int(shape_point[0]), int(elec_point[1]) + int(shape_point[1])]
+        return [elec_point[0] + float(shape_point[0]), elec_point[1] + float(shape_point[1])]
 
     def get_grid_point(self, real_point: list, unit: float) -> list:
         """
             get gird point by real point
         """
-        return [(real_point[0] - self.start_point[0]) // unit, (real_point[1] - self.start_point[1]) // unit]
+        return [int((real_point[0] - self.start_point[0]) // unit), int((real_point[1] - self.start_point[1]) // unit)]
 
     def cal_distance(self, p1: list, p2: list):
         return math.sqrt(math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2))
