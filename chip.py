@@ -51,8 +51,8 @@ class Chip():
                 shape_name = line.split()[0]
                 shape_scope = []
                 for i in range(2, len(line.split())-1, 2):
-                    t_x = int(line.split()[i][1:])
-                    t_y = int(line.split()[i+1])
+                    t_x = line.split()[i][1:]
+                    t_y = line.split()[i+1]
                     shape_scope.append((t_x, t_y))
                 shape_scope.append((int(line.split()[2][1:]), int(line.split()[3])))
 
@@ -64,8 +64,8 @@ class Chip():
         for line in content:
             if line.split()[0] == "#ENDOFLAYOUT#":
                 break
-            true_x = int(float(line.split()[1]))
-            true_y = int(float(line.split()[2]))
+            true_x = float(line.split()[1])
+            true_y = float(line.split()[2])
             # contact pad
             if line.split()[0] == "contactpad":
                 self.contactpad_list.append([true_x, true_y])

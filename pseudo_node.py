@@ -23,7 +23,7 @@ class PseudoNode():
             elec_p is the top-lsft point in electrode
             shape_p is the point by svg path
         """
-        return [elec_point[0] + shape_point[0], elec_point[1] + shape_point[1]]
+        return [int(elec_point[0]) + int(shape_point[0]), int(elec_point[1]) + int(shape_point[1])]
 
     def get_grid_point(self, real_point: list, unit: float) -> list:
         """
