@@ -126,36 +126,35 @@ class Draw():
                 vertex_order.append((x + float(shape_p[0]), y - float(shape_p[1])))
 
             start_index = 0
-            gapSize = 200
-            if (float(shape_lib['base'][0][1]) == gapSize):
-                if shape != 'base':
-                    start_index = 1 
-                for i in range(start_index,len(vertex_order),2):
-                    if i != len(vertex_order)-1:
-                        x0 = vertex_order[i][0]
-                        y0 = vertex_order[i][1]
-                        x1 = vertex_order[i+1][0]
-                        y1 = vertex_order[i+1][1]
-                        arc = ConstructionArc.from_2p_angle((x1, y1), (x0, y0), 90)
-                        if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) > gapSize * 1.414 + 1:
-                            arc = ConstructionArc.from_2p_angle((x0, y0), (x1, y1), 90)
-                        dxf.add_arc(
-                            center=arc.center,
-                            radius=arc.radius,
-                            start_angle=arc.start_angle,
-                            end_angle=arc.end_angle,
-                        )
-                    if i != start_index:
-                        x0 = vertex_order[i][0]
-                        y0 = vertex_order[i][1]
-                        x1 = vertex_order[i-1][0]
-                        y1 = vertex_order[i-1][1]
-                        if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) > 995:
-                            dxf.add_line((x1, y1), (x0, y0))
-            else:
-                dxf.add_polyline2d(vertex_order, close=True)
-                if len(mesh_electrode_list[elec_index].routing_wire) == 0:
-                    hatch_path.add_polyline_path(vertex_order)
+            corner_size = float(shape_lib['base'][0][1])
+            electrode_size = float(shape_lib['base'][2][0]) - float(shape_lib['base'][1][0])
+            if shape != 'base':
+                start_index = 1 
+            for i in range(start_index,len(vertex_order),2):
+                if i != len(vertex_order)-1:
+                    x0 = vertex_order[i][0]
+                    y0 = vertex_order[i][1]
+                    x1 = vertex_order[i+1][0]
+                    y1 = vertex_order[i+1][1]
+                    arc = ConstructionArc.from_2p_angle((x1, y1), (x0, y0), 90)
+                    if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) > corner_size * 1.414 + 1:
+                        arc = ConstructionArc.from_2p_angle((x0, y0), (x1, y1), 90)
+                    dxf.add_arc(
+                        center=arc.center,
+                        radius=arc.radius,
+                        start_angle=arc.start_angle,
+                        end_angle=arc.end_angle,
+                    )
+                if i != start_index:
+                    x0 = vertex_order[i][0]
+                    y0 = vertex_order[i][1]
+                    x1 = vertex_order[i-1][0]
+                    y1 = vertex_order[i-1][1]
+                    if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) >= electrode_size:
+                        dxf.add_line((x1, y1), (x0, y0))
+            # dxf.add_polyline2d(vertex_order, close=True)
+            # if len(mesh_electrode_list[elec_index].routing_wire) == 0:
+            #     hatch_path.add_polyline_path(vertex_order)
 
     def draw_grid(self, start_point: list, unit: float, gird_length: list, dxf: Modelspace):
         # col
