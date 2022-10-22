@@ -126,7 +126,8 @@ class Draw():
                 vertex_order.append((x + float(shape_p[0]), y - float(shape_p[1])))
 
             start_index = 0
-            if (float(shape_lib['base'][0][1]) == 100):
+            gapSize = 200
+            if (float(shape_lib['base'][0][1]) == gapSize):
                 if shape != 'base':
                     start_index = 1 
                 for i in range(start_index,len(vertex_order),2):
@@ -136,7 +137,7 @@ class Draw():
                         x1 = vertex_order[i+1][0]
                         y1 = vertex_order[i+1][1]
                         arc = ConstructionArc.from_2p_angle((x1, y1), (x0, y0), 90)
-                        if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) > 142:
+                        if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) > gapSize * 1.414 + 1:
                             arc = ConstructionArc.from_2p_angle((x0, y0), (x1, y1), 90)
                         dxf.add_arc(
                             center=arc.center,
