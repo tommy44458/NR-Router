@@ -20,7 +20,7 @@ class PseudoNode():
 
     def get_point_by_shape(self, elec_point: list, shape_point: list) -> list:
         """
-            elec_p is the top-lsft point in electrode
+            elec_p is the top-left point in electrode
             shape_p is the point by svg path
         """
         return [elec_point[0] + float(shape_point[0]), elec_point[1] + float(shape_point[1])]
