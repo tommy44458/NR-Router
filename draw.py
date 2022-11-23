@@ -130,6 +130,10 @@ class Draw():
             electrode_size = float(shape_lib['base'][2][0]) - float(shape_lib['base'][1][0])
             if shape != 'base':
                 start_index = 1 
+            # dxf.add_polyline2d(vertex_order, close=True)
+            if len(mesh_electrode_list[elec_index].routing_wire) == 0:
+                hatch_path.add_polyline_path(vertex_order)
+
             for i in range(start_index,len(vertex_order),2):
                 if i != len(vertex_order)-1:
                     x0 = vertex_order[i][0]
@@ -145,6 +149,15 @@ class Draw():
                         start_angle=arc.start_angle,
                         end_angle=arc.end_angle,
                     )
+                    if len(mesh_electrode_list[elec_index].routing_wire) == 0:
+                        end_angle = arc.end_angle + 2.9
+                        hatch_path.add_edge_path().add_arc(
+                            center=arc.center,
+                            radius=arc.radius,
+                            start_angle=arc.start_angle,
+                            end_angle=end_angle,
+                        ) 
+                        print(arc.center, arc.radius, arc.start_angle, arc.end_angle)
                 if i != start_index:
                     x0 = vertex_order[i][0]
                     y0 = vertex_order[i][1]
@@ -152,9 +165,6 @@ class Draw():
                     y1 = vertex_order[i-1][1]
                     if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) >= electrode_size:
                         dxf.add_line((x1, y1), (x0, y0))
-            # dxf.add_polyline2d(vertex_order, close=True)
-            # if len(mesh_electrode_list[elec_index].routing_wire) == 0:
-            #     hatch_path.add_polyline_path(vertex_order)
 
     def draw_grid(self, start_point: list, unit: float, gird_length: list, dxf: Modelspace):
         # col
