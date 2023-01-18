@@ -4,7 +4,7 @@
 # source venv/bin/activate
 # pip install --upgrade pip
 
-ezdxf==0.18
-matplotlib==3.5.3
+ezdxf==1.0.1
+matplotlib==3.6.3
 ortools==9.3.10497
 shapely==1.8.4
