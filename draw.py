@@ -262,7 +262,15 @@ class Draw():
         left_ref_points = [(-5515, -12635 - 2540 * 3), (-5515, -12635 - 2540 * 3 - height), (-5515 - width, -12635 - 2540 * 3 - height), (-5515 - width, -12635 - 2540 * 3), (-5515, -12635 - 2540 * 3)]
         right_ref_points = [(5515 + 2540 * 31, -12635 - 2540 * 3), (5515 + 2540 * 31, -12635 - 2540 * 3 - height), (5515 + 2540 * 31 + width, -12635 - 2540 * 3 - height), (5515 + 2540 * 31 + width, -12635 - 2540 * 3), (5515 + 2540 * 31, -12635 - 2540 * 3)]
         for i in range (len(left_ref_points) - 1):
-            dxf.add_line([left_ref_points[i][0], left_ref_points[i][1]], [left_ref_points[i + 1][0], left_ref_points[i + 1][1]])
-            dxf.add_line([right_ref_points[i][0], right_ref_points[i][1]], [right_ref_points[i + 1][0], right_ref_points[i + 1][1]])
+            dxf.add_line([left_ref_points[i][0], left_ref_points[i][1]], [left_ref_points[i + 1][0], left_ref_points[i + 1][1]], dxfattribs={'color': '5'})
+            dxf.add_line([right_ref_points[i][0], right_ref_points[i][1]], [right_ref_points[i + 1][0], right_ref_points[i + 1][1]], dxfattribs={'color': '5'})
         hatch_path.add_polyline_path(left_ref_points)
         hatch_path.add_polyline_path(right_ref_points)
+        
+        # route reference electrode
+        left_ref_pin = [(-5515 - width / 2, -12635 - 2540 * 3)]
+        right_ref_pin = [(5515 + 2540 * 31 + width / 2, -12635 - 2540 * 3 - height)]
+        dxf.add_line([left_ref_pin[0][0], left_ref_pin[0][1]], [left_ref_pin[0][0], left_ref_pin[0][1] + 5000], dxfattribs={'color': '5'})
+        dxf.add_line([left_ref_pin[0][0], left_ref_pin[0][1] + 5000], [0, -2540 * 3], dxfattribs={'color': '5'})
+        dxf.add_line([right_ref_pin[0][0], right_ref_pin[0][1]], [right_ref_pin[0][0], right_ref_pin[0][1] - 5000], dxfattribs={'color': '5'})
+        dxf.add_line([right_ref_pin[0][0], right_ref_pin[0][1] - 5000], [2540 * 31, -56896], dxfattribs={'color': '5'})
