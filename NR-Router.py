@@ -52,10 +52,10 @@ except:
     ewd_input = None
 
 # real ship size
-regular_line_width = int(electrode_size / 10)
+regular_line_width = 40
 if regular_line_width > MAX_WIRE_WIDTH:
     regular_line_width = MAX_WIRE_WIDTH
-mini_line_width = int(electrode_size / 20)
+mini_line_width = 20
 contactpad_unit = 2540
 contactpad_radius = 750
 # (wire width + 5) * 1.414
