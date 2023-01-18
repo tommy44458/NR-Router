@@ -16,6 +16,7 @@ class GridType(IntEnum):
     PSEUDONODE = 1
     PSEUDOHUB = 2
     REF = 3
+    CORNER = 4
 
 
 class Grid():

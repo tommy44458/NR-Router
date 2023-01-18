@@ -112,9 +112,14 @@ class Draw():
         vertex_order = self.order_vertex(vertex)
         dxf.add_solid(vertex_order)
 
-    def draw_contact_pad(self, contactpad_list: List[list], dxf: Modelspace):
+    def draw_contact_pad(self, contactpad_list: List[list], top_ref_pin_list: List[list], down_ref_pin_list: List[list], top_corner_pin_list: List[list], down_corner_pin_list: List[list], unit: int, dxf: Modelspace):
         for pad in contactpad_list:
-            dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)
+            if [int(pad[0] / unit), int(pad[1] / unit)] in top_ref_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in down_ref_pin_list:
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 5})
+            elif [int(pad[0] / unit), int(pad[1] / unit)] in top_corner_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in down_corner_pin_list:
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 1})
+            else:
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)
 
     def draw_electrodes(self, electrodes: List[list], shape_lib: dict, mesh_electrode_list: List[Electrode], dxf: Modelspace, hatch_path: BoundaryPaths):
         for elec_index, elec in enumerate(electrodes):

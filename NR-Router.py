@@ -83,11 +83,13 @@ mid_start_point = [-1630, 11258]
 down_start_point = [0, 56896]
 
 top_section_ref_pin = [[0, 3], [8, 3], [16, 3], [24, 3]]
+top_section_corner_pin = [[0, 0], [31, 0]]
 down_section_ref_pin = [[7, 0], [15, 0], [23, 0], [31, 0]]
+down_section_corner_pin = [[0, 3], [31, 3]]
 
 top_section = ChipSection(top_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit,
                           contactpad_radius)
-top_section.init_grid(GridType.CONTACTPAD, top_section_ref_pin)
+top_section.init_grid(GridType.CONTACTPAD, top_section_ref_pin, top_section_corner_pin)
 top_section.init_tile()
 top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.radius) // 2)
 
@@ -96,7 +98,7 @@ mid_section.init_grid()
 
 down_section = ChipSection(down_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit,
                            contactpad_radius)
-down_section.init_grid(GridType.CONTACTPAD, down_section_ref_pin)
+down_section.init_grid(GridType.CONTACTPAD, down_section_ref_pin, down_section_corner_pin)
 down_section.init_tile()
 down_section.init_hub((down_start_point[1] - down_section.radius + mid_start_point[1] + mid_section.height) // 2)
 
@@ -156,7 +158,7 @@ dxf2 = hatch2.paths
 # dxf3 = hatch3.paths
 # dxf4 = hatch4.paths
 
-_draw.draw_contact_pad(_chip.contactpad_list, msp)
+_draw.draw_contact_pad(_chip.contactpad_list, top_section_ref_pin, down_section_ref_pin, top_section_corner_pin, down_section_corner_pin, contactpad_unit, msp)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _model_mesh.electrodes, msp, dxf2)
 
 # _draw.draw_pseudo_node(mid_section.grid, dxf2)
