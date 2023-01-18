@@ -141,7 +141,8 @@ class Draw():
                     x1 = vertex_order[i+1][0]
                     y1 = vertex_order[i+1][1]
                     arc = ConstructionArc.from_2p_angle((x1, y1), (x0, y0), 90)
-                    if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) > corner_size * 1.414 + 1:
+                    dist = math.dist([float(x0), float(y0)], [float(x1), float(y1)])
+                    if  dist > corner_size * 1.414 + 1 and dist < corner_size *  2:
                         arc = ConstructionArc.from_2p_angle((x0, y0), (x1, y1), 90)
                     dxf.add_arc(
                         center=arc.center,
