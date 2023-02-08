@@ -160,7 +160,7 @@ dxf4 = hatch4.paths
 
 _draw.draw_contact_pad(_chip.contactpad_list, top_section_ref_pin, down_section_ref_pin, top_section_corner_pin, down_section_corner_pin, contactpad_unit, msp)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _model_mesh.electrodes, msp, dxf2)
-_draw.draw_reference_electrode(msp, dxf4)
+_draw.draw_reference_electrode(msp)
 
 # _draw.draw_pseudo_node(mid_section.grid, dxf2)
 # _draw.draw_hub(top_section.hub, dxf2)

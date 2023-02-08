@@ -256,21 +256,22 @@ class Draw():
             for wire in wire_list:
                 dxf.add_line([wire.start_x, -wire.start_y], [wire.end_x, -wire.end_y])
                 
-    def draw_reference_electrode(self, dxf: Modelspace, hatch_path: BoundaryPaths):
+    def draw_reference_electrode(self, dxf: Modelspace):
         height = 24000
         width = 5000
-        left_ref_points = [(-5515, -12635 - 2540 * 3), (-5515, -12635 - 2540 * 3 - height), (-5515 - width, -12635 - 2540 * 3 - height), (-5515 - width, -12635 - 2540 * 3), (-5515, -12635 - 2540 * 3)]
-        right_ref_points = [(5515 + 2540 * 31, -12635 - 2540 * 3), (5515 + 2540 * 31, -12635 - 2540 * 3 - height), (5515 + 2540 * 31 + width, -12635 - 2540 * 3 - height), (5515 + 2540 * 31 + width, -12635 - 2540 * 3), (5515 + 2540 * 31, -12635 - 2540 * 3)]
-        for i in range (len(left_ref_points) - 1):
-            dxf.add_line([left_ref_points[i][0], left_ref_points[i][1]], [left_ref_points[i + 1][0], left_ref_points[i + 1][1]], dxfattribs={'color': '5'})
-            dxf.add_line([right_ref_points[i][0], right_ref_points[i][1]], [right_ref_points[i + 1][0], right_ref_points[i + 1][1]], dxfattribs={'color': '5'})
-        hatch_path.add_polyline_path(left_ref_points)
-        hatch_path.add_polyline_path(right_ref_points)
+        left_ref_points = [(-5515, -12635 - 2540 * 3), (-5515, -12635 - 2540 * 3 - height), (-5515 - width, -12635 - 2540 * 3), (-5515 - width, -12635 - 2540 * 3 - height)]
+        right_ref_points = [(5515 + 2540 * 31, -12635 - 2540 * 3), (5515 + 2540 * 31, -12635 - 2540 * 3 - height), (5515 + 2540 * 31 + width, -12635 - 2540 * 3), (5515 + 2540 * 31 + width, -12635 - 2540 * 3 - height)]
+        dxf.add_solid(left_ref_points, dxfattribs={'color': '5'})
+        dxf.add_solid(right_ref_points, dxfattribs={'color': '5'})
         
         # route reference electrode
         left_ref_pin = [(-5515 - width / 2, -12635 - 2540 * 3)]
+        left_ref_wire0 = [(left_ref_pin[0][0] - 100, left_ref_pin[0][1]), (left_ref_pin[0][0] + 100, left_ref_pin[0][1]), (left_ref_pin[0][0] - 100, -2540 * 3 + 100), (left_ref_pin[0][0] + 100, -2540 * 3 + 100)]
+        left_ref_wire1 = [(left_ref_pin[0][0] + 100, -2540 * 3 - 100), (0, -2540 * 3 - 100), (left_ref_pin[0][0] + 100, -2540 * 3 + 100), (0, -2540 * 3 + 100)]
+        dxf.add_solid(left_ref_wire0, dxfattribs={'color': '5'})
+        dxf.add_solid(left_ref_wire1, dxfattribs={'color': '5'})
         right_ref_pin = [(5515 + 2540 * 31 + width / 2, -12635 - 2540 * 3 - height)]
-        dxf.add_line([left_ref_pin[0][0], left_ref_pin[0][1]], [left_ref_pin[0][0], left_ref_pin[0][1] + 5000], dxfattribs={'color': '5'})
-        dxf.add_line([left_ref_pin[0][0], left_ref_pin[0][1] + 5000], [0, -2540 * 3], dxfattribs={'color': '5'})
-        dxf.add_line([right_ref_pin[0][0], right_ref_pin[0][1]], [right_ref_pin[0][0], right_ref_pin[0][1] - 5000], dxfattribs={'color': '5'})
-        dxf.add_line([right_ref_pin[0][0], right_ref_pin[0][1] - 5000], [2540 * 31, -56896], dxfattribs={'color': '5'})
+        right_ref_wire0 = [(2540 * 31, -56896 - 100), (right_ref_pin[0][0] + 100, -56896 - 100), (2540 * 31, -56896 + 100), (right_ref_pin[0][0] + 100, -56896 + 100)]
+        right_ref_wire1 = [(right_ref_pin[0][0] - 100, -56896 + 100), (right_ref_pin[0][0] + 100, -56896 + 100), (right_ref_pin[0][0] - 100, right_ref_pin[0][1]), (right_ref_pin[0][0] + 100, right_ref_pin[0][1])]
+        dxf.add_solid(right_ref_wire0, dxfattribs={'color': '5'})
+        dxf.add_solid(right_ref_wire1, dxfattribs={'color': '5'})
