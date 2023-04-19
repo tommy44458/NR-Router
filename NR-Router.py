@@ -190,8 +190,8 @@ for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
 
     if OUTPUT_FORMAT == 'ecc_pattern':
-        x = int((electrode.real_x + 615) / electrode_size)
-        y = int((electrode.real_y - 12273) / electrode_size)
+        x = int((electrode.real_x + 628) / electrode_size)
+        y = int((electrode.real_y - 12260) / electrode_size)
         pin_x = round(electrode.routing_wire[len(electrode.routing_wire) - 1].end_x / contactpad_unit)
         pin_y = electrode.routing_wire[len(electrode.routing_wire) - 1].end_y
 
