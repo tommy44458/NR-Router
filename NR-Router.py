@@ -1,3 +1,5 @@
+import matplotlib.path as mplPath
+import numpy as np
 import base64
 import math
 import sys
@@ -28,7 +30,7 @@ electrode_size = 1000
 unit_scale = 4
 MAX_WIRE_WIDTH = 200
 UNIT_LIST = [1000, 500, 250, 200, 125, 100]
-# OUTPUT_FORMAT = dxf, dxf-based64, svg, file, ecc_pattern
+# OUTPUT_FORMAT = dxf, dxf-based64, svg, file, ewds
 OUTPUT_FORMAT = 'file'
 
 try:
@@ -185,11 +187,11 @@ while reduce_times != 0:
 _routing_wire.divide_start_wire()
 
 gui_routing_result = ""
-
+combined_id = 0
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
 
-    if OUTPUT_FORMAT == 'ecc_pattern':
+    if OUTPUT_FORMAT == 'ewds':
         x = int((electrode.real_x + 628) / electrode_size)
         y = int((electrode.real_y - 12260) / electrode_size)
         pin_x = round(electrode.routing_wire[len(electrode.routing_wire) - 1].end_x / contactpad_unit)
@@ -239,16 +241,49 @@ for electrode in _model_mesh.electrodes:
                 pin_number = 41 + pin_x
         elif pin_y == 7:
             pin_number = 40 - pin_x
+            
+        if electrode.shape == 'base':
+            gui_routing_result += 'square' + " " + str(x) + " " + str(y) + " " + str(pin_number) + "\n"
+        else:
+            path = _chip.electrode_shape_library[electrode.shape]
+            svg = ""
+            for i in range(1, len(path), 2):
+                point = " L " + str(math.floor((int(path[i][0]) + 60) / electrode_size))
+                if i == 1:
+                    point = point.replace("L", "M")
+                point += " " + str(math.floor((int(path[i][1]) + 60) / electrode_size))
+                svg += point
+            elements = svg.split()
+            # Process the rest of the elements
+            i = 1
+            points = []
+            while i < len(elements):
+                if elements[i] not in ['L', 'M']:
+                    points.append((float(elements[i]), float(elements[i+1])))
+                    i += 2
+                else:
+                    i += 1
 
-        gui_routing_result += str(x) + " " + str(y) + " " + str(pin_number) + " " 
-        path = _chip.electrode_shape_library[electrode.shape]
-        for i in range(1, len(path), 2):
-            point = " L " + str(math.floor((int(path[i][0]) + 60) / electrode_size))
-            if i == 1:
-                point = point.replace("L", "M")
-            point += " " + str(math.floor((int(path[i][1]) + 60) / electrode_size))
-            gui_routing_result += point
-        gui_routing_result += " Z\n"
+            points_np = np.array(points)
+            path = mplPath.Path(points_np)
+            top_left_corners = []
+
+            # Process each point in a grid
+            for x in np.arange(int(points_np[:,0].min()), int(points_np[:,0].max())):
+                for y in np.arange(int(points_np[:,1].min()), int(points_np[:,1].max())):
+                    # Check if the top-left corner of the grid square is inside the path
+                    # Add a small offset to include points on the border
+                    if path.contains_point((x + 0.1, y + 0.1)):
+                        top_left_corners.append((x, y))
+                    
+            for x, y in top_left_corners:
+                gui_routing_result += 'combine' + " " + str(x) + " " + str(y) + " " + str(combined_id) + " " + str(pin_number) + "\n"
+            combined_id += 1
+
+gui_routing_result += "#ENDOFELECTRODE#\n"
+gui_routing_result += "0::100:0\n"
+gui_routing_result += "#ENDOFSEQUENCE#\n"
+        
         
 # print(f'reduce runtime: {str(time.time() - c_time)}')
 
@@ -271,7 +306,7 @@ elif OUTPUT_FORMAT == 'svg':
     print(svg)
 elif OUTPUT_FORMAT == 'file':
     doc.saveas('dwg/' + ewd_name + '.dxf')
-elif OUTPUT_FORMAT == 'ecc_pattern':
+elif OUTPUT_FORMAT == 'ewds':
     print(gui_routing_result)
 
 # print(f'total time: {str(time.time() - start_time)}')
