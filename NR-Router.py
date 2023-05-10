@@ -269,15 +269,15 @@ for electrode in _model_mesh.electrodes:
             top_left_corners = []
 
             # Process each point in a grid
-            for x in np.arange(int(points_np[:,0].min()), int(points_np[:,0].max())):
-                for y in np.arange(int(points_np[:,1].min()), int(points_np[:,1].max())):
+            for _x in np.arange(int(points_np[:,0].min()), int(points_np[:,0].max())):
+                for _y in np.arange(int(points_np[:,1].min()), int(points_np[:,1].max())):
                     # Check if the top-left corner of the grid square is inside the path
                     # Add a small offset to include points on the border
-                    if path.contains_point((x + 0.1, y + 0.1)):
-                        top_left_corners.append((x, y))
+                    if path.contains_point((_x + 0.1, _y + 0.1)):
+                        top_left_corners.append((x + _x, y + _y))
                     
-            for x, y in top_left_corners:
-                gui_routing_result += 'combine' + " " + str(x) + " " + str(y) + " " + str(combined_id) + " " + str(pin_number) + "\n"
+            for _x, _y in top_left_corners:
+                gui_routing_result += 'combine' + " " + str(_x) + " " + str(_y) + " " + str(combined_id) + " " + str(pin_number) + "\n"
             combined_id += 1
 
 gui_routing_result += "#ENDOFELECTRODE#\n"
