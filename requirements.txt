@@ -1,0 +1,10 @@
+## requirements file for local machine
+
+# python3 -m venv venv
+# source venv/bin/activate
+# pip install --upgrade pip
+
+ezdxf==1.0.1
+matplotlib==3.6.3
+ortools==9.3.10497
+shapely==1.8.4

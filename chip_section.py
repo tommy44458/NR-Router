@@ -1,12 +1,13 @@
-import numpy as np
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-import os
-from grid import Grid, GridType
-from tile import Tile
-from hub import Hub
 import math
+import os
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
+import numpy as np
 
 from electrode import Electrode
+from grid import Grid, GridType
+from hub import Hub
+from tile import Tile
 
 
 class ChipSection():
@@ -16,19 +17,23 @@ class ChipSection():
         self.height = height
         self.unit = unit
         self.hypo_unit = int(unit * 2) - 1   # int(unit*2) - 1  # 2 * unit - 1  # unit * math.sqrt(2)
-        self.redius = radius
+        self.radius = radius
         self.grid: List[List[Grid]] = []
         self.tile: List[List[Tile]] = []
         self.hub: List[Hub] = []
         self.hub_gap = 208
 
-    def init_grid(self, grid_type=GridType.GRID):
+    def init_grid(self, grid_type=GridType.GRID, ref_pin=None, corner_pin=None):
         self.grid = []
         for i in range(self.width // self.unit + 1):
             self.grid.append([])
             for j in range(self.height // self.unit + 1):
-                self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, grid_type))
-
+                if ref_pin and [i, j] in ref_pin:
+                    self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, GridType.REF))
+                elif corner_pin and [i, j] in corner_pin:
+                    self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, GridType.CORNER))
+                else:
+                    self.grid[i].append(Grid(i * self.unit + self.start_point[0], j * self.unit + self.start_point[1], i, j, grid_type))
     def init_tile(self):
         self.tile = []
         for i in range(self.width // self.unit):
@@ -45,5 +50,5 @@ class ChipSection():
                 self.hub.append(Hub(self.grid[i//5][0].real_x, y, 0, i))
             else:
                 # tile
-                offset = self.redius + (i % 5) * self.hub_gap
+                offset = self.radius + (i % 5) * self.hub_gap
                 self.hub.append(Hub(self.grid[i//5][0].real_x + offset, y, 1, i))

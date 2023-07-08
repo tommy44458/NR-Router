@@ -1,11 +1,12 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
-from grid import Grid, GridType, PseudoNodeType
-from wire import WireDirect
-from tile import Tile
-from hub import Hub
-from electrode import Electrode
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
 from chip_section import ChipSection
+from electrode import Electrode
+from grid import Grid, GridType, PseudoNodeType
+from hub import Hub
 from pseudo_node import PseudoNode
+from tile import Tile
+from wire import WireDirect
 
 
 class ModelMesh():
@@ -15,7 +16,7 @@ class ModelMesh():
         self.mid_section = mid_section
         self.down_section = down_section
 
-        self.pesudo_node = pseudo_node
+        self.pseudo_node = pseudo_node
 
         self.num_electrode = 0
 
@@ -24,7 +25,7 @@ class ModelMesh():
         self.electrodes: List[Electrode] = []
 
     def get_pseudo_node(self):
-        self.covered_grid_head_list, self.electrodes = self.pesudo_node.internal_node()
+        self.covered_grid_head_list, self.electrodes = self.pseudo_node.internal_node()
 
     def add_grid_to_neighbor(self, grid: Grid, neighbor_grid: Grid, capacity: float, cost: float):
         if neighbor_grid.close_electrode is False and neighbor_grid.type == GridType.GRID:
@@ -121,7 +122,7 @@ class ModelMesh():
                 for grid_y, grid in enumerate(grid_col):
                     if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
                         if grid.close_electrode:
-                            # add connnection from electrode-closed grid to normal grid
+                            # add connection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
                                 try:
                                     if abs(x + y) != 1:
@@ -274,7 +275,7 @@ class ModelMesh():
         grid_index = 0
         for i in range(len(hub_array) - 1):
             if i == 0:
-                x = hub_array[i].real_x - self.pesudo_node.unit
+                x = hub_array[i].real_x - self.pseudo_node.unit
                 if grid_index < len(mid_grid_array) - 1:
                     while mid_grid_array[grid_index][mid_n].real_x < x:
                         grid_index += 1

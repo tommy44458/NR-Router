@@ -1,12 +1,12 @@
-import numpy as np
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 import math
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
-from grid import Grid, GridType, PseudoNodeType
-from wire import WireDirect
-from electrode import Electrode
+import numpy as np
+
 from degree import Degree, direct_table
 from electrode import Electrode
+from grid import Grid, GridType, PseudoNodeType
+from wire import WireDirect
 
 
 class PseudoNode():
@@ -20,16 +20,16 @@ class PseudoNode():
 
     def get_point_by_shape(self, elec_point: list, shape_point: list) -> list:
         """
-            elec_p is the top-lsft point in electrode
+            elec_p is the top-left point in electrode
             shape_p is the point by svg path
         """
-        return [elec_point[0] + shape_point[0], elec_point[1] + shape_point[1]]
+        return [elec_point[0] + float(shape_point[0]), elec_point[1] + float(shape_point[1])]
 
     def get_grid_point(self, real_point: list, unit: float) -> list:
         """
             get gird point by real point
         """
-        return [(real_point[0] - self.start_point[0]) // unit, (real_point[1] - self.start_point[1]) // unit]
+        return [int((real_point[0] - self.start_point[0]) // unit), int((real_point[1] - self.start_point[1]) // unit)]
 
     def cal_distance(self, p1: list, p2: list):
         return math.sqrt(math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2))
@@ -184,7 +184,7 @@ class PseudoNode():
                     grid_p1 = self.get_grid_point(p1, self.unit)
                     grid_p2 = self.get_grid_point(p2, self.unit)
 
-                    degree_p1_p2 = Degree.getdegree(p1[0], -p1[1], p2[0], -p2[1])
+                    degree_p1_p2 = Degree.get_degree(p1[0], -p1[1], p2[0], -p2[1])
 
                     if direct_table[degree_p1_p2] == WireDirect.UP:
                         for k in range(grid_p1[1] - (grid_p2[1] + 1) + 1):

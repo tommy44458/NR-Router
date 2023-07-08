@@ -1,21 +1,28 @@
-import sys
-import ezdxf
-import time
+import matplotlib.path as mplPath
+import numpy as np
 import base64
+import math
+import sys
+import time
+# for converting dxf string to svg sting
+from io import StringIO
+
+import ezdxf
+import matplotlib.pyplot as plt
+from ezdxf.addons.drawing import Frontend, RenderContext
+from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 
 from chip import Chip
-from grid import Grid, GridType
+from chip_section import ChipSection
 from draw import Draw
-from model_mesh import ModelMesh
+from grid import Grid, GridType
 from model_flow import ModelFlow
+from model_mesh import ModelMesh
 from model_min_cost_flow import ModelMinCostFlow
 from pseudo_node import PseudoNode
-
 from routing_wire import RoutingWire
 
-from chip_section import ChipSection
-
-start_time = time.time()
+# start_time = time.time()
 
 ewd_input = None
 ewd_name = 'mask'
@@ -23,6 +30,8 @@ electrode_size = 1000
 unit_scale = 4
 MAX_WIRE_WIDTH = 200
 UNIT_LIST = [1000, 500, 250, 200, 125, 100]
+# OUTPUT_FORMAT = dxf, dxf-based64, svg, file, ewds
+OUTPUT_FORMAT = 'file'
 
 try:
     electrode_size = int(sys.argv[1])
@@ -35,16 +44,20 @@ except:
     unit_scale = 4
 
 try:
-    ewd_input = sys.argv[3]
+    OUTPUT_FORMAT = sys.argv[3]
+except:
+    OUTPUT_FORMAT = 'file'
+
+try:
+    ewd_input = sys.argv[4]
 except:
     ewd_input = None
 
-
 # real ship size
-regular_line_width = int(electrode_size / 10)
+regular_line_width = 40
 if regular_line_width > MAX_WIRE_WIDTH:
     regular_line_width = MAX_WIRE_WIDTH
-mini_line_width = 5
+mini_line_width = 20
 contactpad_unit = 2540
 contactpad_radius = 750
 # (wire width + 5) * 1.414
@@ -55,9 +68,8 @@ for unit in UNIT_LIST:
         tile_unit = unit
         break
 
-if (regular_line_width + 5) * 1.414 > unit:
-    regular_line_width = (int((unit / 1.414) - 5) // 50) * 50
-
+if (regular_line_width + mini_line_width) * 1.414 > unit:
+    regular_line_width = (int((unit / 1.414) - mini_line_width) // 50) * 50
 """
     contact section
     - x: 0 ~ (32 * contact_pad_unit)
@@ -72,27 +84,35 @@ top_start_point = [0, 0]
 mid_start_point = [-1630, 11258]
 down_start_point = [0, 56896]
 
-top_section = ChipSection(top_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit, contactpad_radius)
-top_section.init_grid(GridType.CONTACTPAD)
+top_section_ref_pin = [[0, 3], [8, 3], [16, 3], [24, 3]]
+top_section_corner_pin = [[0, 0], [31, 0]]
+down_section_ref_pin = [[7, 0], [15, 0], [23, 0], [31, 0]]
+down_section_corner_pin = [[0, 3], [31, 3]]
+
+top_section = ChipSection(top_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit,
+                          contactpad_radius)
+top_section.init_grid(GridType.CONTACTPAD, top_section_ref_pin, top_section_corner_pin)
 top_section.init_tile()
-top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.redius) // 2)
+top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.radius) // 2)
 
 mid_section = ChipSection(mid_start_point, 82000, 42000, tile_unit, contactpad_radius)
 mid_section.init_grid()
 
-down_section = ChipSection(down_start_point,  contactpad_unit * 31, contactpad_unit * 3, contactpad_unit, contactpad_radius)
-down_section.init_grid(GridType.CONTACTPAD)
+down_section = ChipSection(down_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit,
+                           contactpad_radius)
+down_section.init_grid(GridType.CONTACTPAD, down_section_ref_pin, down_section_corner_pin)
 down_section.init_tile()
-down_section.init_hub((down_start_point[1] - down_section.redius + mid_start_point[1] + mid_section.height) // 2)
+down_section.init_hub((down_start_point[1] - down_section.radius + mid_start_point[1] + mid_section.height) // 2)
 
-c_time = time.time()
+# c_time = time.time()
 
 # read ewd file
 # if ewd_input is None, then open local file
-_chip = Chip('test0307_2_real_chip.ewd', ewd_input)
+_chip = Chip('test0307.ewd', ewd_input)
 _chip.setup()
 
-_pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point, mid_section.unit, _chip.electrode_list)
+_pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point,
+                          mid_section.unit, _chip.electrode_list)
 _model_mesh = ModelMesh(top_section, mid_section, down_section, _pseudo_node)
 _model_mesh.get_pseudo_node()
 _model_mesh.create_pseudo_node_connection()
@@ -104,14 +124,14 @@ _model_mesh.create_hub_connection(down_section.grid, down_section.hub, -1, 0, do
 
 # print('create mesh:', time.time() - c_time)
 
-c_time = time.time()
+# c_time = time.time()
 
 # flow nodes
 _model_flow = ModelFlow(_model_mesh)
 _model_flow.create_all_flownode()
 # print('create flow:', time.time() - c_time)
 
-c_time = time.time()
+# c_time = time.time()
 # Min Cost Flow
 _model_mcmf = ModelMinCostFlow(_model_mesh, _model_flow)
 _model_mcmf.init_structure()
@@ -123,7 +143,7 @@ _model_mcmf.solver()
 _model_mcmf.get_path()
 # print('mcmf path:', time.time() - c_time)
 
-c_time = time.time()
+# c_time = time.time()
 _draw = Draw(_model_mcmf.all_path, regular_line_width, mini_line_width)
 
 doc = ezdxf.new(dxfversion='AC1024')
@@ -133,16 +153,16 @@ msp = doc.modelspace()
 # hatch1 = msp.add_hatch(color=6)
 hatch2 = msp.add_hatch(color=1)
 # hatch3 = msp.add_hatch(color=4)
-# hatch4 = msp.add_hatch(color=5)
+hatch4 = msp.add_hatch(color=5)
 # dxf = hatch.paths
 # dxf1 = hatch1.paths
 dxf2 = hatch2.paths
 # dxf3 = hatch3.paths
-# dxf4 = hatch4.paths
+dxf4 = hatch4.paths
 
-
-_draw.draw_contact_pad(_chip.contactpad_list, msp)
+_draw.draw_contact_pad(_chip.contactpad_list, top_section_ref_pin, down_section_ref_pin, top_section_corner_pin, down_section_corner_pin, contactpad_unit, msp)
 _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _model_mesh.electrodes, msp, dxf2)
+_draw.draw_reference_electrode(msp)
 
 # _draw.draw_pseudo_node(mid_section.grid, dxf2)
 # _draw.draw_hub(top_section.hub, dxf2)
@@ -150,26 +170,143 @@ _draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _mode
 # _draw.draw_tile(top_section.tile, dxf2)
 # _draw.draw_tile(down_section.tile, dxf2)
 
-_ruting_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
-# reduce wire turn times
-reduce_times = 1
-while reduce_times != 0:
-    reduce_times = _ruting_wire.reduce_wire_turn()
-
-_ruting_wire.divide_start_wire()
-
-for electrode in _model_mesh.electrodes:
-    _draw.draw_all_wire(electrode.routing_wire, msp)
-
 # _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
 # _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
 # _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
 
 # print(f'electrode_number: {len(_model_mesh.electrodes)}, total runtime: {str(time.time() - start_time)}')
 
-encode_dxf = doc.encode_base64()
-print(base64.b64decode(encode_dxf).decode())
+# reduce wire turn times
 
-# doc.saveas('dwg/' + ewd_name + '.dxf')
+# c_time = time.time()
+_routing_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
+reduce_times = 1
+while reduce_times != 0:
+    reduce_times = _routing_wire.reduce_wire_turn()
 
-# print('draw:', time.time() - c_time)
+_routing_wire.divide_start_wire()
+
+gui_routing_result = ""
+combined_id = 0
+for electrode in _model_mesh.electrodes:
+    _draw.draw_all_wire(electrode.routing_wire, msp)
+
+    if OUTPUT_FORMAT == 'ewds':
+        x = int((electrode.real_x + 628) / electrode_size)
+        y = int((electrode.real_y - 12260) / electrode_size)
+        pin_x = round(electrode.routing_wire[len(electrode.routing_wire) - 1].end_x / contactpad_unit)
+        pin_y = electrode.routing_wire[len(electrode.routing_wire) - 1].end_y
+
+        if pin_y >= 56896:
+            pin_y -= 56896
+            pin_y /= contactpad_unit
+            pin_y = round(pin_y)
+            pin_y += 4
+        else:
+            pin_y /= contactpad_unit
+            pin_y = round(pin_y)
+
+        # match gui design pattern
+        pin_number = 0
+        if pin_y == 0:
+            pin_number = 97 + pin_x
+        elif pin_y == 1:
+            pin_number = 96 - pin_x
+        elif pin_y == 2:
+            pin_number = 225 + pin_x
+        elif pin_y == 3:
+            pin_number = 224 - pin_x
+            if pin_x < 8:
+                pin_number += 1
+            elif pin_x < 16:
+                pin_number += 2
+            elif pin_x < 24:
+                pin_number += 3
+            else:
+                pin_number += 4
+        elif pin_y == 4:
+            pin_number = 169 + pin_x
+            if pin_x > 23:
+                pin_number -= 3
+            elif pin_x > 15:
+                pin_number -= 2
+            elif pin_x > 7:
+                pin_number -= 1
+        elif pin_y == 5:
+            pin_number = 168 - pin_x
+        elif pin_y == 6:
+            if pin_x > 23:
+                pin_number = 129 + pin_x
+            else:
+                pin_number = 41 + pin_x
+        elif pin_y == 7:
+            pin_number = 40 - pin_x
+            
+        if electrode.shape == 'base':
+            gui_routing_result += 'square' + " " + str(x) + " " + str(y) + " " + str(pin_number) + "\n"
+        else:
+            path = _chip.electrode_shape_library[electrode.shape]
+            svg = ""
+            for i in range(1, len(path), 2):
+                point = " L " + str(math.floor((int(path[i][0]) + 60) / electrode_size))
+                if i == 1:
+                    point = point.replace("L", "M")
+                point += " " + str(math.floor((int(path[i][1]) + 60) / electrode_size))
+                svg += point
+            elements = svg.split()
+            # Process the rest of the elements
+            i = 1
+            points = []
+            while i < len(elements):
+                if elements[i] not in ['L', 'M']:
+                    points.append((float(elements[i]), float(elements[i+1])))
+                    i += 2
+                else:
+                    i += 1
+
+            points_np = np.array(points)
+            path = mplPath.Path(points_np)
+            top_left_corners = []
+
+            # Process each point in a grid
+            for _x in np.arange(int(points_np[:,0].min()), int(points_np[:,0].max())):
+                for _y in np.arange(int(points_np[:,1].min()), int(points_np[:,1].max())):
+                    # Check if the top-left corner of the grid square is inside the path
+                    # Add a small offset to include points on the border
+                    if path.contains_point((_x + 0.1, _y + 0.1)):
+                        top_left_corners.append((x + _x, y + _y))
+                    
+            for _x, _y in top_left_corners:
+                gui_routing_result += 'combine' + " " + str(_x) + " " + str(_y) + " " + str(combined_id) + " " + str(pin_number) + "\n"
+            combined_id += 1
+
+gui_routing_result += "#ENDOFELECTRODE#\n"
+gui_routing_result += "0::100:0\n"
+gui_routing_result += "#ENDOFSEQUENCE#\n"
+        
+        
+# print(f'reduce runtime: {str(time.time() - c_time)}')
+
+if OUTPUT_FORMAT == 'dxf':
+    encode_dxf = doc.encode_base64()
+    print(base64.b64decode(encode_dxf).decode())
+elif OUTPUT_FORMAT == 'dxf-based64':
+    encode_dxf = doc.encode_base64()
+    print(encode_dxf.decode())
+elif OUTPUT_FORMAT == 'svg':
+    # dxf string to svg string
+    fig = plt.figure()
+    ax = fig.add_axes([0, 0, 1, 1])
+    ctx = RenderContext(doc)
+    out = MatplotlibBackend(ax)
+    Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
+    str = StringIO()
+    fig.savefig(str, format='svg')
+    svg = str.getvalue()
+    print(svg)
+elif OUTPUT_FORMAT == 'file':
+    doc.saveas('dwg/' + ewd_name + '.dxf')
+elif OUTPUT_FORMAT == 'ewds':
+    print(gui_routing_result)
+
+# print(f'total time: {str(time.time() - start_time)}')

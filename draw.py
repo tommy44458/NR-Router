@@ -1,14 +1,16 @@
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
+import math
+from ezdxf.math import ConstructionArc
 from ezdxf.document import Modelspace
 from ezdxf.entities import BoundaryPaths
 
-from wire import Wire
+from degree import Degree, wire_offset_table
+from electrode import Electrode
 from grid import Grid, GridType
 from hub import Hub
 from tile import Tile
-
-from degree import Degree, wire_offset_table
-from electrode import Electrode
+from wire import Wire
 
 
 class Draw():
@@ -49,14 +51,14 @@ class Draw():
 
         if previous_wire is not None:
             previous_point = [previous_wire.start_x, previous_wire.start_y]
-            degree_previous_start = Degree.getdegree(previous_point[0], previous_point[1], start_point[0], start_point[1])
+            degree_previous_start = Degree.get_degree(previous_point[0], previous_point[1], start_point[0], start_point[1])
         else:
             # no previous wire
             degree_previous_start = None
 
         if next_wire is not None:
             next_point = [next_wire.end_x, next_wire.end_y]
-            degree_end_next = Degree.getdegree(end_point[0], end_point[1], next_point[0], next_point[1])
+            degree_end_next = Degree.get_degree(end_point[0], end_point[1], next_point[0], next_point[1])
         else:
             degree_end_next = None
 
@@ -64,7 +66,7 @@ class Draw():
         if start_point == end_point:
             return None
 
-        degree_start_end = Degree.getdegree(start_point[0], start_point[1], end_point[0], end_point[1])
+        degree_start_end = Degree.get_degree(start_point[0], start_point[1], end_point[0], end_point[1])
 
         tan = tan
         dia_offset = dia
@@ -110,9 +112,14 @@ class Draw():
         vertex_order = self.order_vertex(vertex)
         dxf.add_solid(vertex_order)
 
-    def draw_contact_pad(self, contactpad_list: List[list], dxf: Modelspace):
+    def draw_contact_pad(self, contactpad_list: List[list], top_ref_pin_list: List[list], down_ref_pin_list: List[list], top_corner_pin_list: List[list], down_corner_pin_list: List[list], unit: int, dxf: Modelspace):
         for pad in contactpad_list:
-            dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)
+            if [int(pad[0] / unit), int(pad[1] / unit)] in top_ref_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in down_ref_pin_list:
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 5})
+            elif [int(pad[0] / unit), int(pad[1] / unit)] in top_corner_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in down_corner_pin_list:
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 1})
+            else:
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)
 
     def draw_electrodes(self, electrodes: List[list], shape_lib: dict, mesh_electrode_list: List[Electrode], dxf: Modelspace, hatch_path: BoundaryPaths):
         for elec_index, elec in enumerate(electrodes):
@@ -121,10 +128,50 @@ class Draw():
             y = -elec[2]
             vertex_order = []
             for shape_p in shape_lib[shape]:
-                vertex_order.append((x + shape_p[0], y - shape_p[1]))
-            dxf.add_polyline2d(vertex_order, close=True)
+                vertex_order.append((x + float(shape_p[0]), y - float(shape_p[1])))
+
+            start_index = 0
+            corner_size = float(shape_lib['base'][0][1])
+            electrode_size = float(shape_lib['base'][2][0]) - float(shape_lib['base'][1][0])
+            if shape != 'base':
+                start_index = 1 
             if len(mesh_electrode_list[elec_index].routing_wire) == 0:
                 hatch_path.add_polyline_path(vertex_order)
+
+            if corner_size > 0:
+                for i in range(start_index,len(vertex_order),2):
+                    if i != len(vertex_order)-1:
+                        x0 = vertex_order[i][0]
+                        y0 = vertex_order[i][1]
+                        x1 = vertex_order[i+1][0]
+                        y1 = vertex_order[i+1][1]
+                        arc = ConstructionArc.from_2p_angle((x1, y1), (x0, y0), 90)
+                        dist = math.dist([float(x0), float(y0)], [float(x1), float(y1)])
+                        if  dist > corner_size * 1.414 + 1 and dist < corner_size *  2:
+                            arc = ConstructionArc.from_2p_angle((x0, y0), (x1, y1), 90)
+                        dxf.add_arc(
+                            center=arc.center,
+                            radius=arc.radius,
+                            start_angle=arc.start_angle,
+                            end_angle=arc.end_angle,
+                        )
+                        if len(mesh_electrode_list[elec_index].routing_wire) == 0:
+                            end_angle = arc.end_angle + 2.9
+                            hatch_path.add_edge_path().add_arc(
+                                center=arc.center,
+                                radius=arc.radius,
+                                start_angle=arc.start_angle,
+                                end_angle=end_angle,
+                            )
+                    if i != start_index:
+                        x0 = vertex_order[i][0]
+                        y0 = vertex_order[i][1]
+                        x1 = vertex_order[i-1][0]
+                        y1 = vertex_order[i-1][1]
+                        if math.dist([float(x0), float(y0)], [float(x1), float(y1)]) >= electrode_size:
+                            dxf.add_line((x1, y1), (x0, y0))
+            else:
+                dxf.add_polyline2d(vertex_order, close=True)
 
     def draw_grid(self, start_point: list, unit: float, gird_length: list, dxf: Modelspace):
         # col
@@ -209,3 +256,23 @@ class Draw():
             # draw line
             for wire in wire_list:
                 dxf.add_line([wire.start_x, -wire.start_y], [wire.end_x, -wire.end_y])
+                
+    def draw_reference_electrode(self, dxf: Modelspace):
+        height = 24000
+        width = 5000
+        left_ref_points = [(-5515, -12635 - 2540 * 3), (-5515, -12635 - 2540 * 3 - height), (-5515 - width, -12635 - 2540 * 3), (-5515 - width, -12635 - 2540 * 3 - height)]
+        right_ref_points = [(5515 + 2540 * 31, -12635 - 2540 * 3), (5515 + 2540 * 31, -12635 - 2540 * 3 - height), (5515 + 2540 * 31 + width, -12635 - 2540 * 3), (5515 + 2540 * 31 + width, -12635 - 2540 * 3 - height)]
+        dxf.add_solid(left_ref_points, dxfattribs={'color': '5'})
+        dxf.add_solid(right_ref_points, dxfattribs={'color': '5'})
+        
+        # route reference electrode
+        left_ref_pin = [(-5515 - width / 2, -12635 - 2540 * 3)]
+        left_ref_wire0 = [(left_ref_pin[0][0] - 100, left_ref_pin[0][1]), (left_ref_pin[0][0] + 100, left_ref_pin[0][1]), (left_ref_pin[0][0] - 100, -2540 * 3 + 100), (left_ref_pin[0][0] + 100, -2540 * 3 + 100)]
+        left_ref_wire1 = [(left_ref_pin[0][0] + 100, -2540 * 3 - 100), (0, -2540 * 3 - 100), (left_ref_pin[0][0] + 100, -2540 * 3 + 100), (0, -2540 * 3 + 100)]
+        dxf.add_solid(left_ref_wire0, dxfattribs={'color': '5'})
+        dxf.add_solid(left_ref_wire1, dxfattribs={'color': '5'})
+        right_ref_pin = [(5515 + 2540 * 31 + width / 2, -12635 - 2540 * 3 - height)]
+        right_ref_wire0 = [(2540 * 31, -56896 - 100), (right_ref_pin[0][0] + 100, -56896 - 100), (2540 * 31, -56896 + 100), (right_ref_pin[0][0] + 100, -56896 + 100)]
+        right_ref_wire1 = [(right_ref_pin[0][0] - 100, -56896 + 100), (right_ref_pin[0][0] + 100, -56896 + 100), (right_ref_pin[0][0] - 100, right_ref_pin[0][1]), (right_ref_pin[0][0] + 100, right_ref_pin[0][1])]
+        dxf.add_solid(right_ref_wire0, dxfattribs={'color': '5'})
+        dxf.add_solid(right_ref_wire1, dxfattribs={'color': '5'})

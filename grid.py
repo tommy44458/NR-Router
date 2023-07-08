@@ -1,6 +1,7 @@
 from enum import IntEnum
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+
 from wire import WireDirect
-from typing import Any, Optional, Tuple, Union, List, Dict, Callable, NoReturn
 
 
 class PseudoNodeType(IntEnum):
@@ -14,6 +15,8 @@ class GridType(IntEnum):
     GRID = 0
     PSEUDONODE = 1
     PSEUDOHUB = 2
+    REF = 3
+    CORNER = 4
 
 
 class Grid():
