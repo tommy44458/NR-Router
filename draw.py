@@ -1,9 +1,9 @@
+import math
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
-import math
-from ezdxf.math import ConstructionArc
 from ezdxf.document import Modelspace
 from ezdxf.entities import BoundaryPaths
+from ezdxf.math import ConstructionArc
 
 from degree import Degree, wire_offset_table
 from electrode import Electrode
@@ -112,11 +112,11 @@ class Draw():
         vertex_order = self.order_vertex(vertex)
         dxf.add_solid(vertex_order)
 
-    def draw_contact_pad(self, contactpad_list: List[list], top_ref_pin_list: List[list], down_ref_pin_list: List[list], top_corner_pin_list: List[list], down_corner_pin_list: List[list], unit: int, dxf: Modelspace):
+    def draw_contact_pad(self, contactpad_list: List[list], top_ref_pin_list: List[list], bottom_ref_pin_list: List[list], top_corner_pin_list: List[list], bottom_corner_pin_list: List[list], unit: int, dxf: Modelspace):
         for pad in contactpad_list:
-            if [int(pad[0] / unit), int(pad[1] / unit)] in top_ref_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in down_ref_pin_list:
+            if [int(pad[0] / unit), int(pad[1] / unit)] in top_ref_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in bottom_ref_pin_list:
                 dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 5})
-            elif [int(pad[0] / unit), int(pad[1] / unit)] in top_corner_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in down_corner_pin_list:
+            elif [int(pad[0] / unit), int(pad[1] / unit)] in top_corner_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in bottom_corner_pin_list:
                 dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 1})
             else:
                 dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)

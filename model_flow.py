@@ -24,7 +24,7 @@ class ModelFlow():
                     self.node_index += 1
                     self.flownodes.append(grid)
                     # add connect pad end node
-                    if grid.type == GridType.CONTACTPAD:
+                    if grid.type == GridType.CONTACT_PAD:
                         self.global_t.contact_pads.append(grid)
                     elif grid.type == GridType.GRID or grid.type == GridType.PSEUDONODE:
                         self.node_index += 1
@@ -55,11 +55,11 @@ class ModelFlow():
         self.create_electrode_flownode(self.mesh.electrodes)
         self.create_grid_flownode(self.mesh.mid_section.grid)
         self.create_hub_flownode(self.mesh.top_section.hub)
-        self.create_hub_flownode(self.mesh.down_section.hub)
+        self.create_hub_flownode(self.mesh.bottom_section.hub)
         self.create_tile_flownode(self.mesh.top_section.tile)
-        self.create_tile_flownode(self.mesh.down_section.tile)
+        self.create_tile_flownode(self.mesh.bottom_section.tile)
         self.create_grid_flownode(self.mesh.top_section.grid)
-        self.create_grid_flownode(self.mesh.down_section.grid)
+        self.create_grid_flownode(self.mesh.bottom_section.grid)
 
         self.global_t.index = self.node_index
         self.flownodes.append(self.global_t)

@@ -11,7 +11,7 @@ class PseudoNodeType(IntEnum):
 
 
 class GridType(IntEnum):
-    CONTACTPAD = -1
+    CONTACT_PAD = -1
     GRID = 0
     PSEUDONODE = 1
     PSEUDOHUB = 2

@@ -10,11 +10,11 @@ from wire import WireDirect
 
 
 class ModelMesh():
-    def __init__(self, top_section: ChipSection, mid_section: ChipSection, down_section: ChipSection, pseudo_node: PseudoNode):
+    def __init__(self, top_section: ChipSection, mid_section: ChipSection, bottom_section: ChipSection, pseudo_node: PseudoNode):
 
         self.top_section = top_section
         self.mid_section = mid_section
-        self.down_section = down_section
+        self.bottom_section = bottom_section
 
         self.pseudo_node = pseudo_node
 
@@ -57,11 +57,11 @@ class ModelMesh():
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
                 elif edge_direct == WireDirect.RIGHT:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit])
-                elif edge_direct == WireDirect.DOWN:
+                elif edge_direct == WireDirect.BOTTOM:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit])
                 elif edge_direct == WireDirect.LEFT:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit])
-                elif edge_direct == WireDirect.RIGHTUP:
+                elif edge_direct == WireDirect.TOP_RIGHT:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit])
                     # only all near grid is pseudo node or grid need to add connection
                     near_grid_type = (self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]].type,
@@ -71,7 +71,7 @@ class ModelMesh():
                     else:
                         pass
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
-                elif edge_direct == WireDirect.RIGHTDOWN:
+                elif edge_direct == WireDirect.BOTTOM_RIGHT:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit])
                     # only all near grid is pseudo node or grid need to add connection
                     near_grid_type = (self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]].type,
@@ -81,7 +81,7 @@ class ModelMesh():
                     else:
                         pass
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit])
-                elif edge_direct == WireDirect.LEFTUP:
+                elif edge_direct == WireDirect.TOP_LEFT:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
                     # only all near grid is pseudo node or grid need to add connection
                     near_grid_type = (self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]].type,
@@ -91,7 +91,7 @@ class ModelMesh():
                     else:
                         pass
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit])
-                elif edge_direct == WireDirect.LEFTDOWN:
+                elif edge_direct == WireDirect.BOTTOM_LEFT:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit])
                     # only all near grid is pseudo node or grid need to add connection
                     near_grid_type = (self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]].type,
@@ -237,11 +237,11 @@ class ModelMesh():
                 for k in (tile_x, tile_x+1):
                     for l in (tile_y, tile_y+1):
                         # contact pad
-                        if grid_array[k][l].type == GridType.CONTACTPAD:
+                        if grid_array[k][l].type == GridType.CONTACT_PAD:
                             if grid_array[k][l].special == False:
                                 if block == 'top' and l == len(tile_col):
                                     pass
-                                elif block == 'down' and l == 0:
+                                elif block == 'bottom' and l == 0:
                                     pass
                                 else:
                                     tile.contact_pads.append(grid_array[k][l])
@@ -258,7 +258,7 @@ class ModelMesh():
                 if tile_y != 0:
                     tile.neighbor.append([tile_array[tile_x][tile_y-1], capacity[1]])  # top
                 if tile_y != len(tile_col) - 1:
-                    tile.neighbor.append([tile_array[tile_x][tile_y+1], capacity[3]])  # down
+                    tile.neighbor.append([tile_array[tile_x][tile_y+1], capacity[3]])  # bottom
 
     def create_hub_connection(self, grid_array: List[List[Grid]], hub_array: List[Hub], mid_n, tile_n, tile_array: List[List[Tile]]):
         """

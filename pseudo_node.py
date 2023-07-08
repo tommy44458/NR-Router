@@ -40,9 +40,9 @@ class PseudoNode():
         """
         left_up = [int((real_point[0] - self.start_point[0]) // unit), int((real_point[1] - self.start_point[1]) // unit)]
         right_up = [left_up[0] + 1, left_up[1]]
-        right_down = [left_up[0] + 1, left_up[1] + 1]
-        left_down = [left_up[0], left_up[1] + 1]
-        return [left_up, right_up, right_down, left_down]
+        right_bottom = [left_up[0] + 1, left_up[1] + 1]
+        left_bottom = [left_up[0], left_up[1] + 1]
+        return [left_up, right_up, right_bottom, left_bottom]
 
     def clockwise_angle(self, v1: tuple, v2: tuple) -> float:
         """
@@ -203,7 +203,7 @@ class PseudoNode():
                                                        PseudoNodeType.INTERNAL, edge_direct=direct_table[degree_p1_p2])
                             if [grid_p1[0]+1+k, grid_p1[1]+1] not in ret[-1].pseudo_node_set:
                                 ret[-1].pseudo_node_set.append([grid_p1[0]+1+k, grid_p1[1]+1])
-                    elif direct_table[degree_p1_p2] == WireDirect.DOWN:
+                    elif direct_table[degree_p1_p2] == WireDirect.BOTTOM:
                         for k in range(grid_p2[1] - (grid_p1[1] + 1) + 1):
                             self.set_electrode_to_grid([grid_p1[0], grid_p1[1]+1+k], electrode_index,
                                                        [p1[0], self.grid[grid_p1[0]][grid_p1[1]+1+k].real_y],

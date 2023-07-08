@@ -265,7 +265,7 @@ class ModelMinCostFlow():
 
         # tile flow collocation
         self.create_contact_pad_path(self.mesh.top_section.tile, 'top')
-        self.create_contact_pad_path(self.mesh.down_section.tile, 'down')
+        self.create_contact_pad_path(self.mesh.bottom_section.tile, 'bottom')
 
         # for electrode in self.mesh.electrodes:
         #     print(len(electrode.routing_wire))
