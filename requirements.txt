@@ -8,3 +8,5 @@ ezdxf==1.0.1
 matplotlib==3.6.3
 ortools==9.3.10497
 shapely==1.8.4
+pydantic==2.0.2
+strenum==0.4.15
