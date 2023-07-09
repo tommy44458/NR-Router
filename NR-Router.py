@@ -109,16 +109,18 @@ doc = ezdxf.new(
 )
 # doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
 msp = doc.modelspace()
+white_hatch = msp.add_hatch(color = 0)
 # hatch = msp.add_hatch(color = 7)
 # hatch1 = msp.add_hatch(color = 6)
-hatch2 = msp.add_hatch(color = 1)
+red_hatch = msp.add_hatch(color = 1)
 # hatch3 = msp.add_hatch(color = 4)
-hatch4 = msp.add_hatch(color = 5)
+blue_hatch = msp.add_hatch(color = 5)
 # dxf = hatch.paths
 # dxf1 = hatch1.paths
-dxf2 = hatch2.paths
+white_dxf = white_hatch.paths
+red_dxf = red_hatch.paths
 # dxf3 = hatch3.paths
-dxf4 = hatch4.paths
+blue_dxf = blue_hatch.paths
 
 _draw.draw_contact_pad(
     contactpad_list = _chip.contactpad_list,
@@ -127,14 +129,18 @@ _draw.draw_contact_pad(
     top_corner_pin_list = ROUTER_CONFIG.TOP_SECTION_CORNER_PIN,
     bottom_corner_pin_list = ROUTER_CONFIG.BOTTOM_SECTION_CORNER_PIN,
     unit = ROUTER_CONFIG.CONTACT_PAD_GAP,
-    dxf = msp
+    dxf = msp,
+    white_dxf = white_dxf,
+    blue_dxf = blue_dxf,
+    red_dxf = red_dxf
 )
 _draw.draw_electrodes(
     electrodes = _chip.electrode_list,
     shape_lib = _chip.electrode_shape_library,
     mesh_electrode_list = _model_mesh.electrodes,
     dxf = msp,
-    hatch_path = dxf2
+    red_dxf = red_dxf,
+    white_dxf = white_dxf
 )
 _draw.draw_reference_electrode(msp)
 

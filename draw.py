@@ -4,6 +4,7 @@ from ezdxf.document import Modelspace
 from ezdxf.entities import BoundaryPaths
 from ezdxf.math import ConstructionArc
 
+from config import ROUTER_CONFIG
 from degree import Degree, wire_offset_table
 from electrode import Electrode
 from grid import Grid
@@ -139,7 +140,10 @@ class Draw():
         top_corner_pin_list: list[list],
         bottom_corner_pin_list: list[list],
         unit: int,
-        dxf: Modelspace
+        dxf: Modelspace,
+        white_dxf: BoundaryPaths,
+        blue_dxf: BoundaryPaths,
+        red_dxf: BoundaryPaths
     ):
         """Draw the contact pad.
 
@@ -154,13 +158,39 @@ class Draw():
         """
         for pad in contactpad_list:
             if [int(pad[0] / unit), int(pad[1] / unit)] in top_ref_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in bottom_ref_pin_list:
-                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 5})
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS, dxfattribs={'color': 5})
+                blue_dxf.add_edge_path().add_arc(
+                    center=(pad[0], -pad[1]),
+                    radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS,
+                    start_angle=0,
+                    end_angle=360,
+                )
             elif [int(pad[0] / unit), int(pad[1] / unit)] in top_corner_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in bottom_corner_pin_list:
-                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 1})
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS, dxfattribs={'color': 1})
+                red_dxf.add_edge_path().add_arc(
+                    center=(pad[0], -pad[1]),
+                    radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS,
+                    start_angle=0,
+                    end_angle=360,
+                )
             else:
-                dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)
+                dxf.add_circle(center=(pad[0], -pad[1]), radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS)
+                white_dxf.add_edge_path().add_arc(
+                    center=(pad[0], -pad[1]),
+                    radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS,
+                    start_angle=0,
+                    end_angle=360,
+                )
 
-    def draw_electrodes(self, electrodes: list[list], shape_lib: dict, mesh_electrode_list: list[Electrode], dxf: Modelspace, hatch_path: BoundaryPaths):
+    def draw_electrodes(
+            self,
+            electrodes: list[list],
+            shape_lib: dict,
+            mesh_electrode_list: list[Electrode],
+            dxf: Modelspace,
+            red_dxf: BoundaryPaths,
+            white_dxf: BoundaryPaths
+        ):
         """Draw the electrodes.
 
         Args:
@@ -183,8 +213,9 @@ class Draw():
             electrode_size = float(shape_lib['base'][2][0]) - float(shape_lib['base'][1][0])
             if shape != 'base':
                 start_index = 1
+            white_dxf.add_polyline_path(vertex_order)
             if len(mesh_electrode_list[elec_index].routing_wire) == 0:
-                hatch_path.add_polyline_path(vertex_order)
+                red_dxf.add_polyline_path(vertex_order)
 
             if corner_size > 0:
                 for i in range(start_index,len(vertex_order),2):
@@ -203,9 +234,17 @@ class Draw():
                             start_angle=arc.start_angle,
                             end_angle=arc.end_angle,
                         )
+                        # draw white mask
+                        end_angle = arc.end_angle + 2.9
+                        white_dxf.add_edge_path().add_arc(
+                            center=arc.center,
+                            radius=arc.radius,
+                            start_angle=arc.start_angle,
+                            end_angle=end_angle,
+                        )
                         if len(mesh_electrode_list[elec_index].routing_wire) == 0:
                             end_angle = arc.end_angle + 2.9
-                            hatch_path.add_edge_path().add_arc(
+                            red_dxf.add_edge_path().add_arc(
                                 center=arc.center,
                                 radius=arc.radius,
                                 start_angle=arc.start_angle,
