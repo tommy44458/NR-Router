@@ -135,12 +135,29 @@ class ModelMinCostFlow():
             wire_degree = Degree.get_degree(start_point[0], -start_point[1], end_point[0], -end_point[1])
             wire = Wire(start_point[0], start_point[1], end_point[0], end_point[1], direct_table[wire_degree], grid_list)
             if len(self.mesh.electrodes[electrode_index].routing_wire) > 0:
+                no_need_to_add = False
                 last_wire = self.mesh.electrodes[electrode_index].routing_wire[-1]
                 last_wire_degree = Degree.get_degree(last_wire.start_x, -last_wire.start_y, last_wire.end_x, -last_wire.end_y)
                 if wire_degree == last_wire_degree:
                     last_wire.end_x, last_wire.end_y = (wire.end_x, wire.end_y)
                     last_wire.grid_list.extend(wire.grid_list)
-                else:
+                    no_need_to_add = True
+                elif last_wire.end_x == last_wire.start_x and wire.end_x == wire.start_x and last_wire.end_x == wire.end_x:
+                    # top
+                    if last_wire.start_y > last_wire.end_y:
+                        # the wire overlap
+                        if wire.end_y > last_wire.end_y:
+                            last_wire.end_y = wire.end_y
+                            last_wire.grid_list.extend(wire.grid_list)
+                            no_need_to_add = True
+                    # bottom
+                    else:
+                        if wire.end_y < last_wire.end_y:
+                            last_wire.end_y = wire.end_y
+                            last_wire.grid_list.extend(wire.grid_list)
+                            no_need_to_add = True
+
+                if not no_need_to_add:
                     self.mesh.electrodes[electrode_index].routing_wire.append(wire)
                     self.all_path.append(wire)
             else:
@@ -210,22 +227,12 @@ class ModelMinCostFlow():
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y))
                         offset = abs(start_x - int(self.flow.flownodes[tail].real_x))
-                        if offset < 200:
-                            offset += 200
-                        if start_y > end_y:
-                            end_y = start_y - offset
+                        # top section
+                        if start_y >= end_y:
+                            end_y = end_y + offset
+                        # down section
                         else:
-                            end_y = start_y + offset
-                        register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
-
-                        # second: to hub x
-                        start_x, start_y = (end_x, end_y)
-                        end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
-                        offset = abs(start_x - end_x)
-                        if start_y > end_y:
-                            end_y = start_y - offset
-                        else:
-                            end_y = start_y + offset
+                            end_y = end_y - offset
                         register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
 
                         # final: to hub point

@@ -12,8 +12,7 @@ import numpy as np
 from ezdxf.addons.drawing import Frontend, RenderContext
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 
-from chip import Chip
-from chip_section import ChipSection
+from chip import Chip, ChipSection
 from config import *
 from draw import Draw
 from grid import Grid, GridType

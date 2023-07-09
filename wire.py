@@ -28,18 +28,3 @@ class Wire():
         d_x = self.end_x - self.start_x
         d_y = self.end_y - self.start_y
         return math.sqrt(d_x**2 + d_y**2)
-
-    def to_dict(self):
-        _dict = {
-            'start_x': self.start_x,
-            'start_y': self.start_y,
-            'end_x': self.end_x,
-            'end_y': self.end_y,
-            'head': self.head
-        }
-        if self.next is not None:
-            _dict['next'] = self.next.to_dict()
-        else:
-            _dict['next'] = None
-
-        return _dict

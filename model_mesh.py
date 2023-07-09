@@ -1,6 +1,6 @@
 from typing import Union
 
-from chip_section import ChipSection
+from chip import ChipSection
 from electrode import Electrode
 from grid import Grid, GridType, PseudoNodeType
 from hub import Hub
@@ -238,13 +238,12 @@ class ModelMesh():
                     for l in (tile_y, tile_y+1):
                         # contact pad
                         if grid_array[k][l].type == GridType.CONTACT_PAD:
-                            if grid_array[k][l].special == False:
-                                if block == 'top' and l == len(tile_col):
-                                    pass
-                                elif block == 'bottom' and l == 0:
-                                    pass
-                                else:
-                                    tile.contact_pads.append(grid_array[k][l])
+                            if block == 'top' and l == len(tile_col):
+                                pass
+                            elif block == 'bottom' and l == 0:
+                                pass
+                            else:
+                                tile.contact_pads.append(grid_array[k][l])
                             if k == tile_x and l == tile_y:
                                 capacity = [2, 2, 2, 2]
                             elif k == tile_x and l == tile_y+1:
@@ -267,8 +266,7 @@ class ModelMesh():
         mid_grid_array: list[list[Grid]] = self.mid_section.grid
         for i in range(len(hub_array)):
             if i % 5 == 0:
-                if grid_array[i//5][tile_n].special == False:
-                    hub_array[i].neighbor.append([grid_array[i//5][tile_n], 1, 1819])
+                hub_array[i].neighbor.append([grid_array[i//5][tile_n], 1, 1819])
             else:
                 hub_array[i].neighbor.append([tile_array[i//5][tile_n], 1, 3117])
 

@@ -17,19 +17,3 @@ class Electrode():
         self.poly: list = []
         self.pseudo_node_set: list[Grid] = []
         self.routing_wire: list[Wire] = []
-
-    def to_dict(self):
-        _dict = {
-            'real_x': self.real_x,
-            'real_y': self.real_y,
-            'shape': self.shape,
-            'electrode_index': self.electrode_index,
-            'boundary_U': self.boundary_U,
-            'boundary_D': self.boundary_D,
-            'boundary_L': self.boundary_L,
-            'boundary_R': self.boundary_R,
-            'surround': self.surround,
-            'index': self.index
-        }
-
-        return _dict

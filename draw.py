@@ -47,6 +47,8 @@ class Draw():
         # get current wire start and end
         start_point = [wire.start_x, wire.start_y]
         end_point = [wire.end_x, wire.end_y]
+        # dxf.add_line([start_point[0], -start_point[1]], [end_point[0], -end_point[1]])
+        # return
 
         if previous_wire is not None:
             previous_point = [previous_wire.start_x, previous_wire.start_y]

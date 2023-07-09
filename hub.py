@@ -8,16 +8,3 @@ class Hub():
         self.hub_index = hub_index
         self.type = type
         self.neighbor = []
-
-    def to_dict(self):
-        _dict = {
-            'real_x': self.real_x,
-            'real_y': self.real_y,
-            'flow': self.flow,
-            'index': self.index,
-            'hub_index': self.hub_index,
-            'type': self.type,
-            'neighbor': self.neighbor,
-        }
-
-        return _dict

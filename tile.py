@@ -16,19 +16,3 @@ class Tile():
         self.right_pad: Grid = None
         self.next_vertical: Tile = None
         self.contact_pads: list[Grid] = []
-
-    def to_dict(self):
-        _dict = {
-            'real_x': self.real_x,
-            'real_y': self.real_y,
-            'tile_x': self.tile_x,
-            'tile_y': self.tile_y,
-            'capacity': self.capacity,
-            'flow': self.flow,
-            'total_flow': self.total_flow,
-            'index': self.index,
-            'neighbor': self.neighbor,
-            'contact_pads': self.contact_pads
-        }
-
-        return _dict
