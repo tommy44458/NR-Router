@@ -173,8 +173,24 @@ class PseudoNode():
 
                 # trace all poly vertex to get pseudo node
                 for j in range(len(electrode_shape_path)-1):
+                    corner = None
+                    p0 = None
                     p1 = self.get_point_by_shape([electrode_x, electrode_y], electrode_shape_path[j])
                     p2 = self.get_point_by_shape([electrode_x, electrode_y], electrode_shape_path[j+1])
+
+                    # if electrode have no corner
+                    if p1 == p2:
+                        if j == 0:
+                            corner = 0
+                        else:
+                            p0 = self.get_point_by_shape([electrode_x, electrode_y], electrode_shape_path[j-1])
+                            if p0[1] == p1[1]:
+                                if p0[0] < p1[0]:
+                                    corner = 1
+                                else:
+                                    corner = 3
+                            else:
+                                corner = 2
 
                     if p1[0] > boundary_R:
                         boundary_R = p1[0]
@@ -190,6 +206,17 @@ class PseudoNode():
                     grid_p2 = self.get_grid_point(p2, self.unit)
 
                     degree_p1_p2 = Degree.get_degree(p1[0], -p1[1], p2[0], -p2[1])
+
+                    # if electrode have no corner
+                    if corner:
+                        if corner == 0:
+                            degree_p1_p2 = Degree.get_degree(0, -30, 30, -0)
+                        elif corner == 1:
+                            degree_p1_p2 = Degree.get_degree(1940, -0, 1970, -30)
+                        elif corner == 2:
+                            degree_p1_p2 = Degree.get_degree(1970, -1940, 1940, -1970)
+                        elif corner == 3:
+                            degree_p1_p2 = Degree.get_degree(30, -1970, 0, -1940)
 
                     if direct_table[degree_p1_p2] == WireDirect.UP:
                         for k in range(grid_p1[1] - (grid_p2[1] + 1) + 1):

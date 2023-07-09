@@ -1,7 +1,8 @@
 from typing import Union
 
 from chip import Chip, ChipSection
-from config import ROUTER_CONFIG, WireDirect
+from config import ROUTER_CONFIG, ChipBase, WireDirect
+from degree import Degree, direct_table
 from electrode import Electrode
 from grid import Grid, GridType, NeighborNode, PseudoNodeType
 from hub import Hub
@@ -61,26 +62,30 @@ class ModelMesh():
         self.covered_grid_head_list, self.electrodes = self.pseudo_node.internal_node()
 
     def add_grid_to_neighbor(self, grid: Grid, neighbor_grid: Grid, capacity: float, cost: float):
-        if neighbor_grid.close_electrode is False and neighbor_grid.type == GridType.GRID:
-            grid.neighbor.append(NeighborNode(neighbor_grid, capacity, cost))
+        if ROUTER_CONFIG.CHIP_BASE == ChipBase.GLASS:
+            if neighbor_grid.close_electrode is False and neighbor_grid.type == GridType.GRID:
+                grid.neighbor.append(NeighborNode(neighbor_grid, capacity, cost))
+        elif ROUTER_CONFIG.CHIP_BASE == ChipBase.PAPER:
+            if neighbor_grid.type == GridType.GRID:
+                if neighbor_grid.close_electrode:
+                    degree = direct_table[Degree.get_degree(grid.grid_x, -grid.grid_y, neighbor_grid.grid_x, -neighbor_grid.grid_y)]
+                    if degree == WireDirect.UP or degree == WireDirect.BOTTOM or degree == WireDirect.LEFT or degree == WireDirect.RIGHT:
+                        # only add connection to off-dia when electrode-closed
+                        grid.neighbor.append(NeighborNode(neighbor_grid, capacity, cost))
+                else:
+                    grid.neighbor.append(NeighborNode(neighbor_grid, capacity, cost))
 
     def create_pseudo_node_connection(self):
         """
             create the edge from pseudo node to grid closest electrode
         """
         for electrode in self.electrodes:
-            for pseudo_node_index, pseudo_node in enumerate(electrode.pseudo_node_set):
+            for pseudo_node in electrode.pseudo_node_set:
                 # no edge grid
                 if self.mid_section.is_edge_grid(pseudo_node[0], pseudo_node[1]):
                     continue
 
                 pseudo_node_grid = self.mid_section.get_grid(pseudo_node[0], pseudo_node[1])
-
-                # next_pseudo_point = electrode.pseudo_node_set[(pseudo_node_index + 1) % len(electrode.pseudo_node_set)]
-                # previous_pseudo_point = electrode.pseudo_node_set[pseudo_node_index - 1]
-
-                # pseudo_node_grid.neighbor.append([self.mid_section.grid[next_pseudo_point[0]][next_pseudo_point[1]], 1, 0])
-                # pseudo_node_grid.neighbor.append([self.mid_section.grid[previous_pseudo_point[0]][previous_pseudo_point[1]], 1, 0])
 
                 edge_direct = pseudo_node_grid.edge_direct
                 elec_neighbor_node_list: list[NeighborNode] = []
@@ -102,6 +107,10 @@ class ModelMesh():
                     else:
                         pass
                     elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit))
+
+                    # paper
+                    if ROUTER_CONFIG.CHIP_BASE == ChipBase.PAPER:
+                        elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.BOTTOM_RIGHT:
                     elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit))
                     # only all near grid is pseudo node or grid need to add connection
@@ -112,6 +121,10 @@ class ModelMesh():
                     else:
                         pass
                     elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit))
+
+                    # paper
+                    if ROUTER_CONFIG.CHIP_BASE == ChipBase.PAPER:
+                        elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.TOP_LEFT:
                     elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit))
                     # only all near grid is pseudo node or grid need to add connection
@@ -122,6 +135,10 @@ class ModelMesh():
                     else:
                         pass
                     elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit))
+
+                    # paper
+                    if ROUTER_CONFIG.CHIP_BASE == ChipBase.PAPER:
+                        elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.BOTTOM_LEFT:
                     elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit))
                     # only all near grid is pseudo node or grid need to add connection
@@ -132,6 +149,10 @@ class ModelMesh():
                     else:
                         pass
                     elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit))
+
+                    # paper
+                    if ROUTER_CONFIG.CHIP_BASE == ChipBase.PAPER:
+                        elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit))
 
                 for neighbor_node in elec_neighbor_node_list:
                     if neighbor_node.grid.type == GridType.GRID:
@@ -152,7 +173,7 @@ class ModelMesh():
             if grid_x == 0:
                 for grid_y, grid in enumerate(grid_col):
                     if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
-                        if grid.close_electrode:
+                        if ROUTER_CONFIG.CHIP_BASE == ChipBase.GLASS and grid.close_electrode:
                             # add connection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
                                 try:
@@ -181,7 +202,7 @@ class ModelMesh():
             elif grid_x == len(grid_list) - 1:
                 for grid_y, grid in enumerate(grid_col):
                     if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
-                        if grid.close_electrode:
+                        if ROUTER_CONFIG.CHIP_BASE == ChipBase.GLASS and grid.close_electrode:
                             # add connnection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
                                 try:
@@ -210,8 +231,8 @@ class ModelMesh():
             else:
                 for grid_y, grid in enumerate(grid_col):
                     if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
-                        if grid.close_electrode:
-                            # add connnection from electrode-closed grid to normal grid
+                        if ROUTER_CONFIG.CHIP_BASE == ChipBase.GLASS and grid.close_electrode:
+                            # add connection from electrode-closed grid to normal grid
                             for x, y in [(0, 1), (0, -1), (1, 1), (1, -1), (1, 0), (-1, 1), (-1, -1), (-1, 0)]:
                                 try:
                                     if abs(x + y) != 1:

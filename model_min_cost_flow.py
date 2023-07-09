@@ -134,7 +134,13 @@ class ModelMinCostFlow():
         electrode_index = self.electrode_routing_table.get(start_point, None)
         if electrode_index is not None:
             wire_degree = Degree.get_degree(start_point[0], -start_point[1], end_point[0], -end_point[1])
-            wire = Wire(start_point[0], start_point[1], end_point[0], end_point[1], direct_table[wire_degree], grid_list)
+
+            try:
+                _direct = direct_table[wire_degree]
+            except:
+                _direct = None
+            wire = Wire(start_point[0], start_point[1], end_point[0], end_point[1], _direct, grid_list)
+
             if len(self.mesh.electrodes[electrode_index].routing_wire) > 0:
                 no_need_to_add = False
                 last_wire = self.mesh.electrodes[electrode_index].routing_wire[-1]
