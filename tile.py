@@ -1,36 +1,21 @@
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
-
-from grid import Grid
+from grid import Grid, NeighborNode
 
 
 class Tile():
-    def __init__(self, real_x=0, real_y=0, tile_x=0, tile_y=0):
-        self.real_x = real_x
-        self.real_y = real_y
-        self.tile_x = tile_x
-        self.tile_y = tile_y
-        self.capacity = 4
-        self.flow: List[Tuple] = []
-        self.total_flow = 0
-        self.index = -1
-        self.neighbor = []
+    """Tile class.
+    """
+    def __init__(self, real_x: int = 0, real_y: int = 0, tile_x: int = 0, tile_y: int = 0):
+        self.real_x: int = real_x
+        self.real_y: int = real_y
+        self.tile_x: int = tile_x
+        self.tile_y: int = tile_y
+        self.capacity: int = 4
+        self.flow: list[tuple] = []
+        self.total_flow: int = 0
+        self.index: int = -1
+        self.neighbor: list[NeighborNode] = []
         self.left_pad: Grid = None
         self.right_pad: Grid = None
         self.next_vertical: Tile = None
-        self.contact_pads: List[Grid] = []
-
-    def to_dict(self):
-        _dict = {
-            'real_x': self.real_x,
-            'real_y': self.real_y,
-            'tile_x': self.tile_x,
-            'tile_y': self.tile_y,
-            'capacity': self.capacity,
-            'flow': self.flow,
-            'total_flow': self.total_flow,
-            'index': self.index,
-            'neighbor': self.neighbor,
-            'contact_pads': self.contact_pads
-        }
-
-        return _dict
+        self.contact_pads: list[Grid] = []
+        self.covered: bool = False

@@ -1,9 +1,9 @@
-import time
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Union
 
 from ortools.graph import pywrapgraph
 from shapely.geometry import LinearRing, Point, Polygon
 
+from config import ROUTER_CONFIG
 from degree import Degree, direct_table
 from electrode import Electrode
 from grid import Grid, GridType
@@ -15,24 +15,28 @@ from wire import Wire
 
 
 class ModelMinCostFlow():
+    """Model min cost flow class.
+    """
 
     def __init__(self, mesh: ModelMesh, flow: ModelFlow):
-        self.mesh = mesh
-        self.flow = flow
-        self.start_nodes: List[Union[Grid, Tile, Hub, Electrode]] = []
-        self.end_nodes: List[Union[Grid, Tile, Hub, Electrode]] = []
-        self.capacities: List[Union[Grid, Tile, Hub, Electrode]] = []
-        self.unit_costs: List[Union[Grid, Tile, Hub, Electrode]] = []
-        self.supplies = [0 for i in range(len(self.flow.flownodes))]
-        self.num_supply = 0
+        self.mesh: ModelMesh = mesh
+        self.flow: ModelFlow = flow
+        self.start_nodes: list[Union[Grid, Tile, Hub, Electrode]] = []
+        self.end_nodes: list[Union[Grid, Tile, Hub, Electrode]] = []
+        self.capacities: list[Union[Grid, Tile, Hub, Electrode]] = []
+        self.unit_costs: list[Union[Grid, Tile, Hub, Electrode]] = []
+        self.supplies: list[int] = [0 for i in range(len(self.flow.flownodes))]
+        self.num_supply: int = 0
 
         self.mim_cost_solver = None
         self.min_cost_flow = None
 
-        self.all_path: List[Wire] = []
-        self.electrode_routing_table: Dict[Tuple, int] = {}
+        self.all_path: list[Wire] = []
+        self.electrode_routing_table: dict[tuple, int] = {}
 
     def init_structure(self):
+        """Init structure.
+        """
         for node in self.flow.flownodes:
             if type(node) == Tile and node.index != self.flow.global_t.index:
                 # pseudo two layer
@@ -43,8 +47,8 @@ class ModelMinCostFlow():
                 # add neighbor tiles
                 for nb_node in node.neighbor:
                     self.start_nodes.append(node.index)
-                    self.end_nodes.append(nb_node[0].index+1)
-                    self.capacities.append(int(nb_node[1]))
+                    self.end_nodes.append(nb_node.grid.index+1)
+                    self.capacities.append(int(nb_node.capacity))
                     self.unit_costs.append(int(self.mesh.top_section.unit))
                 # add contact pads
                 for cp_node in node.contact_pads:
@@ -68,20 +72,20 @@ class ModelMinCostFlow():
                     self.unit_costs.append(0)
                     for nb_node in node.neighbor:
                         self.start_nodes.append(node.index)
-                        if type(nb_node[0]) == Grid:
-                            self.end_nodes.append(nb_node[0].index+1)
-                        elif type(nb_node[0]) == Hub:
-                            self.end_nodes.append(nb_node[0].index)
-                        self.capacities.append(int(nb_node[1]))
-                        self.unit_costs.append(int(nb_node[2]))
-                elif node.type == GridType.PSEUDONODE:
+                        if type(nb_node.grid) == Grid:
+                            self.end_nodes.append(nb_node.grid.index+1)
+                        elif type(nb_node.grid) == Hub:
+                            self.end_nodes.append(nb_node.grid.index)
+                        self.capacities.append(int(nb_node.capacity))
+                        self.unit_costs.append(int(nb_node.cost))
+                elif node.type == GridType.PSEUDO_NODE:
                     for nb_node in node.neighbor:
                         self.start_nodes.append(node.index)
-                        self.end_nodes.append(nb_node[0].index+1)
-                        self.capacities.append(int(nb_node[1]))
-                        self.unit_costs.append(int(nb_node[2]))
+                        self.end_nodes.append(nb_node.grid.index+1)
+                        self.capacities.append(int(nb_node.capacity))
+                        self.unit_costs.append(int(nb_node.cost))
 
-                    # add edge from electrode to PSEUDONODE
+                    # add edge from electrode to PSEUDO_NODE
                     self.start_nodes.append(self.mesh.electrodes[node.electrode_index].index)
                     self.end_nodes.append(node.index)
                     self.capacities.append(1)
@@ -90,9 +94,9 @@ class ModelMinCostFlow():
             elif type(node) == Hub:
                 for nb_node in node.neighbor:
                     self.start_nodes.append(node.index)
-                    self.end_nodes.append(nb_node[0].index)
-                    self.capacities.append(int(nb_node[1]))
-                    self.unit_costs.append(int(nb_node[2]))
+                    self.end_nodes.append(nb_node.grid.index)
+                    self.capacities.append(int(nb_node.capacity))
+                    self.unit_costs.append(int(nb_node.cost))
                 self.supplies[node.index] = 0
             elif type(node) == Electrode:
                 self.supplies[node.index] = 1
@@ -104,6 +108,8 @@ class ModelMinCostFlow():
             print(len(self.supplies), self.flow.global_t.index)
 
     def solver(self):
+        """Solver.
+        """
         self.min_cost_flow = pywrapgraph.SimpleMinCostFlow()
         # print("start min_cost_flow")
 
@@ -120,7 +126,16 @@ class ModelMinCostFlow():
 
         self.mim_cost_solver = self.min_cost_flow.SolveMaxFlowWithMinCost()
 
-    def get_close_point_with_poly(self, _poly, _point) -> list:
+    def get_closed_point_with_poly(self, _poly: list[tuple], _point: tuple) -> list:
+        """Get close point with poly.
+
+        Args:
+            _poly (list[tuple]): list[tuple]
+            _point (tuple): point
+
+        Returns:
+            list: closed point
+        """
         poly = Polygon(_poly)
         point = Point(_point[0], _point[1])
 
@@ -130,18 +145,48 @@ class ModelMinCostFlow():
         closest_point_coords = list(p.coords)[0]
         return closest_point_coords
 
-    def register_wire_into_electrode_routing(self, start_point, end_point, grid_list: List[Grid] = []):
+    def register_wire_into_electrode_routing(self, start_point: tuple, end_point: tuple, grid_list: list[Grid] = []):
+        """Register wire into electrode routing.
+
+        Args:
+            start_point (tuple): start point
+            end_point (tuple): end point
+            grid_list (list[Grid], optional): grid list. Defaults to [].
+        """
         electrode_index = self.electrode_routing_table.get(start_point, None)
         if electrode_index is not None:
             wire_degree = Degree.get_degree(start_point[0], -start_point[1], end_point[0], -end_point[1])
-            wire = Wire(start_point[0], start_point[1], end_point[0], end_point[1], direct_table[wire_degree], grid_list)
+
+            try:
+                _direct = direct_table[wire_degree]
+            except:
+                _direct = None
+            wire = Wire(start_point[0], start_point[1], end_point[0], end_point[1], _direct, grid_list)
+
             if len(self.mesh.electrodes[electrode_index].routing_wire) > 0:
+                no_need_to_add = False
                 last_wire = self.mesh.electrodes[electrode_index].routing_wire[-1]
                 last_wire_degree = Degree.get_degree(last_wire.start_x, -last_wire.start_y, last_wire.end_x, -last_wire.end_y)
                 if wire_degree == last_wire_degree:
                     last_wire.end_x, last_wire.end_y = (wire.end_x, wire.end_y)
                     last_wire.grid_list.extend(wire.grid_list)
-                else:
+                    no_need_to_add = True
+                elif last_wire.end_x == last_wire.start_x and wire.end_x == wire.start_x and last_wire.end_x == wire.end_x:
+                    # top
+                    if last_wire.start_y > last_wire.end_y:
+                        # the wire overlap
+                        if wire.end_y > last_wire.end_y:
+                            last_wire.end_y = wire.end_y
+                            last_wire.grid_list.extend(wire.grid_list)
+                            no_need_to_add = True
+                    # bottom
+                    else:
+                        if wire.end_y < last_wire.end_y:
+                            last_wire.end_y = wire.end_y
+                            last_wire.grid_list.extend(wire.grid_list)
+                            no_need_to_add = True
+
+                if not no_need_to_add:
                     self.mesh.electrodes[electrode_index].routing_wire.append(wire)
                     self.all_path.append(wire)
             else:
@@ -154,8 +199,7 @@ class ModelMinCostFlow():
         return False
 
     def get_path(self):
-        """
-            trace all min_cost_solver Arcs to get each wire
+        """Trace all min_cost_solver Arcs to get each wire
         """
         # Find the minimum cost flow between node 0 and node 4.
 
@@ -168,15 +212,19 @@ class ModelMinCostFlow():
         # register each electrode first path
         remove_list = []
         for i in non_zero_flow_list:
-            head = self.min_cost_flow.Tail(i)
-            tail = self.min_cost_flow.Head(i)
+            head: int = self.min_cost_flow.Tail(i)
+            tail: int = self.min_cost_flow.Head(i)
             if self.flow.flownodes[tail] == 0:
                 tail -= 1
 
             if type(self.flow.flownodes[head]) == Electrode:
                 if type(self.flow.flownodes[tail]) == Grid:
-                    self.electrode_routing_table[(int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
-                                                 ] = self.flow.flownodes[head].index
+                    self.electrode_routing_table[
+                        (
+                            int(self.flow.flownodes[tail].real_x),
+                            int(self.flow.flownodes[tail].real_y)
+                        )
+                    ] = self.flow.flownodes[head].index
                     remove_list.append(i)
 
         # iterate to register all path to electrode routing wire
@@ -196,7 +244,7 @@ class ModelMinCostFlow():
                     if type(self.flow.flownodes[tail]) == Grid:
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
-                        # if self.flow.flownodes[head].type == GridType.PSEUDONODE:
+                        # if self.flow.flownodes[head].type == GridType.PSEUDO_NODE:
                         #     electrode = self.mesh.electrodes[self.flow.flownodes[head].electrode_index]
                         #     close_point = self.get_close_point_with_poly(
                         #         electrode.poly, [self.flow.flownodes[tail].real_x, self.flow.flownodes[tail].real_y])
@@ -211,22 +259,12 @@ class ModelMinCostFlow():
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y))
                         offset = abs(start_x - int(self.flow.flownodes[tail].real_x))
-                        if offset < 200:
-                            offset += 200
-                        if start_y > end_y:
-                            end_y = start_y - offset
+                        # top section
+                        if start_y >= end_y:
+                            end_y = end_y + offset
+                        # down section
                         else:
-                            end_y = start_y + offset
-                        register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
-
-                        # second: to hub x
-                        start_x, start_y = (end_x, end_y)
-                        end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
-                        offset = abs(start_x - end_x)
-                        if start_y > end_y:
-                            end_y = start_y - offset
-                        else:
-                            end_y = start_y + offset
+                            end_y = end_y - offset
                         register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
 
                         # final: to hub point
@@ -238,13 +276,18 @@ class ModelMinCostFlow():
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
                         register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
+                        self.flow.flownodes[tail].covered = True
                     elif type(self.flow.flownodes[tail]) == Tile:
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y))
                         register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
-                        if register_success and self.flow.flownodes[head].hub_index % 5 > 0:
-                            self.flow.flownodes[tail].flow.append((self.flow.flownodes[head].hub_index %
-                                                                  5 - 1, int(self.flow.flownodes[head].real_x)))
+                        if register_success and self.flow.flownodes[head].hub_index % ROUTER_CONFIG.HUB_NUM > 0:
+                            self.flow.flownodes[tail].flow.append(
+                                (
+                                    self.flow.flownodes[head].hub_index % ROUTER_CONFIG.HUB_NUM - 1,
+                                    int(self.flow.flownodes[head].real_x)
+                                )
+                            )
                 elif type(self.flow.flownodes[head]) == Tile:
                     if type(self.flow.flownodes[tail]) == Tile:
                         self.flow.flownodes[head].total_flow += self.min_cost_flow.Flow(i)
@@ -259,22 +302,26 @@ class ModelMinCostFlow():
                         else:
                             self.flow.flownodes[head].left_pad = self.flow.flownodes[tail]
                         register_success = True
+                        self.flow.flownodes[tail].covered = True
 
                 if register_success:
                     remove_list.append(i)
 
         # tile flow collocation
         self.create_contact_pad_path(self.mesh.top_section.tile, 'top')
-        self.create_contact_pad_path(self.mesh.down_section.tile, 'down')
+        self.create_contact_pad_path(self.mesh.bottom_section.tile, 'bottom')
 
         # for electrode in self.mesh.electrodes:
         #     print(len(electrode.routing_wire))
 
-    def create_contact_pad_path(self, tile_array: List[List[Tile]], section: str = 'top'):
+    def create_contact_pad_path(self, tile_list: list[list[Tile]], section: str = 'top'):
+        """Add wire from tile to contact pad, and consider flow collocation
+
+        Args:
+            tile_list (list[list[Tile]]): tile array
+            section (str, optional): section. Defaults to 'top'.
         """
-            add wire from tile to contact pad, and consider flow collocation
-        """
-        for tile_col in tile_array:
+        for tile_col in tile_list:
             if section == 'top':
                 tile = tile_col[-1]
             else:

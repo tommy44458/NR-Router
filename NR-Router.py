@@ -1,5 +1,3 @@
-import matplotlib.path as mplPath
-import numpy as np
 import base64
 import math
 import sys
@@ -8,14 +6,15 @@ import time
 from io import StringIO
 
 import ezdxf
+import matplotlib.path as mplPath
 import matplotlib.pyplot as plt
+import numpy as np
 from ezdxf.addons.drawing import Frontend, RenderContext
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 
 from chip import Chip
-from chip_section import ChipSection
+from config import *
 from draw import Draw
-from grid import Grid, GridType
 from model_flow import ModelFlow
 from model_mesh import ModelMesh
 from model_min_cost_flow import ModelMinCostFlow
@@ -24,116 +23,71 @@ from routing_wire import RoutingWire
 
 # start_time = time.time()
 
-ewd_input = None
-ewd_name = 'mask'
-electrode_size = 1000
-unit_scale = 4
-MAX_WIRE_WIDTH = 200
-UNIT_LIST = [1000, 500, 250, 200, 125, 100]
-# OUTPUT_FORMAT = dxf, dxf-based64, svg, file, ewds
-OUTPUT_FORMAT = 'file'
+try:
+    ROUTER_CONFIG.CHIP_BASE = sys.argv[1]
+except:
+    pass
 
 try:
-    electrode_size = int(sys.argv[1])
+    ROUTER_CONFIG.ELECTRODE_SIZE = int(sys.argv[2])
 except:
-    electrode_size = 1000
+    pass
 
 try:
-    unit_scale = int(sys.argv[2])
+    ROUTER_CONFIG.UNIT_SCALE = int(sys.argv[3])
 except:
-    unit_scale = 4
+    pass
 
 try:
-    OUTPUT_FORMAT = sys.argv[3]
+    ROUTER_CONFIG.OUTPUT_FORMAT = sys.argv[4]
 except:
-    OUTPUT_FORMAT = 'file'
+    pass
 
 try:
-    ewd_input = sys.argv[4]
+    ROUTER_CONFIG.EWD_CONTENT = sys.argv[5]
 except:
-    ewd_input = None
-
-# real ship size
-regular_line_width = 40
-if regular_line_width > MAX_WIRE_WIDTH:
-    regular_line_width = MAX_WIRE_WIDTH
-mini_line_width = 20
-contactpad_unit = 2540
-contactpad_radius = 750
-# (wire width + 5) * 1.414
-tile_unit = min(UNIT_LIST, key=lambda x: abs(x - int(electrode_size / unit_scale)))
-
-for unit in UNIT_LIST:
-    if unit <= int(electrode_size / unit_scale) and electrode_size % unit == 0:
-        tile_unit = unit
-        break
-
-if (regular_line_width + mini_line_width) * 1.414 > unit:
-    regular_line_width = (int((unit / 1.414) - mini_line_width) // 50) * 50
-"""
-    contact section
-    - x: 0 ~ (32 * contact_pad_unit)
-    - y: 0 ~ (3 * contact_pad_unit), 56896 ~ (56896 + 3 * contact_pad_unit)
-
-    electrode section
-    - 82000 * 42000
-"""
-
-# create chip construction: top section (pad), mid section (electrode), down section (pad)
-top_start_point = [0, 0]
-mid_start_point = [-1630, 11258]
-down_start_point = [0, 56896]
-
-top_section_ref_pin = [[0, 3], [8, 3], [16, 3], [24, 3]]
-top_section_corner_pin = [[0, 0], [31, 0]]
-down_section_ref_pin = [[7, 0], [15, 0], [23, 0], [31, 0]]
-down_section_corner_pin = [[0, 3], [31, 3]]
-
-top_section = ChipSection(top_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit,
-                          contactpad_radius)
-top_section.init_grid(GridType.CONTACTPAD, top_section_ref_pin, top_section_corner_pin)
-top_section.init_tile()
-top_section.init_hub((mid_start_point[1] + top_section.unit * 3 + top_section.radius) // 2)
-
-mid_section = ChipSection(mid_start_point, 82000, 42000, tile_unit, contactpad_radius)
-mid_section.init_grid()
-
-down_section = ChipSection(down_start_point, contactpad_unit * 31, contactpad_unit * 3, contactpad_unit,
-                           contactpad_radius)
-down_section.init_grid(GridType.CONTACTPAD, down_section_ref_pin, down_section_corner_pin)
-down_section.init_tile()
-down_section.init_hub((down_start_point[1] - down_section.radius + mid_start_point[1] + mid_section.height) // 2)
+    pass
 
 # c_time = time.time()
 
 # read ewd file
 # if ewd_input is None, then open local file
-_chip = Chip('test0307.ewd', ewd_input)
+_chip = Chip(
+    ewd_name = ROUTER_CONFIG.INPUT_FILE_NAME,
+    ewd_content = ROUTER_CONFIG.EWD_CONTENT
+)
 _chip.setup()
 
-_pseudo_node = PseudoNode(mid_section.grid, _chip.electrode_shape_library, mid_section.start_point,
-                          mid_section.unit, _chip.electrode_list)
-_model_mesh = ModelMesh(top_section, mid_section, down_section, _pseudo_node)
-_model_mesh.get_pseudo_node()
-_model_mesh.create_pseudo_node_connection()
-_model_mesh.create_grid_connection(mid_section.grid, mid_section.unit, mid_section.hypo_unit)
-_model_mesh.create_tile_connection(top_section.grid, top_section.tile, 'top')
-_model_mesh.create_tile_connection(down_section.grid, down_section.tile, 'down')
-_model_mesh.create_hub_connection(top_section.grid, top_section.hub, 0, -1, top_section.tile)
-_model_mesh.create_hub_connection(down_section.grid, down_section.hub, -1, 0, down_section.tile)
+_pseudo_node = PseudoNode(
+    grid = _chip.mid_section.grid,
+    shape_lib = _chip.electrode_shape_library,
+    start_point = _chip.mid_section.start_point,
+    unit = _chip.mid_section.unit,
+    electrode_list = _chip.electrode_list
+)
+_model_mesh = ModelMesh(
+    chip = _chip,
+    pseudo_node = _pseudo_node
+)
+_model_mesh.setup()
 
 # print('create mesh:', time.time() - c_time)
 
 # c_time = time.time()
 
 # flow nodes
-_model_flow = ModelFlow(_model_mesh)
-_model_flow.create_all_flownode()
+_model_flow = ModelFlow(
+    mesh = _model_mesh
+)
+_model_flow.setup()
 # print('create flow:', time.time() - c_time)
 
 # c_time = time.time()
 # Min Cost Flow
-_model_mcmf = ModelMinCostFlow(_model_mesh, _model_flow)
+_model_mcmf = ModelMinCostFlow(
+    mesh = _model_mesh,
+    flow = _model_flow
+)
 _model_mcmf.init_structure()
 # print('mcmf init:', time.time() - c_time)
 # t1 = time.time()
@@ -144,66 +98,102 @@ _model_mcmf.get_path()
 # print('mcmf path:', time.time() - c_time)
 
 # c_time = time.time()
-_draw = Draw(_model_mcmf.all_path, regular_line_width, mini_line_width)
+_draw = Draw(
+    routing_wire = _model_mcmf.all_path,
+    wire_width = ROUTER_CONFIG.REGULAR_WIRE_WIDTH,
+    mini_wire_width = ROUTER_CONFIG.MINI_WIRE_WIDTH
+)
 
-doc = ezdxf.new(dxfversion='AC1024')
+doc = ezdxf.new(
+    dxfversion='AC1024'
+)
 # doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
 msp = doc.modelspace()
-# hatch = msp.add_hatch(color=7)
-# hatch1 = msp.add_hatch(color=6)
-hatch2 = msp.add_hatch(color=1)
-# hatch3 = msp.add_hatch(color=4)
-hatch4 = msp.add_hatch(color=5)
+white_hatch = msp.add_hatch(color = 0)
+white_hatch_2 = msp.add_hatch(color = 0)
+# hatch = msp.add_hatch(color = 7)
+# hatch1 = msp.add_hatch(color = 6)
+red_hatch = msp.add_hatch(color = 1)
+red_hatch_2 = msp.add_hatch(color = 1)
+# hatch3 = msp.add_hatch(color = 4)
+blue_hatch = msp.add_hatch(color = 5)
 # dxf = hatch.paths
 # dxf1 = hatch1.paths
-dxf2 = hatch2.paths
+white_dxf = white_hatch.paths
+white_dxf_2 = white_hatch_2.paths
+red_dxf = red_hatch.paths
+red_dxf_2 = red_hatch_2.paths
 # dxf3 = hatch3.paths
-dxf4 = hatch4.paths
+blue_dxf = blue_hatch.paths
 
-_draw.draw_contact_pad(_chip.contactpad_list, top_section_ref_pin, down_section_ref_pin, top_section_corner_pin, down_section_corner_pin, contactpad_unit, msp)
-_draw.draw_electrodes(_chip.electrode_list, _chip.electrode_shape_library, _model_mesh.electrodes, msp, dxf2)
-_draw.draw_reference_electrode(msp)
+_draw.draw_contact_pad(
+    contactpad_list = _chip.contactpad_list,
+    top_section = _chip.top_section,
+    bottom_section = _chip.bottom_section,
+    top_ref_pin_list = ROUTER_CONFIG.TOP_SECTION_REF_PIN,
+    bottom_ref_pin_list = ROUTER_CONFIG.BOTTOM_SECTION_REF_PIN,
+    top_corner_pin_list = ROUTER_CONFIG.TOP_SECTION_CORNER_PIN,
+    bottom_corner_pin_list = ROUTER_CONFIG.BOTTOM_SECTION_CORNER_PIN,
+    unit = ROUTER_CONFIG.CONTACT_PAD_GAP,
+    dxf = msp,
+    white_dxf = white_dxf,
+    blue_dxf = blue_dxf,
+    red_dxf = red_dxf
+)
+_draw.draw_electrodes(
+    electrodes = _chip.electrode_list,
+    shape_lib = _chip.electrode_shape_library,
+    mesh_electrode_list = _model_mesh.electrodes,
+    dxf = msp,
+    red_dxf = red_dxf,
+    red_dxf_2 = red_dxf_2,
+    white_dxf = white_dxf,
+    white_dxf_2 = white_dxf_2
+
+)
+if ROUTER_CONFIG.CHIP_BASE == ChipBase.GLASS:
+    _draw.draw_reference_electrode(msp)
 
 # _draw.draw_pseudo_node(mid_section.grid, dxf2)
-# _draw.draw_hub(top_section.hub, dxf2)
-# _draw.draw_hub(down_section.hub, dxf2)
+# _draw.draw_hub(_chip.top_section.hub, dxf2)
+# _draw.draw_hub(_chip.bottom_section.hub, dxf2)
 # _draw.draw_tile(top_section.tile, dxf2)
-# _draw.draw_tile(down_section.tile, dxf2)
+# _draw.draw_tile(bottom_section.tile, dxf2)
 
 # _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
 # _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
-# _draw.draw_grid(down_section.start_point, down_section.unit, [len(down_section.grid), len(down_section.grid[0])], msp)
+# _draw.draw_grid(bottom_section.start_point, bottom_section.unit, [len(bottom_section.grid), len(bottom_section.grid[0])], msp)
 
 # print(f'electrode_number: {len(_model_mesh.electrodes)}, total runtime: {str(time.time() - start_time)}')
 
 # reduce wire turn times
 
 # c_time = time.time()
-_routing_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
+_routing_wire = RoutingWire(_pseudo_node, _chip.mid_section.grid, _model_mesh.electrodes)
 reduce_times = 1
 while reduce_times != 0:
     reduce_times = _routing_wire.reduce_wire_turn()
 
 _routing_wire.divide_start_wire()
 
-gui_routing_result = ""
+gui_routing_result = ''
 combined_id = 0
 for electrode in _model_mesh.electrodes:
     _draw.draw_all_wire(electrode.routing_wire, msp)
 
-    if OUTPUT_FORMAT == 'ewds':
-        x = int((electrode.real_x + 628) / electrode_size)
-        y = int((electrode.real_y - 12260) / electrode_size)
-        pin_x = round(electrode.routing_wire[len(electrode.routing_wire) - 1].end_x / contactpad_unit)
+    if ROUTER_CONFIG.OUTPUT_FORMAT == 'ewds':
+        x = int((electrode.real_x + 628) / ROUTER_CONFIG.ELECTRODE_SIZE)
+        y = int((electrode.real_y - 12260) / ROUTER_CONFIG.ELECTRODE_SIZE)
+        pin_x = round(electrode.routing_wire[len(electrode.routing_wire) - 1].end_x / ROUTER_CONFIG.CONTACT_PAD_GAP)
         pin_y = electrode.routing_wire[len(electrode.routing_wire) - 1].end_y
 
         if pin_y >= 56896:
             pin_y -= 56896
-            pin_y /= contactpad_unit
+            pin_y /= ROUTER_CONFIG.CONTACT_PAD_GAP
             pin_y = round(pin_y)
             pin_y += 4
         else:
-            pin_y /= contactpad_unit
+            pin_y /= ROUTER_CONFIG.CONTACT_PAD_GAP
             pin_y = round(pin_y)
 
         # match gui design pattern
@@ -241,17 +231,17 @@ for electrode in _model_mesh.electrodes:
                 pin_number = 41 + pin_x
         elif pin_y == 7:
             pin_number = 40 - pin_x
-            
+
         if electrode.shape == 'base':
             gui_routing_result += 'square' + " " + str(x) + " " + str(y) + " " + str(pin_number) + "\n"
         else:
             path = _chip.electrode_shape_library[electrode.shape]
             svg = ""
             for i in range(1, len(path), 2):
-                point = " L " + str(math.floor((int(path[i][0]) + 60) / electrode_size))
+                point = " L " + str(math.floor((int(path[i][0]) + 60) / ROUTER_CONFIG.ELECTRODE_SIZE))
                 if i == 1:
                     point = point.replace("L", "M")
-                point += " " + str(math.floor((int(path[i][1]) + 60) / electrode_size))
+                point += " " + str(math.floor((int(path[i][1]) + 60) / ROUTER_CONFIG.ELECTRODE_SIZE))
                 svg += point
             elements = svg.split()
             # Process the rest of the elements
@@ -275,25 +265,24 @@ for electrode in _model_mesh.electrodes:
                     # Add a small offset to include points on the border
                     if path.contains_point((_x + 0.1, _y + 0.1)):
                         top_left_corners.append((x + _x, y + _y))
-                    
+
             for _x, _y in top_left_corners:
                 gui_routing_result += 'combine' + " " + str(_x) + " " + str(_y) + " " + str(combined_id) + " " + str(pin_number) + "\n"
             combined_id += 1
 
-gui_routing_result += "#ENDOFELECTRODE#\n"
-gui_routing_result += "0::100:0\n"
-gui_routing_result += "#ENDOFSEQUENCE#\n"
-        
-        
+gui_routing_result += '#ENDOFELECTRODE#\n'
+gui_routing_result += '0::100:0\n'
+gui_routing_result += '#ENDOFSEQUENCE#\n'
+
 # print(f'reduce runtime: {str(time.time() - c_time)}')
 
-if OUTPUT_FORMAT == 'dxf':
+if ROUTER_CONFIG.OUTPUT_FORMAT == 'dxf':
     encode_dxf = doc.encode_base64()
     print(base64.b64decode(encode_dxf).decode())
-elif OUTPUT_FORMAT == 'dxf-based64':
+elif ROUTER_CONFIG.OUTPUT_FORMAT == 'dxf-based64':
     encode_dxf = doc.encode_base64()
     print(encode_dxf.decode())
-elif OUTPUT_FORMAT == 'svg':
+elif ROUTER_CONFIG.OUTPUT_FORMAT == 'svg':
     # dxf string to svg string
     fig = plt.figure()
     ax = fig.add_axes([0, 0, 1, 1])
@@ -302,11 +291,12 @@ elif OUTPUT_FORMAT == 'svg':
     Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
     str = StringIO()
     fig.savefig(str, format='svg')
+    # fig.savefig(f'dwg/{ROUTER_CONFIG.OUTPUT_FILE_NAME}.svg', format='svg')
     svg = str.getvalue()
     print(svg)
-elif OUTPUT_FORMAT == 'file':
-    doc.saveas('dwg/' + ewd_name + '.dxf')
-elif OUTPUT_FORMAT == 'ewds':
+elif ROUTER_CONFIG.OUTPUT_FORMAT == 'file':
+    doc.saveas(f'dwg/{ROUTER_CONFIG.OUTPUT_FILE_NAME}.dxf')
+elif ROUTER_CONFIG.OUTPUT_FORMAT == 'ewds':
     print(gui_routing_result)
 
 # print(f'total time: {str(time.time() - start_time)}')
