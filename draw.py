@@ -206,7 +206,7 @@ class Draw():
                 # elif grids[i][j].close_electrode is False and dxf is not None:
                 if dxf is not None:
                     for next_grid in grids[i][j].neighbor:
-                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid[0].real_x, -next_grid[0].real_y])
+                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid.grid.real_x, -next_grid.grid.real_y])
 
         print('grid num: ', num)
 
@@ -227,7 +227,7 @@ class Draw():
             hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
             if dxf is not None:
                 for next in hub[i].neighbor:
-                    dxf.add_line([hub[i].real_x, -hub[i].real_y], [next[0].real_x, -next[0].real_y])
+                    dxf.add_line([hub[i].real_x, -hub[i].real_y], [next.grid.real_x, -next.grid.real_y])
 
     def draw_tile(self, tile: list[list[Tile]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
         width = 60

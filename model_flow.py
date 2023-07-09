@@ -26,7 +26,7 @@ class ModelFlow():
                     # add connect pad end node
                     if grid.type == GridType.CONTACT_PAD:
                         self.global_t.contact_pads.append(grid)
-                    elif grid.type == GridType.GRID or grid.type == GridType.PSEUDONODE:
+                    elif grid.type == GridType.GRID or grid.type == GridType.PSEUDO_NODE:
                         self.node_index += 1
                         self.flownodes.append(0)
 

@@ -42,8 +42,8 @@ class ModelMinCostFlow():
                 # add neighbor tiles
                 for nb_node in node.neighbor:
                     self.start_nodes.append(node.index)
-                    self.end_nodes.append(nb_node[0].index+1)
-                    self.capacities.append(int(nb_node[1]))
+                    self.end_nodes.append(nb_node.grid.index+1)
+                    self.capacities.append(int(nb_node.capacity))
                     self.unit_costs.append(int(self.mesh.top_section.unit))
                 # add contact pads
                 for cp_node in node.contact_pads:
@@ -67,20 +67,20 @@ class ModelMinCostFlow():
                     self.unit_costs.append(0)
                     for nb_node in node.neighbor:
                         self.start_nodes.append(node.index)
-                        if type(nb_node[0]) == Grid:
-                            self.end_nodes.append(nb_node[0].index+1)
-                        elif type(nb_node[0]) == Hub:
-                            self.end_nodes.append(nb_node[0].index)
-                        self.capacities.append(int(nb_node[1]))
-                        self.unit_costs.append(int(nb_node[2]))
-                elif node.type == GridType.PSEUDONODE:
+                        if type(nb_node.grid) == Grid:
+                            self.end_nodes.append(nb_node.grid.index+1)
+                        elif type(nb_node.grid) == Hub:
+                            self.end_nodes.append(nb_node.grid.index)
+                        self.capacities.append(int(nb_node.capacity))
+                        self.unit_costs.append(int(nb_node.cost))
+                elif node.type == GridType.PSEUDO_NODE:
                     for nb_node in node.neighbor:
                         self.start_nodes.append(node.index)
-                        self.end_nodes.append(nb_node[0].index+1)
-                        self.capacities.append(int(nb_node[1]))
-                        self.unit_costs.append(int(nb_node[2]))
+                        self.end_nodes.append(nb_node.grid.index+1)
+                        self.capacities.append(int(nb_node.capacity))
+                        self.unit_costs.append(int(nb_node.cost))
 
-                    # add edge from electrode to PSEUDONODE
+                    # add edge from electrode to PSEUDO_NODE
                     self.start_nodes.append(self.mesh.electrodes[node.electrode_index].index)
                     self.end_nodes.append(node.index)
                     self.capacities.append(1)
@@ -89,9 +89,9 @@ class ModelMinCostFlow():
             elif type(node) == Hub:
                 for nb_node in node.neighbor:
                     self.start_nodes.append(node.index)
-                    self.end_nodes.append(nb_node[0].index)
-                    self.capacities.append(int(nb_node[1]))
-                    self.unit_costs.append(int(nb_node[2]))
+                    self.end_nodes.append(nb_node.grid.index)
+                    self.capacities.append(int(nb_node.capacity))
+                    self.unit_costs.append(int(nb_node.cost))
                 self.supplies[node.index] = 0
             elif type(node) == Electrode:
                 self.supplies[node.index] = 1
@@ -212,7 +212,7 @@ class ModelMinCostFlow():
                     if type(self.flow.flownodes[tail]) == Grid:
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
-                        # if self.flow.flownodes[head].type == GridType.PSEUDONODE:
+                        # if self.flow.flownodes[head].type == GridType.PSEUDO_NODE:
                         #     electrode = self.mesh.electrodes[self.flow.flownodes[head].electrode_index]
                         #     close_point = self.get_close_point_with_poly(
                         #         electrode.poly, [self.flow.flownodes[tail].real_x, self.flow.flownodes[tail].real_y])

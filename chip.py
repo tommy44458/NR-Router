@@ -54,6 +54,15 @@ class ChipSection():
                 offset = self.radius + (i % 5) * self.hub_gap
                 self.hub.append(Hub(self.grid[i//5][0].real_x + offset, y, 1, i))
 
+    def get_grid(self, x: int, y: int) -> Grid:
+        return self.grid[x][y]
+
+    def is_edge_grid(self, x: int, y: int) -> bool:
+        if x == len(self.grid) or y == len(self.grid[0]):
+            return True
+        if x == 0 or y == 0:
+            return False
+
 class Chip():
     def __init__(self, ewd_name: str, ewd_content=None):
         self.ewd_name = ewd_name

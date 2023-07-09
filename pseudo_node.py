@@ -17,6 +17,9 @@ class PseudoNode():
         self.unit = unit
         self.electrode_list: list[list] = electrode_list
 
+    def get_grid(self, x: int, y: int) -> Grid:
+        return self.grid[x][y]
+
     def get_point_by_shape(self, elec_point: list, shape_point: list) -> list:
         """
             elec_p is the top-left point in electrode
@@ -63,15 +66,16 @@ class PseudoNode():
         """
         x = point[0]
         y = point[1]
-        if self.grid[x][y].corner is False:
-            self.grid[x][y].electrode_index = elec_index
-            self.grid[x][y].type = GridType.PSEUDONODE
-            self.grid[x][y].flow = 1
-            self.grid[x][y].electrode_x = elec_point[0]
-            self.grid[x][y].electrode_y = elec_point[1]
-            self.grid[x][y].corner = corner
-            self.grid[x][y].pseudo_node_type = pseudo_node_type
-            self.grid[x][y].edge_direct = edge_direct
+        target = self.get_grid(x, y)
+        if target.corner is False:
+            target.electrode_index = elec_index
+            target.type = GridType.PSEUDO_NODE
+            target.flow = 1
+            target.electrode_x = elec_point[0]
+            target.electrode_y = elec_point[1]
+            target.corner = corner
+            target.pseudo_node_type = pseudo_node_type
+            target.edge_direct = edge_direct
 
     def is_poi_with_in_poly(self, poi: list, poly: list):
         """
@@ -116,7 +120,8 @@ class PseudoNode():
         grid_point_list = self.get_grid_point_list(elec_point, self.unit)
         grid_point_list_internal = []
         for g_p in grid_point_list:
-            if self.is_poi_with_in_poly([self.grid[g_p[0]][g_p[1]].real_x, self.grid[g_p[0]][g_p[1]].real_y], poly_point_list):
+            target = self.get_grid(g_p[0], g_p[1])
+            if self.is_poi_with_in_poly([target.real_x, target.real_y], poly_point_list):
                 grid_point_list_internal.append(g_p)
         return self.find_short_grid_from_points(grid, grid_point_list_internal, elec_point)
 
@@ -127,7 +132,8 @@ class PseudoNode():
         """
         ps = []
         for grid_p in grid_point_list:
-            ps.append([grid[grid_p[0]][grid_p[1]].real_x, grid[grid_p[0]][grid_p[1]].real_y])
+            target = self.get_grid(grid_p[0], grid_p[1])
+            ps.append([target.real_x, target.real_y])
         dis = []
         for p in ps:
             dis.append(self.cal_distance(elec_p, p))
@@ -188,32 +194,48 @@ class PseudoNode():
                     if direct_table[degree_p1_p2] == WireDirect.UP:
                         for k in range(grid_p1[1] - (grid_p2[1] + 1) + 1):
                             if covered_grid is None:
-                                if self.grid[grid_p1[0]+2][grid_p1[1]-k].pseudo_node_type != PseudoNodeType.INTERNAL:
+                                if self.get_grid(grid_p1[0]+2, grid_p1[1]-k).pseudo_node_type != PseudoNodeType.INTERNAL:
                                     covered_grid = self.grid[grid_p1[0]+2][grid_p1[1]-k]
-                            self.set_electrode_to_grid([grid_p1[0]+1, grid_p1[1]-k], electrode_index,
-                                                       [p1[0], self.grid[grid_p1[0]+1][grid_p1[1]-k].real_y],
-                                                       PseudoNodeType.INTERNAL, edge_direct=direct_table[degree_p1_p2])
+                            self.set_electrode_to_grid(
+                                [grid_p1[0]+1, grid_p1[1]-k],
+                                electrode_index,
+                                [p1[0], self.get_grid(grid_p1[0]+1, grid_p1[1]-k).real_y],
+                                PseudoNodeType.INTERNAL,
+                                edge_direct=direct_table[degree_p1_p2]
+                            )
                             if [grid_p1[0]+1, grid_p1[1]-k] not in ret[-1].pseudo_node_set:
                                 ret[-1].pseudo_node_set.append([grid_p1[0]+1, grid_p1[1]-k])
                     elif direct_table[degree_p1_p2] == WireDirect.RIGHT:
                         for k in range(grid_p2[0] - (grid_p1[0] + 1) + 1):
-                            self.set_electrode_to_grid([grid_p1[0]+1+k, grid_p1[1]+1], electrode_index,
-                                                       [self.grid[grid_p1[0]+1+k][grid_p1[1]+1].real_x, p1[1]],
-                                                       PseudoNodeType.INTERNAL, edge_direct=direct_table[degree_p1_p2])
+                            self.set_electrode_to_grid(
+                                [grid_p1[0]+1+k, grid_p1[1]+1],
+                                electrode_index,
+                                [self.get_grid(grid_p1[0]+1+k, grid_p1[1]+1).real_x, p1[1]],
+                                PseudoNodeType.INTERNAL,
+                                edge_direct=direct_table[degree_p1_p2]
+                            )
                             if [grid_p1[0]+1+k, grid_p1[1]+1] not in ret[-1].pseudo_node_set:
                                 ret[-1].pseudo_node_set.append([grid_p1[0]+1+k, grid_p1[1]+1])
                     elif direct_table[degree_p1_p2] == WireDirect.BOTTOM:
                         for k in range(grid_p2[1] - (grid_p1[1] + 1) + 1):
-                            self.set_electrode_to_grid([grid_p1[0], grid_p1[1]+1+k], electrode_index,
-                                                       [p1[0], self.grid[grid_p1[0]][grid_p1[1]+1+k].real_y],
-                                                       PseudoNodeType.INTERNAL, edge_direct=direct_table[degree_p1_p2])
+                            self.set_electrode_to_grid(
+                                [grid_p1[0], grid_p1[1]+1+k],
+                                electrode_index,
+                                [p1[0], self.get_grid(grid_p1[0], grid_p1[1]+1+k).real_y],
+                                PseudoNodeType.INTERNAL,
+                                edge_direct=direct_table[degree_p1_p2]
+                            )
                             if [grid_p1[0], grid_p1[1]+1+k] not in ret[-1].pseudo_node_set:
                                 ret[-1].pseudo_node_set.append([grid_p1[0], grid_p1[1]+1+k])
                     elif direct_table[degree_p1_p2] == WireDirect.LEFT:
                         for k in range(grid_p1[0] - grid_p2[0]):
-                            self.set_electrode_to_grid([grid_p1[0]-k, grid_p1[1]], electrode_index,
-                                                       [self.grid[grid_p1[0]-k][grid_p1[1]].real_x, p1[1]],
-                                                       PseudoNodeType.INTERNAL, edge_direct=direct_table[degree_p1_p2])
+                            self.set_electrode_to_grid(
+                                [grid_p1[0]-k, grid_p1[1]],
+                                electrode_index,
+                                [self.get_grid(grid_p1[0]-k, grid_p1[1]).real_x, p1[1]],
+                                PseudoNodeType.INTERNAL,
+                                edge_direct=direct_table[degree_p1_p2]
+                            )
                             if [grid_p1[0]-k, grid_p1[1]] not in ret[-1].pseudo_node_set:
                                 ret[-1].pseudo_node_set.append([grid_p1[0]-k, grid_p1[1]])
                     else:
@@ -221,9 +243,14 @@ class PseudoNode():
                         edge_direct: WireDirect = direct_table[degree_p1_p2]
                         grid_index = self.find_short_grid_internal(self.grid, corner_point, poly_points)
                         if grid_index is not None:
-                            self.set_electrode_to_grid([grid_index[0], grid_index[1]], electrode_index,
-                                                       corner_point, PseudoNodeType.INTERNAL, corner=True,
-                                                       edge_direct=edge_direct)
+                            self.set_electrode_to_grid(
+                                [grid_index[0], grid_index[1]],
+                                electrode_index,
+                                corner_point,
+                                PseudoNodeType.INTERNAL,
+                                corner=True,
+                                edge_direct=edge_direct
+                            )
                             if [grid_index[0], grid_index[1]] not in ret[-1].pseudo_node_set:
                                 ret[-1].pseudo_node_set.append([grid_index[0], grid_index[1]])
 

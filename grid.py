@@ -13,10 +13,16 @@ class PseudoNodeType(IntEnum):
 class GridType(IntEnum):
     CONTACT_PAD = -1
     GRID = 0
-    PSEUDONODE = 1
+    PSEUDO_NODE = 1
     PSEUDOHUB = 2
     REF = 3
     CORNER = 4
+
+class NeighborNode():
+    def __init__(self, grid: 'Grid' = None, capacity: int = None, cost: int = None):
+        self.grid: 'Grid' = grid
+        self.capacity: int = capacity
+        self.cost: int = cost
 
 
 class Grid():
@@ -32,9 +38,9 @@ class Grid():
         self.type = type
         self.electrode_index = -1
         # neighbor = [[grid, capacity, cost], [], etc.]
-        self.neighbor: list[list[Union[Grid, int]]] = []
-        self.flow = 0
-        self.cost = 0
+        self.neighbor: list[NeighborNode] = []
+        self.flow: int = 0
+        self.cost: int = 0
 
         # pseudo node
         self.corner = False

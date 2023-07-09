@@ -2,7 +2,7 @@ from typing import Union
 
 from chip import ChipSection
 from electrode import Electrode
-from grid import Grid, GridType, PseudoNodeType
+from grid import Grid, GridType, NeighborNode, PseudoNodeType
 from hub import Hub
 from pseudo_node import PseudoNode
 from tile import Tile
@@ -29,7 +29,7 @@ class ModelMesh():
 
     def add_grid_to_neighbor(self, grid: Grid, neighbor_grid: Grid, capacity: float, cost: float):
         if neighbor_grid.close_electrode is False and neighbor_grid.type == GridType.GRID:
-            grid.neighbor.append([neighbor_grid, capacity, cost])
+            grid.neighbor.append(NeighborNode(neighbor_grid, capacity, cost))
 
     def create_pseudo_node_connection(self):
         """
@@ -37,13 +37,11 @@ class ModelMesh():
         """
         for electrode in self.electrodes:
             for pseudo_node_index, pseudo_node in enumerate(electrode.pseudo_node_set):
-                # no closed grid
-                if pseudo_node[0] == len(self.mid_section.grid) or pseudo_node[1] == len(self.mid_section.grid[0]):
-                    continue
-                if pseudo_node[0] == 0 or pseudo_node[1] == 0:
+                # no edge grid
+                if self.mid_section.is_edge_grid(pseudo_node[0], pseudo_node[1]):
                     continue
 
-                pseudo_node_grid = self.mid_section.grid[pseudo_node[0]][pseudo_node[1]]
+                pseudo_node_grid = self.mid_section.get_grid(pseudo_node[0], pseudo_node[1])
 
                 # next_pseudo_point = electrode.pseudo_node_set[(pseudo_node_index + 1) % len(electrode.pseudo_node_set)]
                 # previous_pseudo_point = electrode.pseudo_node_set[pseudo_node_index - 1]
@@ -52,65 +50,65 @@ class ModelMesh():
                 # pseudo_node_grid.neighbor.append([self.mid_section.grid[previous_pseudo_point[0]][previous_pseudo_point[1]], 1, 0])
 
                 edge_direct = pseudo_node_grid.edge_direct
-                close_elec_grid_list: list[list[Union[Grid, int]]] = []
+                elec_neighbor_node_list: list[NeighborNode] = []
                 if edge_direct == WireDirect.UP:
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.RIGHT:
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.BOTTOM:
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.LEFT:
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.TOP_RIGHT:
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit))
                     # only all near grid is pseudo node or grid need to add connection
-                    near_grid_type = (self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]].type,
-                                      self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1].type)
-                    if near_grid_type in [(GridType.PSEUDONODE, GridType.PSEUDONODE), (GridType.GRID, GridType.GRID)]:
-                        close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]-1], 1, self.mid_section.hypo_unit])
+                    near_grid_type = (self.mid_section.get_grid(pseudo_node[0] - 1, pseudo_node[1]).type,
+                                      self.mid_section.get_grid(pseudo_node[0], pseudo_node[1] - 1).type)
+                    if near_grid_type in [(GridType.PSEUDO_NODE, GridType.PSEUDO_NODE), (GridType.GRID, GridType.GRID)]:
+                        elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]-1], 1, self.mid_section.hypo_unit))
                     else:
                         pass
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.BOTTOM_RIGHT:
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1], 1, self.mid_section.unit))
                     # only all near grid is pseudo node or grid need to add connection
-                    near_grid_type = (self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]].type,
-                                      self.mid_section.grid[pseudo_node[0]][pseudo_node[1]-1].type)
-                    if near_grid_type in [(GridType.PSEUDONODE, GridType.PSEUDONODE), (GridType.GRID, GridType.GRID)]:
-                        close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]-1], 1, self.mid_section.hypo_unit])
+                    near_grid_type = (self.mid_section.get_grid(pseudo_node[0] + 1, pseudo_node[1]).type,
+                                      self.mid_section.get_grid(pseudo_node[0], pseudo_node[1] - 1).type)
+                    if near_grid_type in [(GridType.PSEUDO_NODE, GridType.PSEUDO_NODE), (GridType.GRID, GridType.GRID)]:
+                        elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]-1], 1, self.mid_section.hypo_unit))
                     else:
                         pass
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.TOP_LEFT:
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit))
                     # only all near grid is pseudo node or grid need to add connection
-                    near_grid_type = (self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]].type,
-                                      self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1].type)
-                    if near_grid_type in [(GridType.PSEUDONODE, GridType.PSEUDONODE), (GridType.GRID, GridType.GRID)]:
-                        close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]+1], 1, self.mid_section.hypo_unit])
+                    near_grid_type = (self.mid_section.get_grid(pseudo_node[0] - 1, pseudo_node[1]).type,
+                                      self.mid_section.get_grid(pseudo_node[0], pseudo_node[1] + 1).type)
+                    if near_grid_type in [(GridType.PSEUDO_NODE, GridType.PSEUDO_NODE), (GridType.GRID, GridType.GRID)]:
+                        elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]+1], 1, self.mid_section.hypo_unit))
                     else:
                         pass
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit))
                 elif edge_direct == WireDirect.BOTTOM_LEFT:
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]], 1, self.mid_section.unit))
                     # only all near grid is pseudo node or grid need to add connection
-                    near_grid_type = (self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]].type,
-                                      self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1].type)
-                    if near_grid_type in [(GridType.PSEUDONODE, GridType.PSEUDONODE), (GridType.GRID, GridType.GRID)]:
-                        close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]+1], 1, self.mid_section.hypo_unit])
+                    near_grid_type = (self.mid_section.get_grid(pseudo_node[0] + 1, pseudo_node[1]).type,
+                                      self.mid_section.get_grid(pseudo_node[0], pseudo_node[1] + 1).type)
+                    if near_grid_type in [(GridType.PSEUDO_NODE, GridType.PSEUDO_NODE), (GridType.GRID, GridType.GRID)]:
+                        elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]+1][pseudo_node[1]+1], 1, self.mid_section.hypo_unit))
                     else:
                         pass
-                    close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit])
+                    elec_neighbor_node_list.append(NeighborNode(self.mid_section.grid[pseudo_node[0]][pseudo_node[1]+1], 1, self.mid_section.unit))
 
-                for close_grid in close_elec_grid_list:
-                    if close_grid[0].type == GridType.GRID:
-                        pseudo_node_grid.neighbor.append(close_grid)
+                for neighbor_node in elec_neighbor_node_list:
+                    if neighbor_node.grid.type == GridType.GRID:
+                        pseudo_node_grid.neighbor.append(neighbor_node)
                         # close_grid[0].neighbor.append([pseudo_node_grid, close_grid[1], close_grid[2]])
-                        close_grid[0].close_electrode = True
-                        close_grid[0].flow = 1
-                        if close_grid[2] > self.mid_section.unit:
-                            close_grid[0].corner = True
-                            close_grid[0].edge_direct = pseudo_node_grid.edge_direct
+                        neighbor_node.grid.close_electrode = True
+                        neighbor_node.grid.flow = 1
+                        if neighbor_node.cost > self.mid_section.unit:
+                            neighbor_node.grid.corner = True
+                            neighbor_node.grid.edge_direct = pseudo_node_grid.edge_direct
 
     def create_grid_connection(self, grid_array: list[list[Grid]], unit, hypo_unit):
         """
@@ -251,13 +249,13 @@ class ModelMesh():
                             elif k == tile_x+1 and l == tile_y:
                                 capacity[2] = 2
                 if tile_x != 0:
-                    tile.neighbor.append([tile_array[tile_x-1][tile_y], capacity[0]])  # left
+                    tile.neighbor.append(NeighborNode(tile_array[tile_x-1][tile_y], capacity[0]))  # left
                 if tile_x != len(tile_array) - 1:
-                    tile.neighbor.append([tile_array[tile_x+1][tile_y], capacity[2]])  # right
+                    tile.neighbor.append(NeighborNode(tile_array[tile_x+1][tile_y], capacity[2]))  # right
                 if tile_y != 0:
-                    tile.neighbor.append([tile_array[tile_x][tile_y-1], capacity[1]])  # top
+                    tile.neighbor.append(NeighborNode(tile_array[tile_x][tile_y-1], capacity[1]))  # top
                 if tile_y != len(tile_col) - 1:
-                    tile.neighbor.append([tile_array[tile_x][tile_y+1], capacity[3]])  # bottom
+                    tile.neighbor.append(NeighborNode(tile_array[tile_x][tile_y+1], capacity[3]))  # bottom
 
     def create_hub_connection(self, grid_array: list[list[Grid]], hub_array: list[Hub], mid_n, tile_n, tile_array: list[list[Tile]]):
         """
@@ -266,27 +264,27 @@ class ModelMesh():
         mid_grid_array: list[list[Grid]] = self.mid_section.grid
         for i in range(len(hub_array)):
             if i % 5 == 0:
-                hub_array[i].neighbor.append([grid_array[i//5][tile_n], 1, 1819])
+                hub_array[i].neighbor.append(NeighborNode(grid_array[i//5][tile_n], 1, 1819))
             else:
-                hub_array[i].neighbor.append([tile_array[i//5][tile_n], 1, 3117])
+                hub_array[i].neighbor.append(NeighborNode(tile_array[i//5][tile_n], 1, 3117))
 
         grid_index = 0
         for i in range(len(hub_array) - 1):
             if i == 0:
                 x = hub_array[i].real_x - self.pseudo_node.unit
-                if grid_index < len(mid_grid_array) - 1:
-                    while mid_grid_array[grid_index][mid_n].real_x < x:
+                if grid_index < len(self.mid_section.grid) - 1:
+                    while self.mid_section.get_grid(grid_index, mid_n).real_x < x:
                         grid_index += 1
             x = (hub_array[i].real_x + hub_array[i+1].real_x) / 2
             if grid_index < len(mid_grid_array) - 1:
-                while mid_grid_array[grid_index][mid_n].real_x < x:
-                    mid_grid_array[grid_index][mid_n].neighbor.append([hub_array[i], 1, 1819])
+                while self.mid_section.get_grid(grid_index, mid_n).real_x < x:
+                    self.mid_section.get_grid(grid_index, mid_n).neighbor.append(NeighborNode(hub_array[i], 1, 1819))
                     grid_index += 1
                     if grid_index > len(mid_grid_array) - 1:
                         break
 
         last_connect_number = 0
         while last_connect_number < 3 and grid_index < len(mid_grid_array):
-            mid_grid_array[grid_index][mid_n].neighbor.append([hub_array[-1], 1, 1819])
+            self.mid_section.get_grid(grid_index, mid_n).neighbor.append(NeighborNode(hub_array[-1], 1, 1819))
             grid_index += 1
             last_connect_number += 1
