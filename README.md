@@ -4,6 +4,8 @@ NR-Router is a tool that enables precise routing on glass-based and paper-based 
 
 The detailed algorithm logic can be referred to in the following paper in ASP-DAC: (https://ieeexplore.ieee.org/document/9712567).
 
+Check out our online web-based CAD tool: http://cad.edroplets.org/
+
 ## Getting Started
 
 ### Set up a Python virtual environment by running the following command:
