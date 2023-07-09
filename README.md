@@ -2,6 +2,8 @@
 
 NR-Router is a tool that enables precise routing on glass-based and paper-based digital microfluidic EWOD (Electrowetting on Dielectric) chips with irregular-shaped electrodes. The routing method is based on the minimum-cost maximum-flow network model, and the routing results can be directly provided to the fabrication facility.
 
+The detailed algorithm logic can be referred to in the following paper in ASP-DAC: (https://ieeexplore.ieee.org/document/9712567).
+
 ## Getting Started
 
 ### Set up a Python virtual environment by running the following command:
