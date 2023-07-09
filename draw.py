@@ -6,7 +6,7 @@ from ezdxf.math import ConstructionArc
 
 from degree import Degree, wire_offset_table
 from electrode import Electrode
-from grid import Grid, GridType
+from grid import Grid
 from hub import Hub
 from tile import Tile
 from wire import Wire
@@ -135,7 +135,7 @@ class Draw():
             corner_size = float(shape_lib['base'][0][1])
             electrode_size = float(shape_lib['base'][2][0]) - float(shape_lib['base'][1][0])
             if shape != 'base':
-                start_index = 1 
+                start_index = 1
             if len(mesh_electrode_list[elec_index].routing_wire) == 0:
                 hatch_path.add_polyline_path(vertex_order)
 

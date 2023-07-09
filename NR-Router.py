@@ -49,50 +49,6 @@ try:
 except:
     pass
 
-
-top_section = ChipSection(
-    start_point = ROUTER_CONFIG.TOP_START_POINT,
-    width = ROUTER_CONFIG.CONTACT_PAD_GAP * 31,
-    height = ROUTER_CONFIG.CONTACT_PAD_GAP * 3,
-    unit = ROUTER_CONFIG.CONTACT_PAD_GAP,
-    radius = ROUTER_CONFIG.CONTACT_PAD_RADIUS
-)
-top_section.init_grid(
-    grid_type = GridType.CONTACT_PAD,
-    ref_pin = ROUTER_CONFIG.TOP_SECTION_REF_PIN,
-    corner_pin = ROUTER_CONFIG.TOP_SECTION_CORNER_PIN
-)
-top_section.init_tile()
-top_section.init_hub(
-    y = (ROUTER_CONFIG.MID_START_POINT[1] + ROUTER_CONFIG.CONTACT_PAD_GAP * 3 + ROUTER_CONFIG.CONTACT_PAD_RADIUS) // 2
-)
-
-mid_section = ChipSection(
-    start_point = ROUTER_CONFIG.MID_START_POINT,
-    width = ROUTER_CONFIG.ELECTRODE_SECTION[0],
-    height = ROUTER_CONFIG.ELECTRODE_SECTION[1],
-    unit = ROUTER_CONFIG.TILE_UNIT,
-    radius = ROUTER_CONFIG.CONTACT_PAD_RADIUS
-)
-mid_section.init_grid()
-
-bottom_section = ChipSection(
-    start_point = ROUTER_CONFIG.BOTTOM_START_POINT,
-    width = ROUTER_CONFIG.CONTACT_PAD_GAP * 31,
-    height = ROUTER_CONFIG.CONTACT_PAD_GAP * 3,
-    unit = ROUTER_CONFIG.CONTACT_PAD_GAP,
-    radius = ROUTER_CONFIG.CONTACT_PAD_RADIUS
-)
-bottom_section.init_grid(
-    grid_type = GridType.CONTACT_PAD,
-    ref_pin = ROUTER_CONFIG.BOTTOM_SECTION_REF_PIN,
-    corner_pin = ROUTER_CONFIG.BOTTOM_SECTION_CORNER_PIN
-)
-bottom_section.init_tile()
-bottom_section.init_hub(
-    y = (ROUTER_CONFIG.BOTTOM_START_POINT[1] - ROUTER_CONFIG.CONTACT_PAD_RADIUS + ROUTER_CONFIG.MID_START_POINT[1] + ROUTER_CONFIG.ELECTRODE_SECTION[1]) // 2
-)
-
 # c_time = time.time()
 
 # read ewd file
@@ -104,48 +60,48 @@ _chip = Chip(
 _chip.setup()
 
 _pseudo_node = PseudoNode(
-    grid = mid_section.grid,
+    grid = _chip.mid_section.grid,
     shape_lib = _chip.electrode_shape_library,
-    start_point = mid_section.start_point,
-    unit = mid_section.unit,
+    start_point = _chip.mid_section.start_point,
+    unit = _chip.mid_section.unit,
     electrode_list = _chip.electrode_list
 )
 _model_mesh = ModelMesh(
-    top_section = top_section,
-    mid_section = mid_section,
-    bottom_section = bottom_section,
+    top_section = _chip.top_section,
+    mid_section = _chip.mid_section,
+    bottom_section = _chip.bottom_section,
     pseudo_node = _pseudo_node
 )
 _model_mesh.get_pseudo_node()
 _model_mesh.create_pseudo_node_connection()
 _model_mesh.create_grid_connection(
-    grid_list = mid_section.grid,
-    unit = mid_section.unit,
-    hypo_unit = mid_section.hypo_unit
+    grid_list = _chip.mid_section.grid,
+    unit = _chip.mid_section.unit,
+    hypo_unit = _chip.mid_section.hypo_unit
 )
 _model_mesh.create_tile_connection(
-    grid_list = top_section.grid,
-    tile_array = top_section.tile,
+    grid_list = _chip.top_section.grid,
+    tile_array = _chip.top_section.tile,
     block = 'top'
 )
 _model_mesh.create_tile_connection(
-    grid_list = bottom_section.grid,
-    tile_array = bottom_section.tile,
+    grid_list = _chip.bottom_section.grid,
+    tile_array = _chip.bottom_section.tile,
     block = 'bottom'
 )
 _model_mesh.create_hub_connection(
-    grid_list = top_section.grid,
-    hub_array = top_section.hub,
+    grid_list = _chip.top_section.grid,
+    hub_array = _chip.top_section.hub,
     mid_n = 0,
     tile_n = -1,
-    tile_array = top_section.tile
+    tile_array = _chip.top_section.tile
 )
 _model_mesh.create_hub_connection(
-    grid_list = bottom_section.grid,
-    hub_array = bottom_section.hub,
+    grid_list = _chip.bottom_section.grid,
+    hub_array = _chip.bottom_section.hub,
     mid_n = -1,
     tile_n = 0,
-    tile_array = bottom_section.tile
+    tile_array = _chip.bottom_section.tile
 )
 
 # print('create mesh:', time.time() - c_time)
@@ -230,7 +186,7 @@ _draw.draw_reference_electrode(msp)
 # reduce wire turn times
 
 # c_time = time.time()
-_routing_wire = RoutingWire(_pseudo_node, mid_section.grid, _model_mesh.electrodes)
+_routing_wire = RoutingWire(_pseudo_node, _chip.mid_section.grid, _model_mesh.electrodes)
 reduce_times = 1
 while reduce_times != 0:
     reduce_times = _routing_wire.reduce_wire_turn()

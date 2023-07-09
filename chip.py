@@ -1,5 +1,6 @@
 import os
 
+from config import ROUTER_CONFIG
 from grid import Grid, GridType
 from hub import Hub
 from tile import Tile
@@ -64,7 +65,7 @@ class ChipSection():
             return False
 
 class Chip():
-    def __init__(self, ewd_name: str, ewd_content=None):
+    def __init__(self, ewd_name: str, ewd_content: str = None):
         self.ewd_name = ewd_name
         self.ewd_content = ewd_content
         self.ewd_config_end = 0
@@ -77,16 +78,27 @@ class Chip():
         # electrode_list = [[shape, x, y], etc.]
         self.electrode_list: list[list] = []
 
+        self.top_section: ChipSection = None
+        self.mid_section: ChipSection = None
+        self.bottom_section: ChipSection = None
+
     def setup(self):
+        """Read ewd file and setup chip.
+        """
         if self.ewd_content is None:
             self.ewd_content = self.read_ewd()
         else:
             self.ewd_content: str = self.ewd_content.split('\n')
         self.get_config()
         self.get_position()
-        pass
+        self.init_section()
 
-    def read_ewd(self):
+    def read_ewd(self) -> str:
+        """Read ewd file.
+
+        Returns:
+            str: ewd input content
+        """
         ewd_input = []
         dir = os.path.join(__location__, 'ewd/' + self.ewd_name)
         readfile = open(dir, "r")
@@ -95,6 +107,8 @@ class Chip():
         return ewd_input
 
     def get_config(self):
+        """Get chip config from ewd file.
+        """
         content: list[str] = self.ewd_content
         for line in content:
             if line.split()[0] == "#ENDOFDEFINITION#":
@@ -115,6 +129,8 @@ class Chip():
         self.electrode_shape_count = len(self.electrode_shape_library.keys())
 
     def get_position(self):
+        """Get contact pad and electrode position from ewd file.
+        """
         content: list[str] = self.ewd_content[self.ewd_config_end + 1:]
         for line in content:
             if line.split()[0] == "#ENDOFLAYOUT#":
@@ -127,3 +143,49 @@ class Chip():
             # electrodes
             elif line.split()[0] in self.electrode_shape_library:
                 self.electrode_list.append([line.split()[0], true_x, true_y])
+
+    def init_section(self):
+        """Init chip section.
+        """
+        self.top_section = ChipSection(
+            start_point = ROUTER_CONFIG.TOP_START_POINT,
+            width = ROUTER_CONFIG.CONTACT_PAD_GAP * 31,
+            height = ROUTER_CONFIG.CONTACT_PAD_GAP * 3,
+            unit = ROUTER_CONFIG.CONTACT_PAD_GAP,
+            radius = ROUTER_CONFIG.CONTACT_PAD_RADIUS
+        )
+        self.top_section.init_grid(
+            grid_type = GridType.CONTACT_PAD,
+            ref_pin = ROUTER_CONFIG.TOP_SECTION_REF_PIN,
+            corner_pin = ROUTER_CONFIG.TOP_SECTION_CORNER_PIN
+        )
+        self.top_section.init_tile()
+        self.top_section.init_hub(
+            y = (ROUTER_CONFIG.MID_START_POINT[1] + ROUTER_CONFIG.CONTACT_PAD_GAP * 3 + ROUTER_CONFIG.CONTACT_PAD_RADIUS) // 2
+        )
+
+        self.mid_section = ChipSection(
+            start_point = ROUTER_CONFIG.MID_START_POINT,
+            width = ROUTER_CONFIG.ELECTRODE_SECTION[0],
+            height = ROUTER_CONFIG.ELECTRODE_SECTION[1],
+            unit = ROUTER_CONFIG.TILE_UNIT,
+            radius = ROUTER_CONFIG.CONTACT_PAD_RADIUS
+        )
+        self.mid_section.init_grid()
+
+        self.bottom_section = ChipSection(
+            start_point = ROUTER_CONFIG.BOTTOM_START_POINT,
+            width = ROUTER_CONFIG.CONTACT_PAD_GAP * 31,
+            height = ROUTER_CONFIG.CONTACT_PAD_GAP * 3,
+            unit = ROUTER_CONFIG.CONTACT_PAD_GAP,
+            radius = ROUTER_CONFIG.CONTACT_PAD_RADIUS
+        )
+        self.bottom_section.init_grid(
+            grid_type = GridType.CONTACT_PAD,
+            ref_pin = ROUTER_CONFIG.BOTTOM_SECTION_REF_PIN,
+            corner_pin = ROUTER_CONFIG.BOTTOM_SECTION_CORNER_PIN
+        )
+        self.bottom_section.init_tile()
+        self.bottom_section.init_hub(
+            y = (ROUTER_CONFIG.BOTTOM_START_POINT[1] - ROUTER_CONFIG.CONTACT_PAD_RADIUS + ROUTER_CONFIG.MID_START_POINT[1] + ROUTER_CONFIG.ELECTRODE_SECTION[1]) // 2
+        )
