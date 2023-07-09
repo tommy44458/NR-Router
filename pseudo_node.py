@@ -1,4 +1,5 @@
 import math
+from typing import Union
 
 import numpy as np
 
@@ -9,6 +10,8 @@ from grid import Grid, GridType, PseudoNodeType
 
 
 class PseudoNode():
+    """PseudoNode class.
+    """
 
     def __init__(self, grid: list[list[Grid]], shape_lib: dict, start_point: list, unit: float, electrode_list: list):
         self.grid = grid
@@ -18,27 +21,59 @@ class PseudoNode():
         self.electrode_list: list[list] = electrode_list
 
     def get_grid(self, x: int, y: int) -> Grid:
+        """get grid by index
+
+        Args:
+            x (int): x
+            y (int): y
+
+        Returns:
+            Grid: grid
+        """
         return self.grid[x][y]
 
     def get_point_by_shape(self, elec_point: list, shape_point: list) -> list:
-        """
-            elec_p is the top-left point in electrode
-            shape_p is the point by svg path
+        """Get real point by electrode point and shape point
+
+        Args:
+            elec_point (list): the top-left point in electrode
+            shape_point (list): the point by svg path
+
+        Returns:
+            list: real point
         """
         return [elec_point[0] + float(shape_point[0]), elec_point[1] + float(shape_point[1])]
 
-    def get_grid_point(self, real_point: list, unit: float) -> list:
-        """
-            get gird point by real point
+    def get_grid_point(self, real_point: tuple, unit: float) -> list:
+        """Get gird point by real point.
+
+        Args:
+            real_point (tuple): real point
+            unit (float): unit
         """
         return [int((real_point[0] - self.start_point[0]) // unit), int((real_point[1] - self.start_point[1]) // unit)]
 
-    def cal_distance(self, p1: list, p2: list):
+    def cal_distance(self, p1: tuple, p2: tuple) -> float:
+        """Calculate distance between 2 points
+
+        Args:
+            p1 (tuple): point1
+            p2 (tuple): point2
+
+        Returns:
+            float: distance
+        """
         return math.sqrt(math.pow((p2[0] - p1[0]), 2) + math.pow((p2[1] - p1[1]), 2))
 
     def get_grid_point_list(self, real_point: list, unit: float) -> list:
-        """
-            get gird point list by real point
+        """Get gird point list by real point
+
+        Args:
+            real_point (list): real point
+            unit (float): unit
+
+        Returns:
+            list: grid point list
         """
         left_up = [int((real_point[0] - self.start_point[0]) // unit), int((real_point[1] - self.start_point[1]) // unit)]
         right_up = [left_up[0] + 1, left_up[1]]
@@ -47,8 +82,14 @@ class PseudoNode():
         return [left_up, right_up, right_bottom, left_bottom]
 
     def clockwise_angle(self, v1: tuple, v2: tuple) -> float:
-        """
-            :return angle between 2 points
+        """Get clockwise angle between 2 points
+
+        Args:
+            v1 (tuple): point1
+            v2 (tuple): point2
+
+        Returns:
+            float: angle between 2 points
         """
         x1, y1 = v1
         x2, y2 = v2
@@ -58,11 +99,24 @@ class PseudoNode():
         theta = theta if theta > 0 else 2 * np.pi + theta
         return (theta * 180 / np.pi)
 
-    def set_electrode_to_grid(self, point: list, elec_index: int, elec_point: list,
-                              pseudo_node_type: PseudoNodeType, corner: bool = False,
-                              edge_direct: WireDirect = 0):
-        """
-            set electrode info to grid
+    def set_electrode_to_grid(
+            self,
+            point: list,
+            elec_index: int,
+            elec_point: list,
+            pseudo_node_type: PseudoNodeType,
+            corner: bool = False,
+            edge_direct: WireDirect = 0
+        ):
+        """Set electrode info to grid.
+
+        Args:
+            point (list): grid point
+            elec_index (int): electrode index
+            elec_point (list): electrode point
+            pseudo_node_type (PseudoNodeType): pseudo node type
+            corner (bool, optional): is corner. Defaults to False.
+            edge_direct (WireDirect, optional): edge direct. Defaults to 0.
         """
         x = point[0]
         y = point[1]
@@ -77,45 +131,66 @@ class PseudoNode():
             target.pseudo_node_type = pseudo_node_type
             target.edge_direct = edge_direct
 
-    def is_poi_with_in_poly(self, poi: list, poly: list):
+    def is_poi_with_in_poly(self, point: list, poly: list):
+        """Check point is in poly
+
+        Args:
+            poi (list): point
+            poly (list): poly
         """
-            check point is in poly
-        """
-        # 輸入：點，多邊形二維陣列
-        # poly=[[x1,y1],[x2,y2],……,[xn,yn],[x1,y1]] 二維陣列
-        sinsc = 0  # 交點個數
+        # input: point, polygon 2d array
+
+        # poly=[[x1,y1],[x2,y2],……,[xn,yn],[x1,y1]] 2d array
+        # number of intersections
+        sinsc = 0
         for i in range(len(poly)-1):  # [0,len-1]
-            s_poi = poly[i]
-            e_poi = poly[i+1]
-            if self.is_ray_intersects_segment(poi, s_poi, e_poi):
-                sinsc += 1  # 有交點就加1
+            s_point = poly[i]
+            e_point = poly[i+1]
+            if self.is_ray_intersects_segment(point, s_point, e_point):
+                # if intersections > 0
+                sinsc += 1
 
         return True if sinsc % 2 == 1 else False
 
-    def is_ray_intersects_segment(self, poi: list, s_poi: list, e_poi: list):  # [x,y] [lng,lat]
-        # 輸入：判斷點，邊起點，邊終點，都是[lng,lat]格式陣列
-        if s_poi[1] == e_poi[1]:  # 排除與射線平行、重合，線段首尾端點重合的情況
+    def is_ray_intersects_segment(self, point: list, s_point: list, e_point: list) -> bool:
+        """Check ray is intersects segment. [x,y] [lng,lat].
+
+        Args:
+            point (list): point
+            s_point (list): start point
+            e_point (list): end point
+
+        Returns:
+            bool: is intersects
+        """
+        if s_point[1] == e_point[1]:  # 排除與射線平行、重合，線段首尾端點重合的情況
             return False
-        if s_poi[1] > poi[1] and e_poi[1] > poi[1]:  # 線段在射線上邊
+        if s_point[1] > point[1] and e_point[1] > point[1]:  # 線段在射線上邊
             return False
-        if s_poi[1] < poi[1] and e_poi[1] < poi[1]:  # 線段在射線下邊
+        if s_point[1] < point[1] and e_point[1] < point[1]:  # 線段在射線下邊
             return False
-        if s_poi[1] == poi[1] and e_poi[1] > poi[1]:  # 交點為下端點，對應spoint
+        if s_point[1] == point[1] and e_point[1] > point[1]:  # 交點為下端點，對應spointnt
             return False
-        if e_poi[1] == poi[1] and s_poi[1] > poi[1]:  # 交點為下端點，對應epoint
+        if e_point[1] == point[1] and s_point[1] > point[1]:  # 交點為下端點，對應epointnt
             return False
-        if s_poi[0] < poi[0] and e_poi[1] < poi[1]:  # 線段在射線左邊
+        if s_point[0] < point[0] and e_point[1] < point[1]:  # 線段在射線左邊
             return False
 
-        xseg = e_poi[0]-(e_poi[0]-s_poi[0])*(e_poi[1]-poi[1])/(e_poi[1]-s_poi[1])  # 求交
-        if xseg < poi[0]:  # 交點在射線起點的左側
+        xseg = e_point[0]-(e_point[0]-s_point[0])*(e_point[1]-point[1])/(e_point[1]-s_point[1])  # 求交
+        if xseg < point[0]:  # 交點在射線起點的左側
             return False
         return True  # 排除上述情況之後
 
     def find_short_grid_internal(self, grid: list[list[Grid]], elec_point: list, poly_point_list: list) -> list:
-        """
-            find the closest gird and inside electrode by a real point
-            :return grid index [x, y]
+        """Find the closest gird and inside electrode by a real point
+
+        Args:
+            grid (list[list[Grid]]): grid
+            elec_point (list): real point
+            poly_point_list (list): poly point list
+
+        Returns:
+            list: grid index [x, y]
         """
         grid_point_list = self.get_grid_point_list(elec_point, self.unit)
         grid_point_list_internal = []
@@ -125,10 +200,16 @@ class PseudoNode():
                 grid_point_list_internal.append(g_p)
         return self.find_short_grid_from_points(grid, grid_point_list_internal, elec_point)
 
-    def find_short_grid_from_points(self, grid: list[list[Grid]], grid_point_list: list, elec_p: list):
-        """
-            find the closest gird by a real point and grid point list
-            :return grid index [x, y]
+    def find_short_grid_from_points(self, grid: list[list[Grid]], grid_point_list: list, elec_p: list) -> Union[list, None]:
+        """Find the closest gird by a real point and grid point list.
+
+        Args:
+            grid (list[list[Grid]]): grid
+            grid_point_list (list): grid point list
+            elec_p (list): real point
+
+        Returns:
+            Union[list, None]: grid index [x, y]
         """
         ps = []
         for grid_p in grid_point_list:
@@ -144,9 +225,11 @@ class PseudoNode():
         else:
             return None
 
-    def internal_node(self) -> list[Electrode]:
-        """
-            find all pseudo node for each electrode
+    def internal_node(self) -> tuple[list[Grid], list[Electrode]]:
+        """Find all pseudo node for each electrode.
+
+        Returns:
+            tuple[list[Grid], list[Electrode]]: grid, electrode
         """
         ret: list[Electrode] = []
         covered_grid_list: list[Grid] = []

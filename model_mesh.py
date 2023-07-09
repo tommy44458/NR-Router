@@ -11,6 +11,8 @@ from tile import Tile
 
 
 class ModelMesh():
+    """Model mesh class.
+    """
     def __init__(self, chip: Chip, pseudo_node: PseudoNode):
         self.chip = chip
         self.top_section = chip.top_section
@@ -26,6 +28,8 @@ class ModelMesh():
         self.electrodes: list[Electrode] = []
 
     def setup(self):
+        """Setup model mesh.
+        """
         self.get_pseudo_node()
         self.create_pseudo_node_connection()
         self.create_grid_connection(
@@ -35,33 +39,43 @@ class ModelMesh():
         )
         self.create_tile_connection(
             grid_list = self.chip.top_section.grid,
-            tile_array = self.chip.top_section.tile,
+            tile_list = self.chip.top_section.tile,
             block = 'top'
         )
         self.create_tile_connection(
             grid_list = self.chip.bottom_section.grid,
-            tile_array = self.chip.bottom_section.tile,
+            tile_list = self.chip.bottom_section.tile,
             block = 'bottom'
         )
         self.create_hub_connection(
             grid_list = self.chip.top_section.grid,
-            hub_array = self.chip.top_section.hub,
+            hub_list = self.chip.top_section.hub,
             mid_n = 0,
             tile_n = -1,
-            tile_array = self.chip.top_section.tile
+            tile_list = self.chip.top_section.tile
         )
         self.create_hub_connection(
             grid_list = self.chip.bottom_section.grid,
-            hub_array = self.chip.bottom_section.hub,
+            hub_list = self.chip.bottom_section.hub,
             mid_n = -1,
             tile_n = 0,
-            tile_array = self.chip.bottom_section.tile
+            tile_list = self.chip.bottom_section.tile
         )
 
     def get_pseudo_node(self):
+        """Get pseudo node.
+        """
         self.covered_grid_head_list, self.electrodes = self.pseudo_node.internal_node()
 
     def add_grid_to_neighbor(self, grid: Grid, neighbor_grid: Grid, capacity: float, cost: float):
+        """Add grid to neighbor.
+
+        Args:
+            grid (Grid): grid
+            neighbor_grid (Grid): neighbor grid
+            capacity (float): grid capacity
+            cost (float): grid cost
+        """
         if ROUTER_CONFIG.CHIP_BASE == ChipBase.GLASS:
             if neighbor_grid.close_electrode is False and neighbor_grid.type == GridType.GRID:
                 grid.neighbor.append(NeighborNode(neighbor_grid, capacity, cost))
@@ -76,8 +90,7 @@ class ModelMesh():
                     grid.neighbor.append(NeighborNode(neighbor_grid, capacity, cost))
 
     def create_pseudo_node_connection(self):
-        """
-            create the edge from pseudo node to grid closest electrode
+        """Create pseudo node connection.
         """
         for electrode in self.electrodes:
             for pseudo_node in electrode.pseudo_node_set:
@@ -164,10 +177,14 @@ class ModelMesh():
                             neighbor_node.grid.corner = True
                             neighbor_node.grid.edge_direct = pseudo_node_grid.edge_direct
 
-    def create_grid_connection(self, grid_list: list[list[Grid]], unit, hypo_unit):
-        """
-            create all edge between each grid and near grid
-            # electrode-closed grid only connect to normal grid (GridType.GRID and not close_electrode)
+    def create_grid_connection(self, grid_list: list[list[Grid]], unit: int, hypo_unit: int):
+        """Create all edge between each grid and near grid.
+        # electrode-closed grid only connect to normal grid (GridType.GRID and not close_electrode)
+
+        Args:
+            grid_list (list[list[Grid]]): grid list
+            unit (int): unit
+            hypo_unit (int): hypo unit
         """
         for grid_x, grid_col in enumerate(grid_list):
             if grid_x == 0:
@@ -278,11 +295,15 @@ class ModelMesh():
         #         if edge == 0:
         #             pseudo_node.covered = True
 
-    def create_tile_connection(self, grid_list: list[list[Grid]], tile_array: list[list[Tile]], block: str):
+    def create_tile_connection(self, grid_list: list[list[Grid]], tile_list: list[list[Tile]], block: str):
+        """Create tile connection.
+
+        Args:
+            grid_list (list[list[Grid]]): grid list
+            tile_list (list[list[Tile]]): tile list
+            block (str): block position
         """
-            tile append near contactpad, tile connnect to near tile
-        """
-        for tile_x, tile_col in enumerate(tile_array):
+        for tile_x, tile_col in enumerate(tile_list):
             for tile_y, tile in enumerate(tile_col):
                 # [u, l, d, r]
                 capacity = [8, 8, 8, 8]
@@ -303,42 +324,48 @@ class ModelMesh():
                             elif k == tile_x+1 and l == tile_y:
                                 capacity[2] = 2
                 if tile_x != 0:
-                    tile.neighbor.append(NeighborNode(tile_array[tile_x-1][tile_y], capacity[0]))  # left
-                if tile_x != len(tile_array) - 1:
-                    tile.neighbor.append(NeighborNode(tile_array[tile_x+1][tile_y], capacity[2]))  # right
+                    tile.neighbor.append(NeighborNode(tile_list[tile_x-1][tile_y], capacity[0]))  # left
+                if tile_x != len(tile_list) - 1:
+                    tile.neighbor.append(NeighborNode(tile_list[tile_x+1][tile_y], capacity[2]))  # right
                 if tile_y != 0:
-                    tile.neighbor.append(NeighborNode(tile_array[tile_x][tile_y-1], capacity[1]))  # top
+                    tile.neighbor.append(NeighborNode(tile_list[tile_x][tile_y-1], capacity[1]))  # top
                 if tile_y != len(tile_col) - 1:
-                    tile.neighbor.append(NeighborNode(tile_array[tile_x][tile_y+1], capacity[3]))  # bottom
+                    tile.neighbor.append(NeighborNode(tile_list[tile_x][tile_y+1], capacity[3]))  # bottom
 
-    def create_hub_connection(self, grid_list: list[list[Grid]], hub_array: list[Hub], mid_n, tile_n, tile_array: list[list[Tile]]):
-        """
-            mid_grid connect to hub, hub connect to tile
+    def create_hub_connection(self, grid_list: list[list[Grid]], hub_list: list[Hub], mid_n, tile_n, tile_list: list[list[Tile]]):
+        """Create hub connection.
+
+        Args:
+            grid_list (list[list[Grid]]): grid list
+            hub_list (list[Hub]): hub list
+            mid_n (_type_): mid section grid index
+            tile_n (_type_): tile index
+            tile_list (list[list[Tile]]): tile list
         """
         mid_grid_list: list[list[Grid]] = self.mid_section.grid
-        for i in range(len(hub_array)):
+        for i in range(len(hub_list)):
             if i % ROUTER_CONFIG.HUB_NUM == 0:
-                hub_array[i].neighbor.append(NeighborNode(grid_list[i // ROUTER_CONFIG.HUB_NUM][tile_n], 1, 1819))
+                hub_list[i].neighbor.append(NeighborNode(grid_list[i // ROUTER_CONFIG.HUB_NUM][tile_n], 1, 1819))
             else:
-                hub_array[i].neighbor.append(NeighborNode(tile_array[i // ROUTER_CONFIG.HUB_NUM][tile_n], 1, 3117))
+                hub_list[i].neighbor.append(NeighborNode(tile_list[i // ROUTER_CONFIG.HUB_NUM][tile_n], 1, 3117))
 
         grid_index = 0
-        for i in range(len(hub_array) - 1):
+        for i in range(len(hub_list) - 1):
             if i == 0:
-                x = hub_array[i].real_x - self.pseudo_node.unit
+                x = hub_list[i].real_x - self.pseudo_node.unit
                 if grid_index < len(self.mid_section.grid) - 1:
                     while self.mid_section.get_grid(grid_index, mid_n).real_x < x:
                         grid_index += 1
-            x = (hub_array[i].real_x + hub_array[i+1].real_x) / 2
+            x = (hub_list[i].real_x + hub_list[i+1].real_x) / 2
             if grid_index < len(mid_grid_list) - 1:
                 while self.mid_section.get_grid(grid_index, mid_n).real_x < x:
-                    self.mid_section.get_grid(grid_index, mid_n).neighbor.append(NeighborNode(hub_array[i], 1, 1819))
+                    self.mid_section.get_grid(grid_index, mid_n).neighbor.append(NeighborNode(hub_list[i], 1, 1819))
                     grid_index += 1
                     if grid_index > len(mid_grid_list) - 1:
                         break
 
         last_connect_number = 0
         while last_connect_number < 3 and grid_index < len(mid_grid_list):
-            self.mid_section.get_grid(grid_index, mid_n).neighbor.append(NeighborNode(hub_array[-1], 1, 1819))
+            self.mid_section.get_grid(grid_index, mid_n).neighbor.append(NeighborNode(hub_list[-1], 1, 1819))
             grid_index += 1
             last_connect_number += 1

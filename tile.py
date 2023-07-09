@@ -2,6 +2,8 @@ from grid import Grid, NeighborNode
 
 
 class Tile():
+    """Tile class.
+    """
     def __init__(self, real_x: int = 0, real_y: int = 0, tile_x: int = 0, tile_y: int = 0):
         self.real_x: int = real_x
         self.real_y: int = real_y

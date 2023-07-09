@@ -15,6 +15,8 @@ from wire import Wire
 
 
 class ModelMinCostFlow():
+    """Model min cost flow class.
+    """
 
     def __init__(self, mesh: ModelMesh, flow: ModelFlow):
         self.mesh = mesh
@@ -33,6 +35,8 @@ class ModelMinCostFlow():
         self.electrode_routing_table: dict[tuple, int] = {}
 
     def init_structure(self):
+        """Init structure.
+        """
         for node in self.flow.flownodes:
             if type(node) == Tile and node.index != self.flow.global_t.index:
                 # pseudo two layer
@@ -104,6 +108,8 @@ class ModelMinCostFlow():
             print(len(self.supplies), self.flow.global_t.index)
 
     def solver(self):
+        """Solver.
+        """
         self.min_cost_flow = pywrapgraph.SimpleMinCostFlow()
         # print("start min_cost_flow")
 
@@ -120,7 +126,16 @@ class ModelMinCostFlow():
 
         self.mim_cost_solver = self.min_cost_flow.SolveMaxFlowWithMinCost()
 
-    def get_close_point_with_poly(self, _poly, _point) -> list:
+    def get_closed_point_with_poly(self, _poly: list[tuple], _point: tuple) -> list:
+        """Get close point with poly.
+
+        Args:
+            _poly (list[tuple]): list[tuple]
+            _point (tuple): point
+
+        Returns:
+            list: closed point
+        """
         poly = Polygon(_poly)
         point = Point(_point[0], _point[1])
 
@@ -130,7 +145,14 @@ class ModelMinCostFlow():
         closest_point_coords = list(p.coords)[0]
         return closest_point_coords
 
-    def register_wire_into_electrode_routing(self, start_point, end_point, grid_list: list[Grid] = []):
+    def register_wire_into_electrode_routing(self, start_point: tuple, end_point: tuple, grid_list: list[Grid] = []):
+        """Register wire into electrode routing.
+
+        Args:
+            start_point (tuple): start point
+            end_point (tuple): end point
+            grid_list (list[Grid], optional): grid list. Defaults to [].
+        """
         electrode_index = self.electrode_routing_table.get(start_point, None)
         if electrode_index is not None:
             wire_degree = Degree.get_degree(start_point[0], -start_point[1], end_point[0], -end_point[1])
@@ -177,8 +199,7 @@ class ModelMinCostFlow():
         return False
 
     def get_path(self):
-        """
-            trace all min_cost_solver Arcs to get each wire
+        """Trace all min_cost_solver Arcs to get each wire
         """
         # Find the minimum cost flow between node 0 and node 4.
 
@@ -287,11 +308,14 @@ class ModelMinCostFlow():
         # for electrode in self.mesh.electrodes:
         #     print(len(electrode.routing_wire))
 
-    def create_contact_pad_path(self, tile_array: list[list[Tile]], section: str = 'top'):
+    def create_contact_pad_path(self, tile_list: list[list[Tile]], section: str = 'top'):
+        """Add wire from tile to contact pad, and consider flow collocation
+
+        Args:
+            tile_list (list[list[Tile]]): tile array
+            section (str, optional): section. Defaults to 'top'.
         """
-            add wire from tile to contact pad, and consider flow collocation
-        """
-        for tile_col in tile_array:
+        for tile_col in tile_list:
             if section == 'top':
                 tile = tile_col[-1]
             else:

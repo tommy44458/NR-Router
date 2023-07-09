@@ -7,6 +7,8 @@ from wire import Wire
 
 
 class RoutingWire():
+    """Routing wire class.
+    """
     def __init__(self, pseudo_node: PseudoNode, grid_list: list[list[Grid]], electrode_list: list[Electrode]):
         self.pseudo_node: PseudoNode = pseudo_node
         self.grid_list: list[list[Grid]] = grid_list

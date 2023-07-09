@@ -26,6 +26,8 @@ class NeighborNode():
 
 
 class Grid():
+    """Grid class.
+    """
     def __init__(self, real_x: int = -1, real_y: int = -1, grid_x: int = -1, grid_y: int = -1, type: int = 0):
         self.index: int = -1
         self.real_x: int = int(real_x)

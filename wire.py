@@ -5,6 +5,8 @@ from grid import Grid
 
 
 class Wire():
+    """Wire class.
+    """
     def __init__(self, start_x: int = 0, start_y: int = 0, end_x: int = 0, end_y: int = 0, direct: WireDirect = None, grid_list: list[Grid] = []):
         self.start_x: int = start_x
         self.start_y: int = start_y
