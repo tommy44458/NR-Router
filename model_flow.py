@@ -12,12 +12,11 @@ class ModelFlow():
     def __init__(self, mesh: ModelMesh):
         self.mesh = mesh
         self.flownodes: list[Union[int, Grid, Hub, Tile, Electrode]] = []
-        self.special_index = []
-        self.node_index = 0
-        self.global_t = Tile()
+        self.node_index: int = 0
+        self.global_t: Tile = Tile()
 
-    def create_grid_flownode(self, grid_array: list[list[Grid]]):
-        for grid_col in grid_array:
+    def create_grid_flownode(self, grid_list: list[list[Grid]]):
+        for grid_col in grid_list:
             for grid in grid_col:
                 if grid.covered == False:
                     grid.index = self.node_index

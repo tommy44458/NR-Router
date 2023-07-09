@@ -1,30 +1,21 @@
 import math
-from enum import IntEnum
 
-
-class WireDirect(IntEnum):
-    UP = 0
-    TOP_RIGHT = 1
-    RIGHT = 2
-    BOTTOM_RIGHT = 3
-    BOTTOM = 4
-    BOTTOM_LEFT = 5
-    LEFT = 6
-    TOP_LEFT = 7
+from config import WireDirect
+from grid import Grid
 
 
 class Wire():
-    def __init__(self, start_x=0, start_y=0, end_x=0, end_y=0, direct=None, grid_list=[]):
-        self.start_x = start_x
-        self.start_y = start_y
-        self.end_x = end_x
-        self.end_y = end_y
-        self.next = None
-        self.head = 1
-        self.grid_list = grid_list
-        self.direct = direct
+    def __init__(self, start_x: int = 0, start_y: int = 0, end_x: int = 0, end_y: int = 0, direct: WireDirect = None, grid_list: list[Grid] = []):
+        self.start_x: int = start_x
+        self.start_y: int = start_y
+        self.end_x: int = end_x
+        self.end_y: int = end_y
+        self.next: Wire = None
+        self.head: Wire = 1
+        self.grid_list: list[Grid] = grid_list
+        self.direct: WireDirect = direct
 
-    def length(self):
+    def length(self) -> float:
         d_x = self.end_x - self.start_x
         d_y = self.end_y - self.start_y
         return math.sqrt(d_x**2 + d_y**2)

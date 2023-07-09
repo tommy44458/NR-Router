@@ -119,29 +119,29 @@ _model_mesh = ModelMesh(
 _model_mesh.get_pseudo_node()
 _model_mesh.create_pseudo_node_connection()
 _model_mesh.create_grid_connection(
-    grid_array = mid_section.grid,
+    grid_list = mid_section.grid,
     unit = mid_section.unit,
     hypo_unit = mid_section.hypo_unit
 )
 _model_mesh.create_tile_connection(
-    grid_array = top_section.grid,
+    grid_list = top_section.grid,
     tile_array = top_section.tile,
     block = 'top'
 )
 _model_mesh.create_tile_connection(
-    grid_array = bottom_section.grid,
+    grid_list = bottom_section.grid,
     tile_array = bottom_section.tile,
     block = 'bottom'
 )
 _model_mesh.create_hub_connection(
-    grid_array = top_section.grid,
+    grid_list = top_section.grid,
     hub_array = top_section.hub,
     mid_n = 0,
     tile_n = -1,
     tile_array = top_section.tile
 )
 _model_mesh.create_hub_connection(
-    grid_array = bottom_section.grid,
+    grid_list = bottom_section.grid,
     hub_array = bottom_section.hub,
     mid_n = -1,
     tile_n = 0,

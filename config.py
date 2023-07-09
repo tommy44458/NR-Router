@@ -1,3 +1,4 @@
+from enum import IntEnum
 from typing import Union
 
 from pydantic import BaseModel, root_validator
@@ -13,6 +14,16 @@ from strenum import StrEnum
 """
 
 UNIT_LIST = [1000, 500, 250, 200, 125, 100]
+
+class WireDirect(IntEnum):
+    UP = 0
+    TOP_RIGHT = 1
+    RIGHT = 2
+    BOTTOM_RIGHT = 3
+    BOTTOM = 4
+    BOTTOM_LEFT = 5
+    LEFT = 6
+    TOP_LEFT = 7
 
 class ChipBase(StrEnum):
     GLASS = 'glass'

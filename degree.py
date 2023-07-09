@@ -1,6 +1,6 @@
 import math
 
-from wire import WireDirect
+from config import WireDirect
 
 
 class Degree():

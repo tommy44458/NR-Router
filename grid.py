@@ -1,7 +1,7 @@
 from enum import IntEnum
 from typing import Union
 
-from wire import WireDirect
+from config import WireDirect
 
 
 class PseudoNodeType(IntEnum):

@@ -1,24 +1,15 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from math import atan2, degrees
-from operator import attrgetter, itemgetter
-
-from ezdxf.addons import r12writer
-
+from config import WireDirect
 from degree import Degree, dia, direct_table
-from draw import Draw
 from electrode import Electrode
 from grid import Grid, GridType
-from hub import Hub
-from model_mesh import ModelMesh
 from pseudo_node import PseudoNode
-from tile import Tile
 from wire import Wire, WireDirect
 
 
 class RoutingWire():
-    def __init__(self, pseudo_node: PseudoNode, grid_array: list[list[Grid]], electrode_list: list[Electrode]):
+    def __init__(self, pseudo_node: PseudoNode, grid_list: list[list[Grid]], electrode_list: list[Electrode]):
         self.pseudo_node = pseudo_node
-        self.grid_array = grid_array
+        self.grid_list = grid_list
         self.electrode_list = electrode_list
         self._reduce_times = 0
 
@@ -27,7 +18,7 @@ class RoutingWire():
             get grid by real point
         """
         grid_point = self.pseudo_node.get_grid_point(point, self.pseudo_node.unit)
-        return self.grid_array[grid_point[0]][grid_point[1]]
+        return self.grid_list[grid_point[0]][grid_point[1]]
 
     def get_grid_list_by_wire(self, start_point, end_point, remove_index) -> list[Grid]:
         """

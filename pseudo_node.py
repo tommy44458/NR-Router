@@ -2,10 +2,10 @@ import math
 
 import numpy as np
 
+from config import WireDirect
 from degree import Degree, direct_table
 from electrode import Electrode
 from grid import Grid, GridType, PseudoNodeType
-from wire import WireDirect
 
 
 class PseudoNode():

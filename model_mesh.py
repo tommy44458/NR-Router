@@ -1,12 +1,12 @@
 from typing import Union
 
 from chip import ChipSection
+from config import WireDirect
 from electrode import Electrode
 from grid import Grid, GridType, NeighborNode, PseudoNodeType
 from hub import Hub
 from pseudo_node import PseudoNode
 from tile import Tile
-from wire import WireDirect
 
 
 class ModelMesh():
@@ -110,12 +110,12 @@ class ModelMesh():
                             neighbor_node.grid.corner = True
                             neighbor_node.grid.edge_direct = pseudo_node_grid.edge_direct
 
-    def create_grid_connection(self, grid_array: list[list[Grid]], unit, hypo_unit):
+    def create_grid_connection(self, grid_list: list[list[Grid]], unit, hypo_unit):
         """
             create all edge between each grid and near grid
             # electrode-closed grid only connect to normal grid (GridType.GRID and not close_electrode)
         """
-        for grid_x, grid_col in enumerate(grid_array):
+        for grid_x, grid_col in enumerate(grid_list):
             if grid_x == 0:
                 for grid_y, grid in enumerate(grid_col):
                     if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
@@ -127,25 +127,25 @@ class ModelMesh():
                                         _unit = hypo_unit
                                     else:
                                         _unit = unit
-                                    self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
+                                    self.add_grid_to_neighbor(grid, grid_list[grid_x+x][grid_y+y], 1, _unit)
                                 except:
                                     pass
                         else:
                             if grid_y == 0:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y + 1], 1, unit)
                             elif grid_y == len(grid_col) - 1:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y - 1], 1, unit)
                             else:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
-            elif grid_x == len(grid_array) - 1:
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y - 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y + 1], 1, unit)
+            elif grid_x == len(grid_list) - 1:
                 for grid_y, grid in enumerate(grid_col):
                     if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
                         if grid.close_electrode:
@@ -156,24 +156,24 @@ class ModelMesh():
                                         _unit = hypo_unit
                                     else:
                                         _unit = unit
-                                    self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
+                                    self.add_grid_to_neighbor(grid, grid_list[grid_x+x][grid_y+y], 1, _unit)
                                 except:
                                     pass
                         else:
                             if grid_y == 0:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y + 1], 1, unit)
                             elif grid_y == len(grid_col) - 1:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y - 1], 1, unit)
                             else:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y - 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y + 1], 1, unit)
             else:
                 for grid_y, grid in enumerate(grid_col):
                     if grid.type == GridType.GRID and grid.pseudo_node_type != PseudoNodeType.INTERNAL:
@@ -185,31 +185,31 @@ class ModelMesh():
                                         _unit = hypo_unit
                                     else:
                                         _unit = unit
-                                    self.add_grid_to_neighbor(grid, grid_array[grid_x+x][grid_y+y], 1, _unit)
+                                    self.add_grid_to_neighbor(grid, grid_list[grid_x+x][grid_y+y], 1, _unit)
                                 except:
                                     pass
                         else:
                             if grid_y == 0:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y + 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y], 1, unit)
                             elif grid_y == len(grid_col) - 1:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y - 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y], 1, unit)
                             else:
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y - 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y + 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x - 1][grid_y - 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x + 1][grid_y + 1], 1, hypo_unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y + 1], 1, unit)
-                                self.add_grid_to_neighbor(grid, grid_array[grid_x][grid_y - 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x - 1][grid_y - 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x + 1][grid_y + 1], 1, hypo_unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y + 1], 1, unit)
+                                self.add_grid_to_neighbor(grid, grid_list[grid_x][grid_y - 1], 1, unit)
 
         # for covered_grid in self.covered_grid_head_list:
         #     for grid_neighbor in covered_grid.neighbor:
@@ -224,7 +224,7 @@ class ModelMesh():
         #         if edge == 0:
         #             pseudo_node.covered = True
 
-    def create_tile_connection(self, grid_array: list[list[Grid]], tile_array: list[list[Tile]], block: str):
+    def create_tile_connection(self, grid_list: list[list[Grid]], tile_array: list[list[Tile]], block: str):
         """
             tile append near contactpad, tile connnect to near tile
         """
@@ -235,13 +235,13 @@ class ModelMesh():
                 for k in (tile_x, tile_x+1):
                     for l in (tile_y, tile_y+1):
                         # contact pad
-                        if grid_array[k][l].type == GridType.CONTACT_PAD:
+                        if grid_list[k][l].type == GridType.CONTACT_PAD:
                             if block == 'top' and l == len(tile_col):
                                 pass
                             elif block == 'bottom' and l == 0:
                                 pass
                             else:
-                                tile.contact_pads.append(grid_array[k][l])
+                                tile.contact_pads.append(grid_list[k][l])
                             if k == tile_x and l == tile_y:
                                 capacity = [2, 2, 2, 2]
                             elif k == tile_x and l == tile_y+1:
@@ -257,14 +257,14 @@ class ModelMesh():
                 if tile_y != len(tile_col) - 1:
                     tile.neighbor.append(NeighborNode(tile_array[tile_x][tile_y+1], capacity[3]))  # bottom
 
-    def create_hub_connection(self, grid_array: list[list[Grid]], hub_array: list[Hub], mid_n, tile_n, tile_array: list[list[Tile]]):
+    def create_hub_connection(self, grid_list: list[list[Grid]], hub_array: list[Hub], mid_n, tile_n, tile_array: list[list[Tile]]):
         """
             mid_grid connect to hub, hub connect to tile
         """
-        mid_grid_array: list[list[Grid]] = self.mid_section.grid
+        mid_grid_list: list[list[Grid]] = self.mid_section.grid
         for i in range(len(hub_array)):
             if i % 5 == 0:
-                hub_array[i].neighbor.append(NeighborNode(grid_array[i//5][tile_n], 1, 1819))
+                hub_array[i].neighbor.append(NeighborNode(grid_list[i//5][tile_n], 1, 1819))
             else:
                 hub_array[i].neighbor.append(NeighborNode(tile_array[i//5][tile_n], 1, 3117))
 
@@ -276,15 +276,15 @@ class ModelMesh():
                     while self.mid_section.get_grid(grid_index, mid_n).real_x < x:
                         grid_index += 1
             x = (hub_array[i].real_x + hub_array[i+1].real_x) / 2
-            if grid_index < len(mid_grid_array) - 1:
+            if grid_index < len(mid_grid_list) - 1:
                 while self.mid_section.get_grid(grid_index, mid_n).real_x < x:
                     self.mid_section.get_grid(grid_index, mid_n).neighbor.append(NeighborNode(hub_array[i], 1, 1819))
                     grid_index += 1
-                    if grid_index > len(mid_grid_array) - 1:
+                    if grid_index > len(mid_grid_list) - 1:
                         break
 
         last_connect_number = 0
-        while last_connect_number < 3 and grid_index < len(mid_grid_array):
+        while last_connect_number < 3 and grid_index < len(mid_grid_list):
             self.mid_section.get_grid(grid_index, mid_n).neighbor.append(NeighborNode(hub_array[-1], 1, 1819))
             grid_index += 1
             last_connect_number += 1

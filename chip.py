@@ -12,17 +12,17 @@ except:
 
 
 class ChipSection():
-    def __init__(self, start_point: list, width: int, height: int, unit: float, radius: float):
-        self.start_point = start_point
-        self.width = width
-        self.height = height
-        self.unit = unit
-        self.hypo_unit = int(unit * 2) - 1   # int(unit*2) - 1  # 2 * unit - 1  # unit * math.sqrt(2)
-        self.radius = radius
+    def __init__(self, start_point: tuple, width: int, height: int, unit: float, radius: float):
+        self.start_point: tuple = start_point
+        self.width: int = width
+        self.height: int = height
+        self.unit: int = unit
+        self.hypo_unit: int = int(unit * 2) - 1   # int(unit*2) - 1  # 2 * unit - 1  # unit * math.sqrt(2)
+        self.radius: int = radius
         self.grid: list[list[Grid]] = []
         self.tile: list[list[Tile]] = []
         self.hub: list[Hub] = []
-        self.hub_gap = 208
+        self.hub_gap: int = 208
 
     def init_grid(self, grid_type=GridType.GRID, ref_pin=None, corner_pin=None):
         self.grid = []
