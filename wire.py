@@ -1,6 +1,5 @@
 import math
 from enum import IntEnum
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
 
 class WireDirect(IntEnum):

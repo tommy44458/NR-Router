@@ -1,5 +1,4 @@
 import math
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
 from ezdxf.document import Modelspace
 from ezdxf.entities import BoundaryPaths
@@ -14,7 +13,7 @@ from wire import Wire
 
 
 class Draw():
-    def __init__(self, routing_wire: List[List[Wire]], wire_width: float, mini_wire_width: float):
+    def __init__(self, routing_wire: list[list[Wire]], wire_width: float, mini_wire_width: float):
 
         # routing path from electrode to contact pad
         self.routing_wire = routing_wire
@@ -112,7 +111,7 @@ class Draw():
         vertex_order = self.order_vertex(vertex)
         dxf.add_solid(vertex_order)
 
-    def draw_contact_pad(self, contactpad_list: List[list], top_ref_pin_list: List[list], bottom_ref_pin_list: List[list], top_corner_pin_list: List[list], bottom_corner_pin_list: List[list], unit: int, dxf: Modelspace):
+    def draw_contact_pad(self, contactpad_list: list[list], top_ref_pin_list: list[list], bottom_ref_pin_list: list[list], top_corner_pin_list: list[list], bottom_corner_pin_list: list[list], unit: int, dxf: Modelspace):
         for pad in contactpad_list:
             if [int(pad[0] / unit), int(pad[1] / unit)] in top_ref_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in bottom_ref_pin_list:
                 dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0, dxfattribs={'color': 5})
@@ -121,7 +120,7 @@ class Draw():
             else:
                 dxf.add_circle(center=(pad[0], -pad[1]), radius=750.0)
 
-    def draw_electrodes(self, electrodes: List[list], shape_lib: dict, mesh_electrode_list: List[Electrode], dxf: Modelspace, hatch_path: BoundaryPaths):
+    def draw_electrodes(self, electrodes: list[list], shape_lib: dict, mesh_electrode_list: list[Electrode], dxf: Modelspace, hatch_path: BoundaryPaths):
         for elec_index, elec in enumerate(electrodes):
             shape = elec[0]
             x = elec[1]
@@ -181,7 +180,7 @@ class Draw():
         for i in range(gird_length[1]):
             dxf.add_line((start_point[0], -(start_point[1]+unit*i)), (start_point[0]+unit*(gird_length[0]-1), -(start_point[1]+unit*i)))
 
-    def draw_pseudo_node(self, grids: List[List[Grid]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
+    def draw_pseudo_node(self, grids: list[list[Grid]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
         width = 60
         mini_width = 30
         cover_width = 120
@@ -209,7 +208,7 @@ class Draw():
 
         print('grid num: ', num)
 
-    def draw_pseudo_node_corner(self, grids: List[List[Grid]], hatch_path: BoundaryPaths):
+    def draw_pseudo_node_corner(self, grids: list[list[Grid]], hatch_path: BoundaryPaths):
         width = 60
         for i in range(len(grids)):
             for j in range(len(grids[i])):
@@ -218,7 +217,7 @@ class Draw():
                     y = -grids[i][j].real_y
                     hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
 
-    def draw_hub(self, hub: List[Hub], hatch_path: BoundaryPaths, dxf: Modelspace = None):
+    def draw_hub(self, hub: list[Hub], hatch_path: BoundaryPaths, dxf: Modelspace = None):
         width = 60
         for i in range(len(hub)):
             x = hub[i].real_x
@@ -228,7 +227,7 @@ class Draw():
                 for next in hub[i].neighbor:
                     dxf.add_line([hub[i].real_x, -hub[i].real_y], [next[0].real_x, -next[0].real_y])
 
-    def draw_tile(self, tile: List[List[Tile]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
+    def draw_tile(self, tile: list[list[Tile]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
         width = 60
         for i in range(len(tile)):
             for j in range(len(tile[i])):
@@ -239,7 +238,7 @@ class Draw():
                     for next in tile[i][j].neighbor:
                         dxf.add_line([tile[i][j].real_x, -tile[i][j].real_y], [next[0].real_x, -next[0].real_y])
 
-    def draw_all_wire(self, wire_list: List[Wire], dxf: Modelspace, line=False):
+    def draw_all_wire(self, wire_list: list[Wire], dxf: Modelspace, line=False):
         if line is False:
             # draw wire
             for i in range(len(wire_list)):
@@ -256,7 +255,7 @@ class Draw():
             # draw line
             for wire in wire_list:
                 dxf.add_line([wire.start_x, -wire.start_y], [wire.end_x, -wire.end_y])
-                
+
     def draw_reference_electrode(self, dxf: Modelspace):
         height = 24000
         width = 5000
@@ -264,7 +263,7 @@ class Draw():
         right_ref_points = [(5515 + 2540 * 31, -12635 - 2540 * 3), (5515 + 2540 * 31, -12635 - 2540 * 3 - height), (5515 + 2540 * 31 + width, -12635 - 2540 * 3), (5515 + 2540 * 31 + width, -12635 - 2540 * 3 - height)]
         dxf.add_solid(left_ref_points, dxfattribs={'color': '5'})
         dxf.add_solid(right_ref_points, dxfattribs={'color': '5'})
-        
+
         # route reference electrode
         left_ref_pin = [(-5515 - width / 2, -12635 - 2540 * 3)]
         left_ref_wire0 = [(left_ref_pin[0][0] - 100, left_ref_pin[0][1]), (left_ref_pin[0][0] + 100, left_ref_pin[0][1]), (left_ref_pin[0][0] - 100, -2540 * 3 + 100), (left_ref_pin[0][0] + 100, -2540 * 3 + 100)]

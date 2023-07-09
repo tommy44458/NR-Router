@@ -1,5 +1,4 @@
-import time
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Union
 
 from ortools.graph import pywrapgraph
 from shapely.geometry import LinearRing, Point, Polygon
@@ -19,18 +18,18 @@ class ModelMinCostFlow():
     def __init__(self, mesh: ModelMesh, flow: ModelFlow):
         self.mesh = mesh
         self.flow = flow
-        self.start_nodes: List[Union[Grid, Tile, Hub, Electrode]] = []
-        self.end_nodes: List[Union[Grid, Tile, Hub, Electrode]] = []
-        self.capacities: List[Union[Grid, Tile, Hub, Electrode]] = []
-        self.unit_costs: List[Union[Grid, Tile, Hub, Electrode]] = []
+        self.start_nodes: list[Union[Grid, Tile, Hub, Electrode]] = []
+        self.end_nodes: list[Union[Grid, Tile, Hub, Electrode]] = []
+        self.capacities: list[Union[Grid, Tile, Hub, Electrode]] = []
+        self.unit_costs: list[Union[Grid, Tile, Hub, Electrode]] = []
         self.supplies = [0 for i in range(len(self.flow.flownodes))]
         self.num_supply = 0
 
         self.mim_cost_solver = None
         self.min_cost_flow = None
 
-        self.all_path: List[Wire] = []
-        self.electrode_routing_table: Dict[Tuple, int] = {}
+        self.all_path: list[Wire] = []
+        self.electrode_routing_table: dict[tuple, int] = {}
 
     def init_structure(self):
         for node in self.flow.flownodes:
@@ -130,7 +129,7 @@ class ModelMinCostFlow():
         closest_point_coords = list(p.coords)[0]
         return closest_point_coords
 
-    def register_wire_into_electrode_routing(self, start_point, end_point, grid_list: List[Grid] = []):
+    def register_wire_into_electrode_routing(self, start_point, end_point, grid_list: list[Grid] = []):
         electrode_index = self.electrode_routing_table.get(start_point, None)
         if electrode_index is not None:
             wire_degree = Degree.get_degree(start_point[0], -start_point[1], end_point[0], -end_point[1])
@@ -270,7 +269,7 @@ class ModelMinCostFlow():
         # for electrode in self.mesh.electrodes:
         #     print(len(electrode.routing_wire))
 
-    def create_contact_pad_path(self, tile_array: List[List[Tile]], section: str = 'top'):
+    def create_contact_pad_path(self, tile_array: list[list[Tile]], section: str = 'top'):
         """
             add wire from tile to contact pad, and consider flow collocation
         """

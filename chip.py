@@ -1,5 +1,4 @@
 import os
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
 try:
     __location__ = os.path.realpath(
@@ -18,9 +17,9 @@ class Chip():
         self.electrode_shape_count = 0
 
         # contactpad_list = [[x, y], etc.]
-        self.contactpad_list: List[list] = []
+        self.contactpad_list: list[list] = []
         # electrode_list = [[shape, x, y], etc.]
-        self.electrode_list: List[list] = []
+        self.electrode_list: list[list] = []
 
     def setup(self):
         if self.ewd_content is None:
@@ -40,7 +39,7 @@ class Chip():
         return ewd_input
 
     def get_config(self):
-        content: List[str] = self.ewd_content
+        content: list[str] = self.ewd_content
         for line in content:
             if line.split()[0] == "#ENDOFDEFINITION#":
                 self.ewd_config_end = content.index(line)
@@ -60,7 +59,7 @@ class Chip():
         self.electrode_shape_count = len(self.electrode_shape_library.keys())
 
     def get_position(self):
-        content: List[str] = self.ewd_content[self.ewd_config_end + 1:]
+        content: list[str] = self.ewd_content[self.ewd_config_end + 1:]
         for line in content:
             if line.split()[0] == "#ENDOFLAYOUT#":
                 break

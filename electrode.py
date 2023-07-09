@@ -1,5 +1,3 @@
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
-
 from grid import Grid
 from wire import Wire
 
@@ -17,8 +15,8 @@ class Electrode():
         self.surround = 0
         self.index = -1
         self.poly: list = []
-        self.pseudo_node_set: List[Grid] = []
-        self.routing_wire: List[Wire] = []
+        self.pseudo_node_set: list[Grid] = []
+        self.routing_wire: list[Wire] = []
 
     def to_dict(self):
         _dict = {

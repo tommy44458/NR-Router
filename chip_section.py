@@ -1,9 +1,3 @@
-import math
-import os
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
-
-import numpy as np
-
 from electrode import Electrode
 from grid import Grid, GridType
 from hub import Hub
@@ -18,9 +12,9 @@ class ChipSection():
         self.unit = unit
         self.hypo_unit = int(unit * 2) - 1   # int(unit*2) - 1  # 2 * unit - 1  # unit * math.sqrt(2)
         self.radius = radius
-        self.grid: List[List[Grid]] = []
-        self.tile: List[List[Tile]] = []
-        self.hub: List[Hub] = []
+        self.grid: list[list[Grid]] = []
+        self.tile: list[list[Tile]] = []
+        self.hub: list[Hub] = []
         self.hub_gap = 208
 
     def init_grid(self, grid_type=GridType.GRID, ref_pin=None, corner_pin=None):

@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Union
 
 from wire import WireDirect
 
@@ -32,7 +32,7 @@ class Grid():
         self.type = type  # 0 as grids in block2, 1 as electrodes, >2 as num_electrode in a grid, -1 as contact pads in block1&3, -2 as missing pin in block1&3
         self.electrode_index = -1
         # neighbor = [[grid, capacity, cost], [], etc.]
-        self.neighbor: List[List[Union[Grid, int]]] = []
+        self.neighbor: list[list[Union[Grid, int]]] = []
         self.flow = 0
         self.cost = 0
 

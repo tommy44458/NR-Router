@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from math import atan2, degrees
 from operator import attrgetter, itemgetter
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
 from ezdxf.addons import r12writer
 
@@ -17,7 +16,7 @@ from wire import Wire, WireDirect
 
 
 class RoutingWire():
-    def __init__(self, pseudo_node: PseudoNode, grid_array: List[List[Grid]], electrode_list: List[Electrode]):
+    def __init__(self, pseudo_node: PseudoNode, grid_array: list[list[Grid]], electrode_list: list[Electrode]):
         self.pseudo_node = pseudo_node
         self.grid_array = grid_array
         self.electrode_list = electrode_list
@@ -30,7 +29,7 @@ class RoutingWire():
         grid_point = self.pseudo_node.get_grid_point(point, self.pseudo_node.unit)
         return self.grid_array[grid_point[0]][grid_point[1]]
 
-    def get_grid_list_by_wire(self, start_point, end_point, remove_index) -> List[Grid]:
+    def get_grid_list_by_wire(self, start_point, end_point, remove_index) -> list[Grid]:
         """
             get grid list by real point: start to end
         """
@@ -77,7 +76,7 @@ class RoutingWire():
         ret.pop(remove_index)
         return ret
 
-    def check_overlap(self, grid_list: List[Grid]):
+    def check_overlap(self, grid_list: list[Grid]):
         """
             check grid flow > 0 in grid list, means this grid has wire through
         """
@@ -86,7 +85,7 @@ class RoutingWire():
                 return True
         return False
 
-    def add_new_point_between_two_wire(self, new_point: list, wire_1: Wire, wire_2: Wire, grid_list_1: List[Grid], grid_list_2: List[Grid]):
+    def add_new_point_between_two_wire(self, new_point: list, wire_1: Wire, wire_2: Wire, grid_list_1: list[Grid], grid_list_2: list[Grid]):
         """
             add a new point between two wire, and set the grid list (new wire through) flow = 0
         """
@@ -103,7 +102,7 @@ class RoutingWire():
         for grid in wire_2.grid_list:
             grid.flow = 1
 
-    def remove_wire(self, wire_list: List[Wire], wire: Wire):
+    def remove_wire(self, wire_list: list[Wire], wire: Wire):
         """
             remove wire and reset grid.flow
         """

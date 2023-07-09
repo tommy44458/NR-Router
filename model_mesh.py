@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Union
 
 from chip_section import ChipSection
 from electrode import Electrode
@@ -20,9 +20,9 @@ class ModelMesh():
 
         self.num_electrode = 0
 
-        self.covered_grid_head_list: List[Grid] = []
+        self.covered_grid_head_list: list[Grid] = []
 
-        self.electrodes: List[Electrode] = []
+        self.electrodes: list[Electrode] = []
 
     def get_pseudo_node(self):
         self.covered_grid_head_list, self.electrodes = self.pseudo_node.internal_node()
@@ -52,7 +52,7 @@ class ModelMesh():
                 # pseudo_node_grid.neighbor.append([self.mid_section.grid[previous_pseudo_point[0]][previous_pseudo_point[1]], 1, 0])
 
                 edge_direct = pseudo_node_grid.edge_direct
-                close_elec_grid_list: List[List[Union[Grid, int]]] = []
+                close_elec_grid_list: list[list[Union[Grid, int]]] = []
                 if edge_direct == WireDirect.UP:
                     close_elec_grid_list.append([self.mid_section.grid[pseudo_node[0]-1][pseudo_node[1]], 1, self.mid_section.unit])
                 elif edge_direct == WireDirect.RIGHT:
@@ -112,7 +112,7 @@ class ModelMesh():
                             close_grid[0].corner = True
                             close_grid[0].edge_direct = pseudo_node_grid.edge_direct
 
-    def create_grid_connection(self, grid_array: List[List[Grid]], unit, hypo_unit):
+    def create_grid_connection(self, grid_array: list[list[Grid]], unit, hypo_unit):
         """
             create all edge between each grid and near grid
             # electrode-closed grid only connect to normal grid (GridType.GRID and not close_electrode)
@@ -226,7 +226,7 @@ class ModelMesh():
         #         if edge == 0:
         #             pseudo_node.covered = True
 
-    def create_tile_connection(self, grid_array: List[List[Grid]], tile_array: List[List[Tile]], block: str):
+    def create_tile_connection(self, grid_array: list[list[Grid]], tile_array: list[list[Tile]], block: str):
         """
             tile append near contactpad, tile connnect to near tile
         """
@@ -260,11 +260,11 @@ class ModelMesh():
                 if tile_y != len(tile_col) - 1:
                     tile.neighbor.append([tile_array[tile_x][tile_y+1], capacity[3]])  # bottom
 
-    def create_hub_connection(self, grid_array: List[List[Grid]], hub_array: List[Hub], mid_n, tile_n, tile_array: List[List[Tile]]):
+    def create_hub_connection(self, grid_array: list[list[Grid]], hub_array: list[Hub], mid_n, tile_n, tile_array: list[list[Tile]]):
         """
             mid_grid connect to hub, hub connect to tile
         """
-        mid_grid_array: List[List[Grid]] = self.mid_section.grid
+        mid_grid_array: list[list[Grid]] = self.mid_section.grid
         for i in range(len(hub_array)):
             if i % 5 == 0:
                 if grid_array[i//5][tile_n].special == False:

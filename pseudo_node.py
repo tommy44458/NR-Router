@@ -1,5 +1,4 @@
 import math
-from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple, Union
 
 import numpy as np
 
@@ -11,12 +10,12 @@ from wire import WireDirect
 
 class PseudoNode():
 
-    def __init__(self, grid: List[List[Grid]], shape_lib: dict, start_point: list, unit: float, electrode_list: list):
+    def __init__(self, grid: list[list[Grid]], shape_lib: dict, start_point: list, unit: float, electrode_list: list):
         self.grid = grid
-        self.shape_lib: Dict[str, list] = shape_lib
+        self.shape_lib: dict[str, list] = shape_lib
         self.start_point = start_point
         self.unit = unit
-        self.electrode_list: List[list] = electrode_list
+        self.electrode_list: list[list] = electrode_list
 
     def get_point_by_shape(self, elec_point: list, shape_point: list) -> list:
         """
@@ -109,7 +108,7 @@ class PseudoNode():
             return False
         return True  # 排除上述情況之後
 
-    def find_short_grid_internal(self, grid: List[List[Grid]], elec_point: list, poly_point_list: list) -> list:
+    def find_short_grid_internal(self, grid: list[list[Grid]], elec_point: list, poly_point_list: list) -> list:
         """
             find the closest gird and inside electrode by a real point
             :return grid index [x, y]
@@ -121,7 +120,7 @@ class PseudoNode():
                 grid_point_list_internal.append(g_p)
         return self.find_short_grid_from_points(grid, grid_point_list_internal, elec_point)
 
-    def find_short_grid_from_points(self, grid: List[List[Grid]], grid_point_list: list, elec_p: list):
+    def find_short_grid_from_points(self, grid: list[list[Grid]], grid_point_list: list, elec_p: list):
         """
             find the closest gird by a real point and grid point list
             :return grid index [x, y]
@@ -139,12 +138,12 @@ class PseudoNode():
         else:
             return None
 
-    def internal_node(self) -> List[Electrode]:
+    def internal_node(self) -> list[Electrode]:
         """
             find all pseudo node for each electrode
         """
-        ret: List[Electrode] = []
-        covered_grid_list: List[Grid] = []
+        ret: list[Electrode] = []
+        covered_grid_list: list[Grid] = []
         for electrode_index, electrode in enumerate(self.electrode_list):
             if electrode[0] in self.shape_lib:
                 covered_grid = None
