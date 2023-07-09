@@ -1,7 +1,7 @@
 from typing import Union
 
 from chip import Chip, ChipSection
-from config import WireDirect
+from config import ROUTER_CONFIG, WireDirect
 from electrode import Electrode
 from grid import Grid, GridType, NeighborNode, PseudoNodeType
 from hub import Hub
@@ -296,10 +296,10 @@ class ModelMesh():
         """
         mid_grid_list: list[list[Grid]] = self.mid_section.grid
         for i in range(len(hub_array)):
-            if i % 5 == 0:
-                hub_array[i].neighbor.append(NeighborNode(grid_list[i//5][tile_n], 1, 1819))
+            if i % ROUTER_CONFIG.HUB_NUM == 0:
+                hub_array[i].neighbor.append(NeighborNode(grid_list[i // ROUTER_CONFIG.HUB_NUM][tile_n], 1, 1819))
             else:
-                hub_array[i].neighbor.append(NeighborNode(tile_array[i//5][tile_n], 1, 3117))
+                hub_array[i].neighbor.append(NeighborNode(tile_array[i // ROUTER_CONFIG.HUB_NUM][tile_n], 1, 3117))
 
         grid_index = 0
         for i in range(len(hub_array) - 1):

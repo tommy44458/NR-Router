@@ -139,8 +139,8 @@ _draw.draw_electrodes(
 _draw.draw_reference_electrode(msp)
 
 # _draw.draw_pseudo_node(mid_section.grid, dxf2)
-# _draw.draw_hub(top_section.hub, dxf2)
-# _draw.draw_hub(bottom_section.hub, dxf2)
+# _draw.draw_hub(_chip.top_section.hub, dxf2)
+# _draw.draw_hub(_chip.bottom_section.hub, dxf2)
 # _draw.draw_tile(top_section.tile, dxf2)
 # _draw.draw_tile(bottom_section.tile, dxf2)
 

@@ -40,6 +40,7 @@ class GlassBasedConfig(BaseModel):
     INPUT_FILE_NAME: str = 'test0307.ewd'
     MID_START_POINT: tuple = (-1630, 11258)
     ELECTRODE_SECTION: tuple = (84000, 44000)
+    HUB_NUM: int = 5
 
 GLASS_BASED_CONFIG = GlassBasedConfig()
 
@@ -48,6 +49,7 @@ class PaperBasedConfig(BaseModel):
     TILE_UNIT: int = 1300
     MID_START_POINT: tuple = (-2580, 10308)
     ELECTRODE_SECTION: tuple = (82000, 42000)
+    HUB_NUM: int = 2
 
 PAPER_BASED_CONFIG = PaperBasedConfig()
 
@@ -84,10 +86,13 @@ class RouterConfig(BaseModel):
 
 
     # reference contact pad position
-    TOP_SECTION_REF_PIN: list = [[0, 3], [8, 3], [16, 3], [24, 3]]
-    TOP_SECTION_CORNER_PIN: list = [[0, 0], [31, 0]]
-    BOTTOM_SECTION_REF_PIN: list = [[7, 0], [15, 0], [23, 0], [31, 0]]
-    BOTTOM_SECTION_CORNER_PIN: list = [[0, 3], [31, 3]]
+    TOP_SECTION_REF_PIN: list[tuple] = [[0, 3], [8, 3], [16, 3], [24, 3]]
+    TOP_SECTION_CORNER_PIN: list[tuple] = [[0, 0], [31, 0]]
+    BOTTOM_SECTION_REF_PIN: list[tuple] = [[7, 0], [15, 0], [23, 0], [31, 0]]
+    BOTTOM_SECTION_CORNER_PIN: list[tuple] = [[0, 3], [31, 3]]
+
+    # hub number per each contact pad gap
+    HUB_NUM: int = 5
 
     class Config:
         validate_assignment = True
@@ -102,11 +107,13 @@ class RouterConfig(BaseModel):
             values['MID_START_POINT'] = GLASS_BASED_CONFIG.MID_START_POINT
             values['ELECTRODE_SECTION'] = GLASS_BASED_CONFIG.ELECTRODE_SECTION
             values['INPUT_FILE_NAME'] = GLASS_BASED_CONFIG.INPUT_FILE_NAME
+            values['HUB_NUM'] = GLASS_BASED_CONFIG.HUB_NUM
         elif values['CHIP_BASE'] == ChipBase.PAPER:
             values['TILE_UNIT'] = PAPER_BASED_CONFIG.TILE_UNIT
             values['MID_START_POINT'] = PAPER_BASED_CONFIG.MID_START_POINT
             values['ELECTRODE_SECTION'] = PAPER_BASED_CONFIG.ELECTRODE_SECTION
             values['INPUT_FILE_NAME'] = PAPER_BASED_CONFIG.INPUT_FILE_NAME
+            values['HUB_NUM'] = PAPER_BASED_CONFIG.HUB_NUM
 
         return values
 

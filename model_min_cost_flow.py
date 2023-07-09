@@ -3,6 +3,7 @@ from typing import Union
 from ortools.graph import pywrapgraph
 from shapely.geometry import LinearRing, Point, Polygon
 
+from config import ROUTER_CONFIG
 from degree import Degree, direct_table
 from electrode import Electrode
 from grid import Grid, GridType
@@ -248,9 +249,13 @@ class ModelMinCostFlow():
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y))
                         register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
-                        if register_success and self.flow.flownodes[head].hub_index % 5 > 0:
-                            self.flow.flownodes[tail].flow.append((self.flow.flownodes[head].hub_index %
-                                                                  5 - 1, int(self.flow.flownodes[head].real_x)))
+                        if register_success and self.flow.flownodes[head].hub_index % ROUTER_CONFIG.HUB_NUM > 0:
+                            self.flow.flownodes[tail].flow.append(
+                                (
+                                    self.flow.flownodes[head].hub_index % ROUTER_CONFIG.HUB_NUM - 1,
+                                    int(self.flow.flownodes[head].real_x)
+                                )
+                            )
                 elif type(self.flow.flownodes[head]) == Tile:
                     if type(self.flow.flownodes[tail]) == Tile:
                         self.flow.flownodes[head].total_flow += self.min_cost_flow.Flow(i)

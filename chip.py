@@ -23,7 +23,7 @@ class ChipSection():
         self.grid: list[list[Grid]] = []
         self.tile: list[list[Tile]] = []
         self.hub: list[Hub] = []
-        self.hub_gap: int = 208
+        self.hub_gap: int = 1040 // ROUTER_CONFIG.HUB_NUM
 
     def init_grid(self, grid_type=GridType.GRID, ref_pin=None, corner_pin=None):
         self.grid = []
@@ -46,14 +46,14 @@ class ChipSection():
 
     def init_hub(self, y: float):
         self.hub = []
-        for i in range((self.width // self.unit) + 4 * (self.width // self.unit - 1) + 5):
-            if i % 5 == 0:
+        for i in range((self.width // self.unit) + (ROUTER_CONFIG.HUB_NUM - 1) * (self.width // self.unit - 1) + ROUTER_CONFIG.HUB_NUM):
+            if i % ROUTER_CONFIG.HUB_NUM == 0:
                 # grid
-                self.hub.append(Hub(self.grid[i//5][0].real_x, y, 0, i))
+                self.hub.append(Hub(self.grid[i // ROUTER_CONFIG.HUB_NUM][0].real_x, y, 0, i))
             else:
                 # tile
-                offset = self.radius + (i % 5) * self.hub_gap
-                self.hub.append(Hub(self.grid[i//5][0].real_x + offset, y, 1, i))
+                offset = self.radius + (i % ROUTER_CONFIG.HUB_NUM) * self.hub_gap
+                self.hub.append(Hub(self.grid[i // ROUTER_CONFIG.HUB_NUM][0].real_x + offset, y, 1, i))
 
     def get_grid(self, x: int, y: int) -> Grid:
         return self.grid[x][y]
