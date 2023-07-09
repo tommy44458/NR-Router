@@ -4,6 +4,7 @@ from ezdxf.document import Modelspace
 from ezdxf.entities import BoundaryPaths
 from ezdxf.math import ConstructionArc
 
+from chip import ChipSection
 from config import ROUTER_CONFIG
 from degree import Degree, wire_offset_table
 from electrode import Electrode
@@ -135,6 +136,8 @@ class Draw():
     def draw_contact_pad(
         self,
         contactpad_list: list[list],
+        top_section: ChipSection,
+        bottom_section: ChipSection,
         top_ref_pin_list: list[list],
         bottom_ref_pin_list: list[list],
         top_corner_pin_list: list[list],
@@ -174,13 +177,24 @@ class Draw():
                     end_angle=360,
                 )
             else:
-                dxf.add_circle(center=(pad[0], -pad[1]), radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS)
-                white_dxf.add_edge_path().add_arc(
-                    center=(pad[0], -pad[1]),
-                    radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS,
-                    start_angle=0,
-                    end_angle=360,
-                )
+                unit_x = int(pad[0] / unit)
+                unit_y = int(pad[1] / unit)
+                # print(pad, unit_x, unit_y)
+
+                target = top_section.get_grid(unit_x, unit_y)
+                if not target:
+                    unit_x = int((pad[0] - ROUTER_CONFIG.BOTTOM_START_POINT[0]) / unit)
+                    unit_y = int((pad[1] - ROUTER_CONFIG.BOTTOM_START_POINT[1]) / unit)
+                    target = bottom_section.get_grid(unit_x, unit_y)
+
+                if target.covered:
+                    dxf.add_circle(center=(pad[0], -pad[1]), radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS)
+                    white_dxf.add_edge_path().add_arc(
+                        center=(pad[0], -pad[1]),
+                        radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS,
+                        start_angle=0,
+                        end_angle=360,
+                    )
 
     def draw_electrodes(
             self,
@@ -189,7 +203,9 @@ class Draw():
             mesh_electrode_list: list[Electrode],
             dxf: Modelspace,
             red_dxf: BoundaryPaths,
-            white_dxf: BoundaryPaths
+            red_dxf_2: BoundaryPaths,
+            white_dxf: BoundaryPaths,
+            white_dxf_2: BoundaryPaths
         ):
         """Draw the electrodes.
 
@@ -228,27 +244,25 @@ class Draw():
                         dist = math.dist([float(x0), float(y0)], [float(x1), float(y1)])
                         if  dist > corner_size * 1.414 + 1 and dist < corner_size *  2:
                             arc = ConstructionArc.from_2p_angle((x0, y0), (x1, y1), 90)
-                        dxf.add_arc(
-                            center=arc.center,
-                            radius=arc.radius,
-                            start_angle=arc.start_angle,
-                            end_angle=arc.end_angle,
-                        )
+                        # dxf.add_arc(
+                        #     center=arc.center,
+                        #     radius=arc.radius,
+                        #     start_angle=arc.start_angle,
+                        #     end_angle=arc.end_angle
+                        # ).to_spline()
                         # draw white mask
-                        end_angle = arc.end_angle + 2.9
-                        white_dxf.add_edge_path().add_arc(
+                        white_dxf_2.add_edge_path().add_arc(
                             center=arc.center,
                             radius=arc.radius,
-                            start_angle=arc.start_angle,
-                            end_angle=end_angle,
+                            start_angle=0,
+                            end_angle=360,
                         )
                         if len(mesh_electrode_list[elec_index].routing_wire) == 0:
-                            end_angle = arc.end_angle + 2.9
-                            red_dxf.add_edge_path().add_arc(
+                            red_dxf_2.add_edge_path().add_arc(
                                 center=arc.center,
                                 radius=arc.radius,
-                                start_angle=arc.start_angle,
-                                end_angle=end_angle,
+                                start_angle=0,
+                                end_angle=360,
                             )
                     if i != start_index:
                         x0 = vertex_order[i][0]

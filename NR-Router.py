@@ -110,20 +110,26 @@ doc = ezdxf.new(
 # doc.layers.new('BASE_LAYER', dxfattribs={'color': 2})
 msp = doc.modelspace()
 white_hatch = msp.add_hatch(color = 0)
+white_hatch_2 = msp.add_hatch(color = 0)
 # hatch = msp.add_hatch(color = 7)
 # hatch1 = msp.add_hatch(color = 6)
 red_hatch = msp.add_hatch(color = 1)
+red_hatch_2 = msp.add_hatch(color = 1)
 # hatch3 = msp.add_hatch(color = 4)
 blue_hatch = msp.add_hatch(color = 5)
 # dxf = hatch.paths
 # dxf1 = hatch1.paths
 white_dxf = white_hatch.paths
+white_dxf_2 = white_hatch_2.paths
 red_dxf = red_hatch.paths
+red_dxf_2 = red_hatch_2.paths
 # dxf3 = hatch3.paths
 blue_dxf = blue_hatch.paths
 
 _draw.draw_contact_pad(
     contactpad_list = _chip.contactpad_list,
+    top_section = _chip.top_section,
+    bottom_section = _chip.bottom_section,
     top_ref_pin_list = ROUTER_CONFIG.TOP_SECTION_REF_PIN,
     bottom_ref_pin_list = ROUTER_CONFIG.BOTTOM_SECTION_REF_PIN,
     top_corner_pin_list = ROUTER_CONFIG.TOP_SECTION_CORNER_PIN,
@@ -140,9 +146,13 @@ _draw.draw_electrodes(
     mesh_electrode_list = _model_mesh.electrodes,
     dxf = msp,
     red_dxf = red_dxf,
-    white_dxf = white_dxf
+    red_dxf_2 = red_dxf_2,
+    white_dxf = white_dxf,
+    white_dxf_2 = white_dxf_2
+
 )
-_draw.draw_reference_electrode(msp)
+if ROUTER_CONFIG.CHIP_BASE == ChipBase.GLASS:
+    _draw.draw_reference_electrode(msp)
 
 # _draw.draw_pseudo_node(mid_section.grid, dxf2)
 # _draw.draw_hub(_chip.top_section.hub, dxf2)

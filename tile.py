@@ -18,3 +18,4 @@ class Tile():
         self.right_pad: Grid = None
         self.next_vertical: Tile = None
         self.contact_pads: list[Grid] = []
+        self.covered: bool = False

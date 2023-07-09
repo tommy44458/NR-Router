@@ -1,4 +1,5 @@
 import os
+from typing import Union
 
 from config import ROUTER_CONFIG
 from grid import Grid, GridType
@@ -55,8 +56,11 @@ class ChipSection():
                 offset = self.radius + (i % ROUTER_CONFIG.HUB_NUM) * self.hub_gap
                 self.hub.append(Hub(self.grid[i // ROUTER_CONFIG.HUB_NUM][0].real_x + offset, y, 1, i))
 
-    def get_grid(self, x: int, y: int) -> Grid:
-        return self.grid[x][y]
+    def get_grid(self, x: int, y: int) -> Union[Grid, None]:
+        try:
+            return self.grid[x][y]
+        except:
+            return None
 
     def is_edge_grid(self, x: int, y: int) -> bool:
         if x == len(self.grid) or y == len(self.grid[0]):

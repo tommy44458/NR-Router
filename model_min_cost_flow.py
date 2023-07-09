@@ -19,14 +19,14 @@ class ModelMinCostFlow():
     """
 
     def __init__(self, mesh: ModelMesh, flow: ModelFlow):
-        self.mesh = mesh
-        self.flow = flow
+        self.mesh: ModelMesh = mesh
+        self.flow: ModelFlow = flow
         self.start_nodes: list[Union[Grid, Tile, Hub, Electrode]] = []
         self.end_nodes: list[Union[Grid, Tile, Hub, Electrode]] = []
         self.capacities: list[Union[Grid, Tile, Hub, Electrode]] = []
         self.unit_costs: list[Union[Grid, Tile, Hub, Electrode]] = []
-        self.supplies = [0 for i in range(len(self.flow.flownodes))]
-        self.num_supply = 0
+        self.supplies: list[int] = [0 for i in range(len(self.flow.flownodes))]
+        self.num_supply: int = 0
 
         self.mim_cost_solver = None
         self.min_cost_flow = None
@@ -212,15 +212,19 @@ class ModelMinCostFlow():
         # register each electrode first path
         remove_list = []
         for i in non_zero_flow_list:
-            head = self.min_cost_flow.Tail(i)
-            tail = self.min_cost_flow.Head(i)
+            head: int = self.min_cost_flow.Tail(i)
+            tail: int = self.min_cost_flow.Head(i)
             if self.flow.flownodes[tail] == 0:
                 tail -= 1
 
             if type(self.flow.flownodes[head]) == Electrode:
                 if type(self.flow.flownodes[tail]) == Grid:
-                    self.electrode_routing_table[(int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
-                                                 ] = self.flow.flownodes[head].index
+                    self.electrode_routing_table[
+                        (
+                            int(self.flow.flownodes[tail].real_x),
+                            int(self.flow.flownodes[tail].real_y)
+                        )
+                    ] = self.flow.flownodes[head].index
                     remove_list.append(i)
 
         # iterate to register all path to electrode routing wire
@@ -272,6 +276,7 @@ class ModelMinCostFlow():
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[tail].real_x), int(self.flow.flownodes[tail].real_y))
                         register_success = self.register_wire_into_electrode_routing((start_x, start_y), (end_x, end_y))
+                        self.flow.flownodes[tail].covered = True
                     elif type(self.flow.flownodes[tail]) == Tile:
                         start_x, start_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[head].real_y))
                         end_x, end_y = (int(self.flow.flownodes[head].real_x), int(self.flow.flownodes[tail].real_y))
@@ -297,6 +302,7 @@ class ModelMinCostFlow():
                         else:
                             self.flow.flownodes[head].left_pad = self.flow.flownodes[tail]
                         register_success = True
+                        self.flow.flownodes[tail].covered = True
 
                 if register_success:
                     remove_list.append(i)
