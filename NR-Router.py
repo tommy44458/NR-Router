@@ -291,10 +291,11 @@ elif ROUTER_CONFIG.OUTPUT_FORMAT == 'svg':
     Frontend(ctx, out).draw_layout(doc.modelspace(), finalize=True)
     str = StringIO()
     fig.savefig(str, format='svg')
+    # fig.savefig(f'dwg/{ROUTER_CONFIG.OUTPUT_FILE_NAME}.svg', format='svg')
     svg = str.getvalue()
     print(svg)
 elif ROUTER_CONFIG.OUTPUT_FORMAT == 'file':
-    doc.saveas('dwg/' + ROUTER_CONFIG.OUTPUT_FILE_NAME + '.dxf')
+    doc.saveas(f'dwg/{ROUTER_CONFIG.OUTPUT_FILE_NAME}.dxf')
 elif ROUTER_CONFIG.OUTPUT_FORMAT == 'ewds':
     print(gui_routing_result)
 
