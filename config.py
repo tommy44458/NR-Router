@@ -37,12 +37,14 @@ class OutputFormat(StrEnum):
     SVG = 'svg'
 
 class GlassBasedConfig(BaseModel):
+    INPUT_FILE_NAME: str = 'test0307.ewd'
     MID_START_POINT: tuple = (-1630, 11258)
     ELECTRODE_SECTION: tuple = (84000, 44000)
 
 GLASS_BASED_CONFIG = GlassBasedConfig()
 
 class PaperBasedConfig(BaseModel):
+    INPUT_FILE_NAME: str = 'test0625-1.ewd'
     TILE_UNIT: int = 1300
     MID_START_POINT: tuple = (-2580, 10308)
     ELECTRODE_SECTION: tuple = (82000, 42000)
@@ -99,10 +101,12 @@ class RouterConfig(BaseModel):
                     break
             values['MID_START_POINT'] = GLASS_BASED_CONFIG.MID_START_POINT
             values['ELECTRODE_SECTION'] = GLASS_BASED_CONFIG.ELECTRODE_SECTION
+            values['INPUT_FILE_NAME'] = GLASS_BASED_CONFIG.INPUT_FILE_NAME
         elif values['CHIP_BASE'] == ChipBase.PAPER:
             values['TILE_UNIT'] = PAPER_BASED_CONFIG.TILE_UNIT
             values['MID_START_POINT'] = PAPER_BASED_CONFIG.MID_START_POINT
             values['ELECTRODE_SECTION'] = PAPER_BASED_CONFIG.ELECTRODE_SECTION
+            values['INPUT_FILE_NAME'] = PAPER_BASED_CONFIG.INPUT_FILE_NAME
 
         return values
 

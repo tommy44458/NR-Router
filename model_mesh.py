@@ -1,6 +1,6 @@
 from typing import Union
 
-from chip import ChipSection
+from chip import Chip, ChipSection
 from config import WireDirect
 from electrode import Electrode
 from grid import Grid, GridType, NeighborNode, PseudoNodeType
@@ -10,11 +10,11 @@ from tile import Tile
 
 
 class ModelMesh():
-    def __init__(self, top_section: ChipSection, mid_section: ChipSection, bottom_section: ChipSection, pseudo_node: PseudoNode):
-
-        self.top_section = top_section
-        self.mid_section = mid_section
-        self.bottom_section = bottom_section
+    def __init__(self, chip: Chip, pseudo_node: PseudoNode):
+        self.chip = chip
+        self.top_section = chip.top_section
+        self.mid_section = chip.mid_section
+        self.bottom_section = chip.bottom_section
 
         self.pseudo_node = pseudo_node
 
@@ -23,6 +23,39 @@ class ModelMesh():
         self.covered_grid_head_list: list[Grid] = []
 
         self.electrodes: list[Electrode] = []
+
+    def setup(self):
+        self.get_pseudo_node()
+        self.create_pseudo_node_connection()
+        self.create_grid_connection(
+            grid_list = self.chip.mid_section.grid,
+            unit = self.chip.mid_section.unit,
+            hypo_unit = self.chip.mid_section.hypo_unit
+        )
+        self.create_tile_connection(
+            grid_list = self.chip.top_section.grid,
+            tile_array = self.chip.top_section.tile,
+            block = 'top'
+        )
+        self.create_tile_connection(
+            grid_list = self.chip.bottom_section.grid,
+            tile_array = self.chip.bottom_section.tile,
+            block = 'bottom'
+        )
+        self.create_hub_connection(
+            grid_list = self.chip.top_section.grid,
+            hub_array = self.chip.top_section.hub,
+            mid_n = 0,
+            tile_n = -1,
+            tile_array = self.chip.top_section.tile
+        )
+        self.create_hub_connection(
+            grid_list = self.chip.bottom_section.grid,
+            hub_array = self.chip.bottom_section.hub,
+            mid_n = -1,
+            tile_n = 0,
+            tile_array = self.chip.bottom_section.tile
+        )
 
     def get_pseudo_node(self):
         self.covered_grid_head_list, self.electrodes = self.pseudo_node.internal_node()

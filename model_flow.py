@@ -15,6 +15,9 @@ class ModelFlow():
         self.node_index: int = 0
         self.global_t: Tile = Tile()
 
+    def setup(self):
+        self.create_all_flownode()
+
     def create_grid_flownode(self, grid_list: list[list[Grid]]):
         for grid_col in grid_list:
             for grid in grid_col:

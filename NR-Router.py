@@ -12,10 +12,9 @@ import numpy as np
 from ezdxf.addons.drawing import Frontend, RenderContext
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 
-from chip import Chip, ChipSection
+from chip import Chip
 from config import *
 from draw import Draw
-from grid import Grid, GridType
 from model_flow import ModelFlow
 from model_mesh import ModelMesh
 from model_min_cost_flow import ModelMinCostFlow
@@ -67,42 +66,10 @@ _pseudo_node = PseudoNode(
     electrode_list = _chip.electrode_list
 )
 _model_mesh = ModelMesh(
-    top_section = _chip.top_section,
-    mid_section = _chip.mid_section,
-    bottom_section = _chip.bottom_section,
+    chip = _chip,
     pseudo_node = _pseudo_node
 )
-_model_mesh.get_pseudo_node()
-_model_mesh.create_pseudo_node_connection()
-_model_mesh.create_grid_connection(
-    grid_list = _chip.mid_section.grid,
-    unit = _chip.mid_section.unit,
-    hypo_unit = _chip.mid_section.hypo_unit
-)
-_model_mesh.create_tile_connection(
-    grid_list = _chip.top_section.grid,
-    tile_array = _chip.top_section.tile,
-    block = 'top'
-)
-_model_mesh.create_tile_connection(
-    grid_list = _chip.bottom_section.grid,
-    tile_array = _chip.bottom_section.tile,
-    block = 'bottom'
-)
-_model_mesh.create_hub_connection(
-    grid_list = _chip.top_section.grid,
-    hub_array = _chip.top_section.hub,
-    mid_n = 0,
-    tile_n = -1,
-    tile_array = _chip.top_section.tile
-)
-_model_mesh.create_hub_connection(
-    grid_list = _chip.bottom_section.grid,
-    hub_array = _chip.bottom_section.hub,
-    mid_n = -1,
-    tile_n = 0,
-    tile_array = _chip.bottom_section.tile
-)
+_model_mesh.setup()
 
 # print('create mesh:', time.time() - c_time)
 
@@ -112,7 +79,7 @@ _model_mesh.create_hub_connection(
 _model_flow = ModelFlow(
     mesh = _model_mesh
 )
-_model_flow.create_all_flownode()
+_model_flow.setup()
 # print('create flow:', time.time() - c_time)
 
 # c_time = time.time()
