@@ -15,25 +15,25 @@ Check out our online web-based CAD tool: http://cad.edroplets.org/
 
 ## Getting Started
 
-### Set up a Python virtual environment by running the following command:
+### 1. Set up a Python virtual environment by running the following command:
 
 ```shell
 python -m venv venv
 ```
 
-### Activate the virtual environment:
+### 2. Activate the virtual environment:
 
 ```shell
 source ./venv/bin/activate
 ```
 
-### Install the necessary Python packages:
+### 3. Install the necessary Python packages:
 
 ```shell
 pip install -r requirements.txt
 ```
 
-### Run the algorithm.
+### 4. Run the algorithm.
 
 Place the input file for the algorithm in the ./ewd directory. You can specify a specific EWD file by adjusting the INPUT_FILE_NAME variable in ./config.py. The EWD file can be generated using the online DMF CAD tool at http://cad.edroplets.org/.
 
