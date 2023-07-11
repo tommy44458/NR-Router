@@ -37,7 +37,7 @@ class OutputFormat(StrEnum):
     SVG = 'svg'
 
 class GlassBasedConfig(BaseModel):
-    INPUT_FILE_NAME: str = 'test0307.ewd'
+    INPUT_FILE_NAME: str = 'test0711.ewd'
     MID_START_POINT: tuple = (-1630, 11258)
     ELECTRODE_SECTION: tuple = (84000, 44000)
     HUB_NUM: int = 5
@@ -104,6 +104,8 @@ class RouterConfig(BaseModel):
     @root_validator(skip_on_failure=True)
     def sync(cls, values: dict):
         if values['CHIP_BASE'] == ChipBase.GLASS:
+            if values['UNIT_SCALE'] < 2:
+                values['UNIT_SCALE'] = 2
             for unit in UNIT_LIST:
                 if unit <= int(values['ELECTRODE_SIZE'] / values['UNIT_SCALE']) and values['ELECTRODE_SIZE'] % unit == 0:
                     values['TILE_UNIT'] = unit

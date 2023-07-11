@@ -328,6 +328,37 @@ class Draw():
 
         print('grid num: ', num)
 
+    def draw_closed_elec_node(self, grids: list[list[Grid]], hatch_path: BoundaryPaths, dxf: Modelspace = None):
+        """Draw the closed electrodes node.
+
+        Args:
+            grids (list[list[Grid]]): grid list
+            hatch_path (BoundaryPaths): hatch path
+            dxf (Modelspace, optional): dxf maker. Defaults to None.
+        """
+        width = 60
+        mini_width = 30
+        cover_width = 120
+        num = 0
+        for i in range(len(grids)):
+            for j in range(len(grids[i])):
+                if grids[i][j].close_electrode:
+                    x = grids[i][j].real_x
+                    y = -grids[i][j].real_y
+                    if grids[i][j].covered is False:
+                        if grids[i][j].corner:
+                            hatch_path.add_polyline_path([(x, y-mini_width), (x+mini_width, y), (x, y+mini_width), (x-mini_width, y)])
+                        else:
+                            hatch_path.add_polyline_path([(x, y-width), (x+width, y), (x, y+width), (x-width, y)])
+                    else:
+                        hatch_path.add_polyline_path([(x, y-cover_width), (x+cover_width, y), (x, y+cover_width), (x-cover_width, y)])
+                    num += 1
+                if dxf is not None:
+                    for next_grid in grids[i][j].neighbor:
+                        dxf.add_line([grids[i][j].real_x, -grids[i][j].real_y], [next_grid.grid.real_x, -next_grid.grid.real_y])
+
+        print('grid num: ', num)
+
     def draw_pseudo_node_corner(self, grids: list[list[Grid]], hatch_path: BoundaryPaths):
         """Draw the pseudo node corner.
 

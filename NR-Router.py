@@ -152,14 +152,15 @@ _draw.draw_electrodes(
 if ROUTER_CONFIG.CHIP_BASE == ChipBase.GLASS:
     _draw.draw_reference_electrode(msp)
 
-# _draw.draw_pseudo_node(mid_section.grid, dxf2)
+# _draw.draw_pseudo_node(_chip.mid_section.grid, blue_dxf)
+# _draw.draw_closed_elec_node(_chip.mid_section.grid, red_dxf)
 # _draw.draw_hub(_chip.top_section.hub, dxf2)
 # _draw.draw_hub(_chip.bottom_section.hub, dxf2)
 # _draw.draw_tile(top_section.tile, dxf2)
 # _draw.draw_tile(bottom_section.tile, dxf2)
 
 # _draw.draw_grid(top_section.start_point, top_section.unit, [len(top_section.grid), len(top_section.grid[0])], msp)
-# _draw.draw_grid(mid_section.start_point, mid_section.unit, [len(mid_section.grid), len(mid_section.grid[0])], msp)
+# _draw.draw_grid(_chip.mid_section.start_point, _chip.mid_section.unit, [len(_chip.mid_section.grid), len(_chip.mid_section.grid[0])], msp)
 # _draw.draw_grid(bottom_section.start_point, bottom_section.unit, [len(bottom_section.grid), len(bottom_section.grid[0])], msp)
 
 # print(f'electrode_number: {len(_model_mesh.electrodes)}, total runtime: {str(time.time() - start_time)}')
