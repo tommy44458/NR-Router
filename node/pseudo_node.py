@@ -4,9 +4,9 @@ from typing import Union
 import numpy as np
 
 from config import WireDirect
-from degree import Degree, direct_table
-from electrode import Electrode
-from grid import Grid, GridType, PseudoNodeType
+from node.electrode import Electrode
+from node.grid import Grid, GridType, PseudoNodeType
+from wire.degree import Degree, direct_table
 
 
 class PseudoNode():

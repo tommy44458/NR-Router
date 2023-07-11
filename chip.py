@@ -2,9 +2,9 @@ import os
 from typing import Union
 
 from config import ROUTER_CONFIG
-from grid import Grid, GridType
-from hub import Hub
-from tile import Tile
+from node.grid import Grid, GridType
+from node.hub import Hub
+from node.tile import Tile
 
 try:
     __location__ = os.path.realpath(

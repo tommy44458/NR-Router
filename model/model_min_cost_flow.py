@@ -4,14 +4,14 @@ from ortools.graph import pywrapgraph
 from shapely.geometry import LinearRing, Point, Polygon
 
 from config import ROUTER_CONFIG
-from degree import Degree, direct_table
-from electrode import Electrode
-from grid import Grid, GridType
-from hub import Hub
-from model_flow import ModelFlow
-from model_mesh import ModelMesh
-from tile import Tile
-from wire import Wire
+from model.model_flow import ModelFlow
+from model.model_mesh import ModelMesh
+from node.electrode import Electrode
+from node.grid import Grid, GridType
+from node.hub import Hub
+from node.tile import Tile
+from wire.degree import Degree, direct_table
+from wire.wire import Wire
 
 
 class ModelMinCostFlow():

@@ -1,4 +1,4 @@
-from grid import Grid, NeighborNode
+from node.grid import Grid, NeighborNode
 
 
 class Tile():

@@ -2,12 +2,12 @@ from typing import Union
 
 from chip import Chip, ChipSection
 from config import ROUTER_CONFIG, ChipBase, WireDirect
-from degree import Degree, direct_table
-from electrode import Electrode
-from grid import Grid, GridType, NeighborNode, PseudoNodeType
-from hub import Hub
-from pseudo_node import PseudoNode
-from tile import Tile
+from node.electrode import Electrode
+from node.grid import Grid, GridType, NeighborNode, PseudoNodeType
+from node.hub import Hub
+from node.pseudo_node import PseudoNode
+from node.tile import Tile
+from wire.degree import Degree, direct_table
 
 
 class ModelMesh():

@@ -1,4 +1,4 @@
-from grid import Grid
+from node.grid import Grid
 
 
 class Hub(Grid):

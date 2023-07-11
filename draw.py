@@ -6,12 +6,12 @@ from ezdxf.math import ConstructionArc
 
 from chip import ChipSection
 from config import ROUTER_CONFIG
-from degree import Degree, wire_offset_table
-from electrode import Electrode
-from grid import Grid
-from hub import Hub
-from tile import Tile
-from wire import Wire
+from node.electrode import Electrode
+from node.grid import Grid
+from node.hub import Hub
+from node.tile import Tile
+from wire.degree import Degree, wire_offset_table
+from wire.wire import Wire
 
 
 class Draw():
@@ -169,13 +169,15 @@ class Draw():
                     end_angle=360,
                 )
             elif [int(pad[0] / unit), int(pad[1] / unit)] in top_corner_pin_list or [int(pad[0] / unit), int((pad[1] - 56896) / unit)] in bottom_corner_pin_list:
-                dxf.add_circle(center=(pad[0], -pad[1]), radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS, dxfattribs={'color': 1})
-                red_dxf.add_edge_path().add_arc(
-                    center=(pad[0], -pad[1]),
-                    radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS,
-                    start_angle=0,
-                    end_angle=360,
-                )
+                # dose not draw the corner pad
+                pass
+                # dxf.add_circle(center=(pad[0], -pad[1]), radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS, dxfattribs={'color': 1})
+                # red_dxf.add_edge_path().add_arc(
+                #     center=(pad[0], -pad[1]),
+                #     radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS,
+                #     start_angle=0,
+                #     end_angle=360,
+                # )
             else:
                 unit_x = int(pad[0] / unit)
                 unit_y = int(pad[1] / unit)
@@ -188,6 +190,7 @@ class Draw():
                     target = bottom_section.get_grid(unit_x, unit_y)
 
                 if target.covered:
+                    # only draw the contact pad that connect to wire
                     dxf.add_circle(center=(pad[0], -pad[1]), radius=ROUTER_CONFIG.CONTACT_PAD_RADIUS)
                     white_dxf.add_edge_path().add_arc(
                         center=(pad[0], -pad[1]),

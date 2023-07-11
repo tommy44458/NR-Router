@@ -1,5 +1,5 @@
-from grid import Grid
-from wire import Wire
+from node.grid import Grid
+from wire.wire import Wire
 
 
 class Electrode():

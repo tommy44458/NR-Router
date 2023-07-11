@@ -1,12 +1,12 @@
 from config import WireDirect
-from degree import Degree, dia, direct_table
-from electrode import Electrode
-from grid import Grid
-from pseudo_node import PseudoNode
-from wire import Wire
+from node.electrode import Electrode
+from node.grid import Grid
+from node.pseudo_node import PseudoNode
+from wire.degree import Degree, dia, direct_table
+from wire.wire import Wire
 
 
-class RoutingWire():
+class RoutingWireOpt():
     """Routing wire class.
     """
     def __init__(self, pseudo_node: PseudoNode, grid_list: list[list[Grid]], electrode_list: list[Electrode]):
@@ -14,6 +14,13 @@ class RoutingWire():
         self.grid_list: list[list[Grid]] = grid_list
         self.electrode_list: list[Electrode] = electrode_list
         self._reduce_times: int = 0
+
+    def run(self):
+        reduce_times = 1
+        while reduce_times != 0:
+            # reduce until no more turn can be reduced
+            reduce_times = self.reduce_wire_turn()
+        self.divide_start_wire()
 
     def get_grid_by_point(self, point: tuple) -> Grid:
         """Get grid by real point.

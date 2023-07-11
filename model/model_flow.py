@@ -1,10 +1,10 @@
 from typing import Union
 
-from electrode import Electrode
-from grid import Grid, GridType
-from hub import Hub
-from model_mesh import ModelMesh
-from tile import Tile
+from model.model_mesh import ModelMesh
+from node.electrode import Electrode
+from node.grid import Grid, GridType
+from node.hub import Hub
+from node.tile import Tile
 
 
 class ModelFlow():
