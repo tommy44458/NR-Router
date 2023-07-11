@@ -1,6 +1,12 @@
-# NR-Router
+<p align="center">
+  <img width="300px" src="https://github.com/tommy44458/NR-Router/blob/master/logo.png">
+</p>
 
-NR-Router is a tool that enables precise routing on glass-based and paper-based digital microfluidic EWOD (Electrowetting on Dielectric) chips with irregular-shaped electrodes. The routing method is based on the minimum-cost maximum-flow network model, and the routing results can be directly provided to the fabrication facility.
+<h1 align="center">NR-Router</h1>
+
+<p align="center">Non-Regular Electrode Routing with Optimal Pin Selection for Electrowetting-on-Dielectric Chips</p>
+
+NR-Router is a tool that enables precise routing on glass-based and paper-based digital microfluidic EWOD (Electrowetting on Dielectric) chips with non-regular electrodes. The routing method is based on the minimum-cost maximum-flow network model, and the routing results can be directly provided to the fabrication facility.
 
 The detailed algorithm logic can be referred to in the following paper in ASP-DAC: (https://ieeexplore.ieee.org/document/9712567).
 
