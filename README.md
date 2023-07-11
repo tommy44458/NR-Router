@@ -54,9 +54,12 @@ python NR-Router.py glass 2000 4 file
 After running the command, the generated file will be located at ./dwg/mask.dxf.
 The resulting file can be opened and processed by AutoCAD for direct fabrication.
 
+## Routing Routing
+
+<p align="center">
+  <img width="80%" src="https://github.com/tommy44458/NR-Router/blob/master/result.png">
+</p>
+
 ## Design Rules
 The design rules for NR-Router can be flexibly adjusted. You can modify the parameters in RouterConfig() within ./config.py.
-
-
-
 

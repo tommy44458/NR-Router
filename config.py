@@ -37,9 +37,9 @@ class OutputFormat(StrEnum):
     SVG = 'svg'
 
 class GlassBasedConfig(BaseModel):
-    INPUT_FILE_NAME: str = 'test0711.ewd'
+    INPUT_FILE_NAME: str = 'glass-based-elec-size-2000-real_chip.ewd'
     MID_START_POINT: tuple = (-1630, 11258)
-    ELECTRODE_SECTION: tuple = (84000, 44000)
+    ELECTRODE_SECTION: tuple = (82000, 42000)
     HUB_NUM: int = 5
     REGULAR_WIRE_WIDTH: int = 40
     MINI_WIRE_WIDTH: int = 20
@@ -47,10 +47,10 @@ class GlassBasedConfig(BaseModel):
 GLASS_BASED_CONFIG = GlassBasedConfig()
 
 class PaperBasedConfig(BaseModel):
-    INPUT_FILE_NAME: str = 'test0625-1.ewd'
+    INPUT_FILE_NAME: str = 'paper-based-1.ewd'
     TILE_UNIT: int = 1300
     MID_START_POINT: tuple = (-2580, 10308)
-    ELECTRODE_SECTION: tuple = (82000, 42000)
+    ELECTRODE_SECTION: tuple = (84000, 44000)
     HUB_NUM: int = 2
     REGULAR_WIRE_WIDTH: int = 300
     MINI_WIRE_WIDTH: int = 300
