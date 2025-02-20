@@ -7,3 +7,4 @@
 /dwg/*.dwg
 /venv
 /dwg/*.svg
+*.DS_Store
